@@ -13,6 +13,7 @@
     <scala.version>2.13.10</scala.version>
     <scala.compat.version>2.13</scala.compat.version>
     <spec2.version>4.19.0</spec2.version>
+    <spark.version>3.3.1</spark.version>
   </properties>
 
   <dependencies>
@@ -22,12 +23,26 @@
       <version>${scala.version}</version>
     </dependency>
 
-    <!-- Spark dependency -->
+    <!-- Spark dependencies -->
+    <!-- Core -->
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_${scala.compat.version}</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- SQL -->
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_${scala.compat.version}</artifactId>
-      <version>3.3.1</version>
+      <version>${spark.version}</version>
       <scope>provided</scope>
+    </dependency>
+    <!-- GraphX  -->
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-graphx_${scala.compat.version}</artifactId>
+      <version>${spark.version}</version>
     </dependency>
 
     <!-- Test -->
