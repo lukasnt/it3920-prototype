@@ -1,7 +1,7 @@
 package com.lukasnt.spark
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.graphx.{Edge, Graph, VertexId}
+import org.apache.spark.graphx.{Edge, EdgeDirection, Graph, VertexId}
 import org.apache.spark.rdd.RDD
 
 /**
@@ -35,6 +35,7 @@ object App {
   private def runGraphX(): Unit = {
     val spark = SparkSession.builder.appName("GraphX").getOrCreate()
     val sc = spark.sparkContext
+    sc.setLogLevel("ERROR")
 
     // Create Graph from RDD of vertices and edges
     val users: RDD[(VertexId, (String, String))] = sc.parallelize(Seq(
@@ -54,6 +55,14 @@ object App {
 
     // Print the vertices
     graph.vertices.collect().foreach(println)
+    graph.pregel("", 10, EdgeDirection.Out)(
+      vprog = (id, attr, msg) => (attr._1, msg),
+      sendMsg = triplet => {
+        println(s"triplet: $triplet")
+        Iterator((triplet.dstId, triplet.srcAttr.toString() + triplet.attr))
+      },
+      mergeMsg = (a, b) => a + b
+    ).vertices.collect().foreach(println)
 
     spark.stop()
   }
