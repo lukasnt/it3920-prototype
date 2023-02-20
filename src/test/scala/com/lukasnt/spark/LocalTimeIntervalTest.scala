@@ -27,6 +27,7 @@ class LocalTimeIntervalTest {
     val interval1 = new LocalTimeInterval(LocalTime.of(0, 0), LocalTime.of(0, 5))
     val interval2 = new LocalTimeInterval(LocalTime.of(0, 0), LocalTime.of(0, 5))
     assertTrue(interval1.equals(interval2))
+    assertTrue(interval2.equals(interval1))
   }
 
   @Test
@@ -34,6 +35,7 @@ class LocalTimeIntervalTest {
     val interval1 = new LocalTimeInterval(LocalTime.of(0, 0), LocalTime.of(0, 5))
     val interval2 = new LocalTimeInterval(LocalTime.of(0, 0), LocalTime.of(0, 6))
     assertFalse(interval1.equals(interval2))
+    assertFalse(interval2.equals(interval1))
   }
 
   @Test
