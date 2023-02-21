@@ -1,5 +1,6 @@
 package com.lukasnt.spark
 
+import com.lukasnt.spark.Types.TemporalGraph
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.graphx.{Edge, EdgeDirection, Graph, VertexId}
 import org.apache.spark.rdd.RDD
@@ -15,6 +16,7 @@ object App {
     runSimpleApp()
     runGraphX()
     runLocalDateTimeInterval()
+    runTemporalGraphTest()
 
     // Wait for user input
     System.in.read()
@@ -86,5 +88,41 @@ object App {
 
     // Just print out as an example
     test.collect().foreach(println)
+  }
+
+  /**
+   * Simple TemporalGraphTest example
+   */
+  private def runTemporalGraphTest(): Unit = {
+    val spark = SparkSession.builder.appName("Simple Temporal Graph Test").getOrCreate()
+    val sc = spark.sparkContext
+
+    val edges: RDD[Edge[TemporalProperties[LocalDateTime]]] = sc.parallelize(Seq(
+      new Edge(1, 2,
+        new TemporalProperties(
+          new TemporalInterval(
+            LocalDateTime.of(1, 1, 1, 1, 1),
+            LocalDateTime.of(2, 2, 2, 2, 2)
+          ),
+          Map("key" -> "value")
+        )),
+      new Edge(2, 3,
+        new TemporalProperties(
+          new TemporalInterval(
+            LocalDateTime.of(1, 1, 1, 1, 1),
+            LocalDateTime.of(2, 2, 2, 2, 2)
+          ),
+          Map("key" -> "value")
+        ))
+    ))
+
+    val graph: TemporalGraph[LocalDateTime] = Graph.fromEdges(edges, new TemporalProperties(
+      new TemporalInterval(
+        LocalDateTime.of(0, 1, 1, 1, 0),
+        LocalDateTime.of(2, 2, 2, 2, 2)),
+      Map("key" -> "value"))
+    )
+
+    graph.edges.foreach(println)
   }
 }

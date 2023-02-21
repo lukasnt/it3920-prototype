@@ -1,5 +1,6 @@
 package com.lukasnt.spark
 
+import com.lukasnt.spark.TemporalInterval
 import org.junit.Assert.{assertFalse, assertTrue}
 import org.junit.Test
 
