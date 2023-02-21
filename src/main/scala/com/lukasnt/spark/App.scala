@@ -4,13 +4,17 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.graphx.{Edge, EdgeDirection, Graph, VertexId}
 import org.apache.spark.rdd.RDD
 
+import java.time.LocalDateTime
+
 /**
  * @author ${user.name}
  */
 object App {
   
   def main(args: Array[String]): Unit = {
+    runSimpleApp()
     runGraphX()
+    runLocalDateTimeInterval()
 
     // Wait for user input
     System.in.read()
@@ -65,5 +69,22 @@ object App {
     ).vertices.collect().foreach(println)
 
     spark.stop()
+  }
+
+  /**
+   * Simple LocalDateTimeInterval example
+   */
+  private def runLocalDateTimeInterval(): Unit = {
+    val spark = SparkSession.builder.appName("GraphX").getOrCreate()
+    val sc = spark.sparkContext
+
+    // Create RDD of LocalDateTimeInterval
+    val test: RDD[TemporalInterval[LocalDateTime]] = sc.parallelize(Seq(
+      new TemporalInterval(LocalDateTime.of(0, 1, 1, 0, 0), LocalDateTime.of(0, 1, 1, 0, 1)),
+      new TemporalInterval(LocalDateTime.of(1, 1, 1, 0, 2), LocalDateTime.of(1, 1, 1, 0, 3))
+    ))
+
+    // Just print out as an example
+    test.collect().foreach(println)
   }
 }
