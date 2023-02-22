@@ -1,6 +1,6 @@
 package com.lukasnt.spark.examples
 
-import com.lukasnt.spark.TemporalInterval
+import com.lukasnt.spark.models.TemporalInterval
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 

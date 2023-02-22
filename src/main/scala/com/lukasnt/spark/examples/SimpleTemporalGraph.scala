@@ -1,7 +1,7 @@
 package com.lukasnt.spark.examples
 
-import com.lukasnt.spark.Types.TemporalGraph
-import com.lukasnt.spark.{TemporalInterval, TemporalProperties}
+import com.lukasnt.spark.models.Types.TemporalGraph
+import com.lukasnt.spark.models.{TemporalInterval, TemporalProperties}
 import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession

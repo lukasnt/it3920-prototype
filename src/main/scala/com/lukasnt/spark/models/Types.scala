@@ -1,4 +1,4 @@
-package com.lukasnt.spark
+package com.lukasnt.spark.models
 
 import org.apache.spark.graphx.Graph
 

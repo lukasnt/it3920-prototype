@@ -1,6 +1,6 @@
 package com.lukasnt.spark
 
-import com.lukasnt.spark.examples.{SimpleGraphX, SimpleSpark, SimpleTemporalGraph, SimpleTemporalInterval}
+import com.lukasnt.spark.examples.{CSVLoader, SimpleGraphX, SimpleSpark, SimpleTemporalGraph, SimpleTemporalInterval}
 
 /**
   * @author ${user.name}
@@ -12,6 +12,7 @@ object App {
     SimpleGraphX.run()
     SimpleTemporalInterval.run()
     SimpleTemporalGraph.run()
+    CSVLoader.run()
 
     // Wait for user input
     System.in.read()

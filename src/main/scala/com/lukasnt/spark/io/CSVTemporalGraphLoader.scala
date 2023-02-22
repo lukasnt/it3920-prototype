@@ -1,7 +1,7 @@
 package com.lukasnt.spark.io
 
-import com.lukasnt.spark.Types.TemporalGraph
-import com.lukasnt.spark.{TemporalInterval, TemporalParser, TemporalProperties}
+import com.lukasnt.spark.models.{TemporalInterval, TemporalParser, TemporalProperties}
+import com.lukasnt.spark.models.Types.TemporalGraph
 import org.apache.spark.SparkContext
 import org.apache.spark.graphx.{Edge, Graph, VertexId}
 import org.apache.spark.rdd.RDD
@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.Temporal
 import scala.io.Source
 
-class CsvTemporalGraphLoader(val temporalParser: TemporalParser =
+class CSVTemporalGraphLoader(val temporalParser: TemporalParser =
                                new TemporalParser {
                                  override def parse[T <: Temporal](
                                      temporal: String): T =
@@ -20,7 +20,7 @@ class CsvTemporalGraphLoader(val temporalParser: TemporalParser =
                                },
                              val separator: String = "|",
                              val startDateColumn: String = "creationDate",
-                             val endDateColumn: String = "endDate",
+                             val endDateColumn: String = "deletionDate",
                              val srcIdColumn: String = "srcId",
                              val dstIdColumn: String = "dstId")
     extends TemporalGraphLoader {
@@ -32,8 +32,6 @@ class CsvTemporalGraphLoader(val temporalParser: TemporalParser =
     // Initialize the RDD of vertices and edges
     var vertices: RDD[(VertexId, TemporalProperties[T])] = sc.emptyRDD
     var edges: RDD[Edge[TemporalProperties[T]]]          = sc.emptyRDD
-
-    val temporalGraph: TemporalGraph[T] = Graph.apply(vertices, edges)
 
     for ((label, file) <- labelFiles) {
       val dataRows: Array[Edge[TemporalProperties[T]]] = Array.empty
@@ -50,9 +48,11 @@ class CsvTemporalGraphLoader(val temporalParser: TemporalParser =
 
       // Read the rest of the file
       for (line <- lines) {
-        val columns   = line.split(separator)
+        val columns = line.split(separator)
+
+        // Get the standard columns
         val startDate = temporalParser.parse(columns(startDateColumnIndex))
-        val endDate   = temporalParser.parse(columns(endDateColumnIndex))
+        // val endDate   = temporalParser.parse(columns(endDateColumnIndex))
         val srcId     = columns(srcIdColumnIndex).toLong
         val dstId     = columns(dstIdColumnIndex).toLong
 
@@ -63,18 +63,17 @@ class CsvTemporalGraphLoader(val temporalParser: TemporalParser =
             column._1 == startDateColumn || column._1 == endDateColumn)
           .toMap
 
-        // Create a TemporalProperties object
+        // Create a TemporalProperties object and add it to the data rows
         val temporalProperties = new TemporalProperties[T](
-          new TemporalInterval[T](startDate, endDate),
+          new TemporalInterval[T](startDate, startDate),
           label,
-          properties)
-
-        // Add the temporal properties to the data rows
+          properties
+        )
         dataRows :+ Edge(srcId, dstId, temporalProperties)
       }
 
+      // Add the data rows to the RDD of edges and close file
       edges = edges.union(sc.parallelize(dataRows))
-
       fileSource.close()
     }
 
