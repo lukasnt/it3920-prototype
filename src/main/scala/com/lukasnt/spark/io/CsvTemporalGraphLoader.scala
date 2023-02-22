@@ -1,15 +1,24 @@
 package com.lukasnt.spark.io
 
 import com.lukasnt.spark.Types.TemporalGraph
-import com.lukasnt.spark.{TemporalInterval, TemporalProperties}
+import com.lukasnt.spark.{TemporalInterval, TemporalParser, TemporalProperties}
 import org.apache.spark.SparkContext
 import org.apache.spark.graphx.{Edge, Graph, VertexId}
 import org.apache.spark.rdd.RDD
 
+import java.time.format.DateTimeFormatter
 import java.time.temporal.Temporal
 import scala.io.Source
 
-class CsvTemporalGraphLoader(val separator: String = "|",
+class CsvTemporalGraphLoader(val temporalParser: TemporalParser =
+                               new TemporalParser {
+                                 override def parse[T <: Temporal](
+                                     temporal: String): T =
+                                   DateTimeFormatter.ISO_DATE_TIME
+                                     .parse(temporal)
+                                     .asInstanceOf[T]
+                               },
+                             val separator: String = "|",
                              val startDateColumn: String = "creationDate",
                              val endDateColumn: String = "endDate",
                              val srcIdColumn: String = "srcId",
@@ -42,10 +51,10 @@ class CsvTemporalGraphLoader(val separator: String = "|",
       // Read the rest of the file
       for (line <- lines) {
         val columns   = line.split(separator)
-        val startDate = new T(columns(startDateColumnIndex))
-        val endDate   = new T(columns(endDateColumnIndex))
-        val srcId     = new VertexId(columns(srcIdColumnIndex).toLong)
-        val dstId     = new VertexId(columns(dstIdColumnIndex).toLong)
+        val startDate = temporalParser.parse(columns(startDateColumnIndex))
+        val endDate   = temporalParser.parse(columns(endDateColumnIndex))
+        val srcId     = columns(srcIdColumnIndex).toLong
+        val dstId     = columns(dstIdColumnIndex).toLong
 
         // Get all the other columns as properties
         val properties = header
