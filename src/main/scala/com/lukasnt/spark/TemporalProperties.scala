@@ -2,9 +2,10 @@ package com.lukasnt.spark
 
 import java.time.temporal.Temporal
 
-class TemporalProperties[T <: Temporal]
-  (val interval: TemporalInterval[T], val typeLabel: String, val properties: Map[String, String])
-  extends Serializable {
+class TemporalProperties[T <: Temporal](val interval: TemporalInterval[T],
+                                        val typeLabel: String,
+                                        val properties: Map[String, String])
+    extends Serializable {
 
   def getInterval: TemporalInterval[T] = {
     this.interval
@@ -25,7 +26,8 @@ class TemporalProperties[T <: Temporal]
   override def equals(obj: Any): Boolean = {
     obj match {
       case that: TemporalProperties[T] =>
-        this.interval.equals(that.interval) && this.properties.equals(that.properties)
+        this.interval.equals(that.interval) && this.properties
+          .equals(that.properties)
       case _ => false
     }
   }
