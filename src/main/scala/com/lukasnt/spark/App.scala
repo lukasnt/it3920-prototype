@@ -104,6 +104,7 @@ object App {
             LocalDateTime.of(1, 1, 1, 1, 1),
             LocalDateTime.of(2, 2, 2, 2, 2)
           ),
+          "TestLabel",
           Map("key" -> "value")
         )),
       new Edge(2, 3,
@@ -112,6 +113,7 @@ object App {
             LocalDateTime.of(1, 1, 1, 1, 1),
             LocalDateTime.of(2, 2, 2, 2, 2)
           ),
+          "TestLabel",
           Map("key" -> "value")
         ))
     ))
@@ -120,6 +122,7 @@ object App {
       new TemporalInterval(
         LocalDateTime.of(0, 1, 1, 1, 0),
         LocalDateTime.of(2, 2, 2, 2, 2)),
+      "TestLabel",
       Map("key" -> "value"))
     )
 

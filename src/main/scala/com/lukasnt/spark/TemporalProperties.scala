@@ -2,10 +2,16 @@ package com.lukasnt.spark
 
 import java.time.temporal.Temporal
 
-class TemporalProperties[T <: Temporal](val interval: TemporalInterval[T], val properties: Map[String, String]) extends Serializable {
+class TemporalProperties[T <: Temporal]
+  (val interval: TemporalInterval[T], val typeLabel: String, val properties: Map[String, String])
+  extends Serializable {
 
   def getInterval: TemporalInterval[T] = {
     this.interval
+  }
+
+  def getTypeLabel: String = {
+    this.typeLabel
   }
 
   def getPropertyValue(key: String): Serializable = {
@@ -13,7 +19,7 @@ class TemporalProperties[T <: Temporal](val interval: TemporalInterval[T], val p
   }
 
   override def toString: String = {
-    s"TemporalProperty(interval=$interval, property=$properties)"
+    s"TemporalProperty(interval=$interval, typeLabel=$typeLabel, properties=$properties)"
   }
 
   override def equals(obj: Any): Boolean = {
