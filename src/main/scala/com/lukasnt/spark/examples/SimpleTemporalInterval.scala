@@ -18,10 +18,8 @@ object SimpleTemporalInterval {
     // Create RDD of LocalDateTimeInterval
     val test: RDD[TemporalInterval[LocalDateTime]] = sc.parallelize(
       Seq(
-        new TemporalInterval(LocalDateTime.of(0, 1, 1, 0, 0),
-                             LocalDateTime.of(0, 1, 1, 0, 1)),
-        new TemporalInterval(LocalDateTime.of(1, 1, 1, 0, 2),
-                             LocalDateTime.of(1, 1, 1, 0, 3))
+        new TemporalInterval(LocalDateTime.of(0, 1, 1, 0, 0), LocalDateTime.of(0, 1, 1, 0, 1)),
+        new TemporalInterval(LocalDateTime.of(1, 1, 1, 0, 2), LocalDateTime.of(1, 1, 1, 0, 3))
       ))
 
     // Just print out as an example

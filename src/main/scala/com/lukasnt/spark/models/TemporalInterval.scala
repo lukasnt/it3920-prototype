@@ -8,8 +8,7 @@ import java.time.temporal.{ChronoUnit, Temporal}
   * @param endTime end time of the interval
   * @tparam T Temporal type of the interval (e.g. LocalDateTime, LocalTime, etc.)
   */
-class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T)
-    extends Serializable {
+class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends Serializable {
 
   /**
     * @param interval interval to compare with

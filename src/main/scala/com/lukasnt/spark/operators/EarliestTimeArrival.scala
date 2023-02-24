@@ -17,8 +17,7 @@ object EarliestTimeArrival {
     * @param srcId source vertex id
     * @return temporal graph with the earliest time arrival for each vertex
     */
-  def run(temporalGraph: TemporalGraph[LocalDateTime],
-          srcId: VertexId): TemporalGraph[LocalDateTime] = {
+  def run(temporalGraph: TemporalGraph[LocalDateTime], srcId: VertexId): TemporalGraph[LocalDateTime] = {
     temporalGraph.pregel[LocalDateTime](
       LocalDateTime.MAX,
       Int.MaxValue,
@@ -27,27 +26,23 @@ object EarliestTimeArrival {
       // Vertex Program
       (id, attr, msg) => {
         val current =
-          new LocalDateTime(attr.properties.getOrElse("eta", LocalDateTime.MAX))
+          LocalDateTime.parse(attr.properties.getOrElse("eta", LocalDateTime.MAX.toString))
         if (id == srcId) {
-          new TemporalProperties[LocalDateTime](
-            attr.interval,
-            attr.typeLabel,
-            attr.properties ++ Map("eta" -> LocalDateTime.MIN.toString))
+          new TemporalProperties[LocalDateTime](attr.interval,
+                                                attr.typeLabel,
+                                                attr.properties ++ Map("eta" -> LocalDateTime.MIN.toString))
         } else if (msg.isBefore(current)) {
-          new TemporalProperties[LocalDateTime](
-            attr.interval,
-            attr.typeLabel,
-            attr.properties ++ Map("eta" -> msg.toString))
+          new TemporalProperties[LocalDateTime](attr.interval,
+                                                attr.typeLabel,
+                                                attr.properties ++ Map("eta" -> msg.toString))
         } else {
           attr
         }
       },
       // Send Message
       triplet => {
-        val current = new LocalDateTime(
-          triplet.srcAttr.properties.getOrElse("eta", LocalDateTime.MAX))
-        val next = new LocalDateTime(
-          triplet.dstAttr.properties.getOrElse("eta", LocalDateTime.MAX))
+        val current = LocalDateTime.parse(triplet.srcAttr.properties.getOrElse("eta", LocalDateTime.MAX.toString))
+        val next    = LocalDateTime.parse(triplet.dstAttr.properties.getOrElse("eta", LocalDateTime.MAX.toString))
         if (current.isBefore(next)) {
           Iterator((triplet.dstId, current))
         } else {
@@ -56,11 +51,7 @@ object EarliestTimeArrival {
       },
       // Merge Message
       (a, b) => {
-        if (a.isBefore(b)) {
-          a
-        } else {
-          b
-        }
+        if (a.isBefore(b)) a else b
       }
     )
   }

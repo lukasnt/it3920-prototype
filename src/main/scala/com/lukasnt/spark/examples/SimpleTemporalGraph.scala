@@ -44,11 +44,9 @@ object SimpleTemporalGraph {
 
     val graph: TemporalGraph[LocalDateTime] = Graph.fromEdges(
       edges,
-      new TemporalProperties(
-        new TemporalInterval(LocalDateTime.of(0, 1, 1, 1, 0),
-                             LocalDateTime.of(2, 2, 2, 2, 2)),
-        "TestLabel",
-        Map("key" -> "value")))
+      new TemporalProperties(new TemporalInterval(LocalDateTime.of(0, 1, 1, 1, 0), LocalDateTime.of(2, 2, 2, 2, 2)),
+                             "TestLabel",
+                             Map("key" -> "value")))
 
     graph.edges.foreach(println)
   }

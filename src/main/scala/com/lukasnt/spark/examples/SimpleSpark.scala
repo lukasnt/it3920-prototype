@@ -8,7 +8,7 @@ object SimpleSpark {
     * Simple Spark example
     */
   def run(): Unit = {
-    val logFile = "./spark/README.md" // Should be some file on your system
+    val logFile = "./README.md" // Should be some file on your system
     val spark   = SparkSession.builder.appName("Simple Applictaion").getOrCreate()
     val logData = spark.read.textFile(logFile).cache()
     val numAs   = logData.filter(line => line.contains("a")).count()
@@ -16,5 +16,5 @@ object SimpleSpark {
     println(s"Lines with a: $numAs, Lines with b: $numBs")
     spark.stop()
   }
-  
+
 }
