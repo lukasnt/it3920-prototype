@@ -1,0 +1,29 @@
+
+services:
+  zeppelin:
+    build:
+      context: .
+    platform: linux/arm64/v8
+    ports:
+      - "8080:8080"
+    volumes:
+      - type: bind
+        source: ./notebooks
+        target: /opt/zeppelin/notebook
+        read_only: false
+      - type: bind
+        source: ./target
+        target: /opt/zeppelin/target
+        read_only: false
+    environment:
+      - ZEPPELIN_NOTEBOOK_DIR=/opt/zeppelin/notebook
+      - ZEPPELIN_ADDR=0.0.0.0
+      - ZEPPELIN_PORT=8080
+    command: > 
+      bash -c "
+      printenv
+      && ls -l / /lib /lib/jvm /opt /opt/zeppelin /opt/zeppelin/conf /opt/zeppelin/bin
+      && /opt/zeppelin/bin/zeppelin-daemon.sh upstart
+      && curl -X POST http://0.0.0.0:8080/api/notebook/job/2HVXJV9QH
+      "
+    tty: true
