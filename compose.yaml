@@ -19,11 +19,30 @@ services:
       - ZEPPELIN_NOTEBOOK_DIR=/opt/zeppelin/notebook
       - ZEPPELIN_ADDR=0.0.0.0
       - ZEPPELIN_PORT=8080
+      - ZEPPELIN_MEM=-Xmx16384m -XX:MaxPermSize=4096m
+    command: /opt/zeppelin/bin/zeppelin-daemon.sh upstart
+    tty: true
+
+  package-restart:
+    depends_on:
+      - zeppelin
+    build:
+      context: .
+      target: mvn-package
+    platform: linux/arm64/v8
+    ports:
+      - "8081:8081"
+    volumes:
+      - type: bind
+        source: ./target
+        target: /usr/home/spark-graphx-scala/target
+        read_only: false
+      - ./src:/usr/home/spark-graphx-scala/src
+      - ./pom.xml:/usr/home/spark-graphx-scala/pom.xml
+    working_dir: /usr/home/spark-graphx-scala
     command: > 
       bash -c "
-      printenv
-      && ls -l / /lib /lib/jvm /opt /opt/zeppelin /opt/zeppelin/conf /opt/zeppelin/bin
-      && /opt/zeppelin/bin/zeppelin-daemon.sh upstart
-      && curl -X POST http://0.0.0.0:8080/api/notebook/job/2HVXJV9QH
+      mvn package
+      && curl -X PUT http://zeppelin:8080/api/interpreter/setting/restart/spark
+      && curl -X POST http://zeppelin:8080/api/notebook/job/2HVXJV9QH
       "
-    tty: true

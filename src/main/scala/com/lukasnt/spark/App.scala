@@ -9,7 +9,6 @@ object App {
 
   def main(args: Array[String]): Unit = {
     println("Hello World!")
-    println("testing")
     SimpleSpark.run()
     SimpleGraphX.run()
     SimpleTemporalInterval.run()

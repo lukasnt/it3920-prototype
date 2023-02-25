@@ -1,12 +1,7 @@
 FROM apache/spark:v3.2.3 AS spark
 
 FROM ubuntu:20.04 AS base
-RUN apt-get update && apt-get install -y wget maven
-
-FROM base AS mvn-package
-COPY pom.xml /usr/home/spark-graphx-scala/pom.xml
-COPY /src /usr/home/spark-graphx-scala/src
-RUN cd /usr/home/spark-graphx-scala && mvn clean package
+RUN apt-get update && apt-get install -y wget curl maven
 
 FROM base AS zeppelin
 RUN wget https://dlcdn.apache.org/zeppelin/zeppelin-0.10.1/zeppelin-0.10.1-bin-all.tgz && \
@@ -14,8 +9,16 @@ RUN wget https://dlcdn.apache.org/zeppelin/zeppelin-0.10.1/zeppelin-0.10.1-bin-a
     mv zeppelin-0.10.1-bin-all /opt/zeppelin && \
     rm zeppelin-0.10.1-bin-all.tgz
 
+FROM base AS mvn-install
+COPY pom.xml /usr/home/spark-graphx-scala/pom.xml
+RUN cd /usr/home/spark-graphx-scala && mvn install
+
 FROM base AS openjdk
 RUN apt-get install -y openjdk-8-jdk
+
+FROM mvn-install AS mvn-package
+COPY /src /usr/home/spark-graphx-scala/src
+RUN cd /usr/home/spark-graphx-scala && mvn clean package
 
 FROM base
 COPY --from=zeppelin /opt/zeppelin /opt/zeppelin
