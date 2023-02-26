@@ -6,3 +6,4 @@
 /ldbc_snb_datagen_spark
 *.crc
 *.parquet
+_SUCCESS
