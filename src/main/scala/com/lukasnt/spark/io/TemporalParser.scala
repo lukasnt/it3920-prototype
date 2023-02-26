@@ -1,4 +1,4 @@
-package com.lukasnt.spark.models
+package com.lukasnt.spark.io
 
 import java.time.temporal.Temporal
 

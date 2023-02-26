@@ -1,51 +1,33 @@
 package com.lukasnt.spark.io
 
-import com.lukasnt.spark.models.Types.TemporalGraph
-import com.lukasnt.spark.models.{TemporalInterval, TemporalParser, TemporalProperties}
+import com.lukasnt.spark.models.{TemporalInterval, TemporalProperties}
 import org.apache.spark.SparkContext
-import org.apache.spark.graphx.{Edge, Graph, VertexId}
+import org.apache.spark.graphx.{Edge, VertexId}
 import org.apache.spark.rdd.RDD
 
 import java.time.temporal.Temporal
 import scala.collection.mutable.ListBuffer
 import scala.io.Source
 
-class LocalCSVLoader[T <: Temporal](val labelFiles: Map[String, String],
-                                    val temporalParser: TemporalParser[T],
+class LocalCSVLoader[T <: Temporal](val temporalParser: TemporalParser[T],
                                     val separator: Char = '|',
                                     val startDateColumn: String = "creationDate",
                                     val endDateColumn: String = "deletionDate",
                                     val srcIdColumn: String = "srcId",
                                     val dstIdColumn: String = "dstId")
-    extends TemporalGraphLoader[T] {
+    extends TemporalPropertiesLoader[T] {
 
-  override def load(sc: SparkContext): TemporalGraph[T] = {
-
-    // Initialize the RDD of vertices and edges
-    var vertices: RDD[(VertexId, TemporalProperties[T])] = sc.emptyRDD
-    var edges: RDD[Edge[TemporalProperties[T]]]          = sc.emptyRDD
-
-    for ((label, file) <- labelFiles) {
-      // Read the file and add the edges to the RDD
-      val edgeList = readEdgeLabelFile(label, file)
-      val edgesRDD = sc.parallelize(edgeList)
-      edges = edges.union(edgesRDD)
-    }
-
-    // Default vertex properties
-    val defaultVertexProperties = new TemporalProperties[T](
-      findLifetimeInterval(edges),
-      "default",
-      Map()
-    )
-
-    Graph.fromEdges(edges, defaultVertexProperties)
+  override def readVerticesFile(sc: SparkContext,
+                                path: String,
+                                label: String): RDD[(VertexId, TemporalProperties[T])] = {
+    ???
   }
 
-  private def readEdgeLabelFile(label: String, path: String): List[Edge[TemporalProperties[T]]] = {
+  override def readEdgesFile(sc: SparkContext, path: String, label: String): RDD[Edge[TemporalProperties[T]]] = {
     val dataRows: ListBuffer[Edge[TemporalProperties[T]]] = ListBuffer()
 
     // Read the file
+    println(path)
     val fileSource = Source.fromInputStream(getClass.getResourceAsStream(path))
     val lines      = fileSource.getLines()
 
@@ -91,26 +73,7 @@ class LocalCSVLoader[T <: Temporal](val labelFiles: Map[String, String],
     }
 
     fileSource.close()
-    dataRows.toList
-  }
-
-  private def findLifetimeInterval(edges: RDD[Edge[TemporalProperties[T]]]): TemporalInterval[T] = {
-    val minInterval: TemporalInterval[T] =
-      edges
-        .reduce((e1, e2) => {
-          if (e1.attr.interval.before(e2.attr.interval)) e1 else e2
-        })
-        .attr
-        .interval
-
-    val maxInterval: TemporalInterval[T] = edges
-      .reduce((e1, e2) => {
-        if (e1.attr.interval.before(e2.attr.interval)) e2 else e1
-      })
-      .attr
-      .interval
-
-    new TemporalInterval[T](minInterval.startTime, maxInterval.endTime)
+    sc.parallelize(dataRows)
   }
 
 }

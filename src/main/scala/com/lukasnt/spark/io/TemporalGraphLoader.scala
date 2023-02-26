@@ -6,6 +6,7 @@ import org.apache.spark.SparkContext
 import java.time.temporal.Temporal
 
 trait TemporalGraphLoader[T <: Temporal] {
+  
   def load(sc: SparkContext): TemporalGraph[T]
 
 }
