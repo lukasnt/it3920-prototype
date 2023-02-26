@@ -2,8 +2,8 @@ package com.lukasnt.spark.models
 
 import java.time.temporal.Temporal
 
-trait TemporalParser {
+trait TemporalParser[T <: Temporal] {
 
-  def parse[T <: Temporal](temporal: String): T
+  def parse(temporal: String): T
 
 }

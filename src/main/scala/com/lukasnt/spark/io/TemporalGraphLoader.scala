@@ -5,9 +5,7 @@ import org.apache.spark.SparkContext
 
 import java.time.temporal.Temporal
 
-trait TemporalGraphLoader {
-  def readEdgeListFiles[T <: Temporal](
-      sc: SparkContext,
-      labelFiles: Map[String, String]): TemporalGraph[T]
+trait TemporalGraphLoader[T <: Temporal] {
+  def load(sc: SparkContext): TemporalGraph[T]
 
 }
