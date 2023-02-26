@@ -4,3 +4,5 @@
 /spark-3.2.3-bin-hadoop3.2
 /zeppelin
 /ldbc_snb_datagen_spark
+*.crc
+*.parquet

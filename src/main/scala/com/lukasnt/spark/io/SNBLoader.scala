@@ -63,18 +63,16 @@ class SNBLoader(val folderPath: String, propertiesLoader: TemporalPropertiesLoad
     // Find all subdirectories which are named after the label
     val subDirs = new java.io.File(DATA_GEN_ROOT).listFiles
       .filter(_.isDirectory)
-      .map(_.getName)
-      .filter(f => /*VERTEX_LABELS.contains(f) ||*/ EDGE_LABELS.map(_._1).contains(f))
+      .filter(f => /*VERTEX_LABELS.contains(f) ||*/ EDGE_LABELS.map(_._1).contains(f.getName))
 
     // Find all files that start with "part" and end with ".csv"
     val files = subDirs.map(
-      dir =>
-        new java.io.File(s"$DATA_GEN_ROOT/$dir").listFiles
-          .filter(f => f.getName.startsWith("part") && f.getName.endsWith(".csv"))
-          .map(_.getName))
+      _.listFiles
+        .filter(f => f.getName.startsWith("part") && f.getName.endsWith(".csv"))
+        .map(_.getName))
 
     // Create a map of label -> files
-    subDirs.zip(files).toMap
+    subDirs.map(_.getName).zip(files).toMap
   }
 
   private def findLifetimeInterval[T <: Temporal](edges: RDD[Edge[TemporalProperties[T]]]): TemporalInterval[T] = {
