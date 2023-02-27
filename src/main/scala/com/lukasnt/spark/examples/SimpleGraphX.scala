@@ -12,7 +12,6 @@ object SimpleGraphX {
   def run(): Unit = {
     val spark = SparkSession.builder.appName("GraphX").getOrCreate()
     val sc    = spark.sparkContext
-    sc.setLogLevel("ERROR")
 
     // Create Graph from RDD of vertices and edges
     val users: RDD[(VertexId, (String, String))] = sc.parallelize(
@@ -46,8 +45,6 @@ object SimpleGraphX {
       .vertices
       .collect()
       .foreach(println)
-
-    spark.stop()
   }
 
 }
