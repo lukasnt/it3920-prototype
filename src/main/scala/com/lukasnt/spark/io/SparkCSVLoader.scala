@@ -9,11 +9,17 @@ import java.time.temporal.Temporal
 
 class SparkCSVLoader[T <: Temporal] extends TemporalPropertiesLoader[T] {
 
-    override def readEdgesFile(sc: SparkContext, path: String, label: String): RDD[Edge[TemporalProperties[T]]] = {
-        ???
-    }
+  override def readVerticesFile(sc: SparkContext,
+                                path: String,
+                                label: String): RDD[(VertexId, TemporalProperties[T])] = {
+    ???
+  }
 
-    override def readVerticesFile(sc: SparkContext, path: String, label: String): RDD[(VertexId, TemporalProperties[T])] = {
-        ???
-    }
+  override def readEdgesFile(sc: SparkContext,
+                             path: String,
+                             label: String,
+                             srcLabel: String,
+                             dstLabel: String): RDD[Edge[TemporalProperties[T]]] = {
+    ???
+  }
 }

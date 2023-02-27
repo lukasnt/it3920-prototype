@@ -11,6 +11,10 @@ trait TemporalPropertiesLoader[T <: Temporal] {
 
   def readVerticesFile(sc: SparkContext, path: String, label: String): RDD[(VertexId, TemporalProperties[T])]
 
-  def readEdgesFile(sc: SparkContext, path: String, label: String): RDD[Edge[TemporalProperties[T]]]
+  def readEdgesFile(sc: SparkContext,
+                    path: String,
+                    label: String,
+                    srcLabel: String,
+                    dstLabel: String): RDD[Edge[TemporalProperties[T]]]
 
 }

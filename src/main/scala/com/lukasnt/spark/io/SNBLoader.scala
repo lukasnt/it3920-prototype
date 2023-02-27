@@ -8,14 +8,16 @@ import org.apache.spark.rdd.RDD
 
 import java.time.ZonedDateTime
 import java.time.temporal.Temporal
+import scala.collection.mutable
 
-class SNBLoader(val folderPath: String, propertiesLoader: TemporalPropertiesLoader[ZonedDateTime])
+class SNBLoader(val folderPath: String,
+                propertiesLoader: TemporalPropertiesLoader[ZonedDateTime],
+                val format: String = "csv")
     extends TemporalGraphLoader[ZonedDateTime] {
 
   private val DATA_GEN_ROOT = s"$folderPath/dynamic"
   private val VERTEX_LABELS = List(
     "Person",
-    "Tag",
     "Forum",
     "Comment"
   )
@@ -24,7 +26,7 @@ class SNBLoader(val folderPath: String, propertiesLoader: TemporalPropertiesLoad
     ("Forum_hasMember_Person", "Forum", "Person"),
     ("Forum_hasTag_Tag", "Forum", "Tag"),
     ("Person_hasInterest_Tag", "Person", "Tag"),
-    ("Person_knows_Person", "Person", "Person"),
+    ("Person_knows_Person", "Person1", "Person2"),
     ("Person_likes_Comment", "Person", "Comment"),
     ("Person_likes_Post", "Person", "Post"),
     ("Person_studyAt_University", "Person", "University"),
@@ -33,20 +35,33 @@ class SNBLoader(val folderPath: String, propertiesLoader: TemporalPropertiesLoad
   )
 
   override def load(sc: SparkContext): TemporalGraph[ZonedDateTime] = {
-
     // Initialize the RDD of vertices and edges
     var vertices: RDD[(VertexId, TemporalProperties[ZonedDateTime])] = sc.emptyRDD
     var edges: RDD[Edge[TemporalProperties[ZonedDateTime]]]          = sc.emptyRDD
 
-    for ((label, partitionedFiles) <- createLabelFilesMap()) {
-      // Read the file and add the edges to the RDD
-      edges = partitionedFiles
-        .map(
-          file =>
-            propertiesLoader
-              .readEdgesFile(sc, file, label)
-        )
-        .reduce(_ union _) union edges
+    // Load edges
+    val edgeLabelFiles = createLabelFilesMap(EDGE_LABELS.map(_._1))
+    for (label <- EDGE_LABELS) {
+      val labelName = label._1
+      val srcLabel  = label._2
+      val dstLabel  = label._3
+      val edgeFiles = edgeLabelFiles(labelName)
+      for (file <- edgeFiles) {
+        println(s"label: ${label.toString}")
+        val edgesFile = propertiesLoader.readEdgesFile(sc, file, labelName, srcLabel, dstLabel)
+        edges = edges.union(edgesFile)
+      }
+    }
+
+    // Load vertices
+    val vertexLabelFiles = createLabelFilesMap(VERTEX_LABELS)
+    for (label <- VERTEX_LABELS) {
+      val vertexFiles = vertexLabelFiles(label)
+      for (file <- vertexFiles) {
+        println(s"label: $label")
+        val verticesFile = propertiesLoader.readVerticesFile(sc, file, label)
+        vertices = vertices.union(verticesFile)
+      }
     }
 
     // Default vertex properties
@@ -56,23 +71,7 @@ class SNBLoader(val folderPath: String, propertiesLoader: TemporalPropertiesLoad
       Map()
     )
 
-    Graph.fromEdges(edges, defaultVertexProperties)
-  }
-
-  private def createLabelFilesMap(): Map[String, Array[String]] = {
-    // Find all subdirectories which are named after the label
-    val subDirs = new java.io.File(DATA_GEN_ROOT).listFiles
-      .filter(_.isDirectory)
-      .filter(f => /*VERTEX_LABELS.contains(f) ||*/ EDGE_LABELS.map(_._1).contains(f.getName))
-
-    // Find all files that start with "part" and end with ".csv"
-    val files = subDirs.map(
-      _.listFiles
-        .filter(f => f.getName.startsWith("part") && f.getName.endsWith(".csv"))
-        .map(_.getName))
-
-    // Create a map of label -> files
-    subDirs.map(_.getName).zip(files).toMap
+    Graph(vertices, edges, defaultVertexProperties)
   }
 
   private def findLifetimeInterval[T <: Temporal](edges: RDD[Edge[TemporalProperties[T]]]): TemporalInterval[T] = {
@@ -92,6 +91,19 @@ class SNBLoader(val folderPath: String, propertiesLoader: TemporalPropertiesLoad
       .interval
 
     new TemporalInterval[T](minInterval.startTime, maxInterval.endTime)
+  }
+
+  private def createLabelFilesMap(labels: List[String]): Map[String, List[String]] = {
+    val labelFilesMap: mutable.Map[String, List[String]] = mutable.Map[String, List[String]]()
+    for (label <- labels) {
+      val dirPath = s"$DATA_GEN_ROOT/$label/"
+      val fileNames = DirUtils
+        .listFilesInsideJar(dirPath)
+        .map(_.substring(dirPath.length))
+        .filter(name => name.startsWith("part-") && name.endsWith(s".$format"))
+      labelFilesMap += (label -> fileNames.map(dirPath + _))
+    }
+    labelFilesMap.toMap
   }
 
 }

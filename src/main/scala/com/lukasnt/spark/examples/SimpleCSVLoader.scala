@@ -21,12 +21,14 @@ object SimpleCSVLoader {
         ZonedDateTime.parse(temporal, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
     }
 
-    val propertiesLoader = new LocalCSVLoader(temporalParser, srcIdColumn = "Person1Id", dstIdColumn = "Person2Id")
+    val propertiesLoader = new LocalCSVLoader(temporalParser)
     val snbLoader = new SNBLoader("/sf0.003_raw", propertiesLoader)
 
     val graph: TemporalGraph[ZonedDateTime] = snbLoader.load(sc)
 
     println("print after load")
-    graph.edges.collect().foreach(println)
+    graph.vertices.collect().foreach(println)
+    //graph.edges.collect().foreach(println)
   }
+
 }
