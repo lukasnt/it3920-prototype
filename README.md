@@ -2,7 +2,7 @@
 #### Requirements
 - [Docker](https://docs.docker.com/get-docker/) installed
 
-Make sure to get pull in all the notebooks locally from the zeppelin-notebooks submodule repository, with the following command:  
+Make sure to pull in all the notebooks locally from the zeppelin-notebooks submodule repository, with the following command:  
 
 ```
 git submodule update --init --recursive
