@@ -74,6 +74,19 @@ class SNBLoader(val folderPath: String,
     Graph(vertices, edges, defaultVertexProperties)
   }
 
+  private def createLabelFilesMap(labels: List[String]): Map[String, List[String]] = {
+    val labelFilesMap: mutable.Map[String, List[String]] = mutable.Map[String, List[String]]()
+    for (label <- labels) {
+      val dirPath = s"$DATA_GEN_ROOT/$label/"
+      val fileNames = DirUtils
+        .listFilesInsideJar(dirPath)
+        .map(_.substring(dirPath.length))
+        .filter(name => name.startsWith("part-") && name.endsWith(s".$format"))
+      labelFilesMap += (label -> fileNames.map(dirPath + _))
+    }
+    labelFilesMap.toMap
+  }
+
   private def findLifetimeInterval[T <: Temporal](edges: RDD[Edge[TemporalProperties[T]]]): TemporalInterval[T] = {
     val minInterval: TemporalInterval[T] =
       edges
@@ -91,19 +104,6 @@ class SNBLoader(val folderPath: String,
       .interval
 
     new TemporalInterval[T](minInterval.startTime, maxInterval.endTime)
-  }
-
-  private def createLabelFilesMap(labels: List[String]): Map[String, List[String]] = {
-    val labelFilesMap: mutable.Map[String, List[String]] = mutable.Map[String, List[String]]()
-    for (label <- labels) {
-      val dirPath = s"$DATA_GEN_ROOT/$label/"
-      val fileNames = DirUtils
-        .listFilesInsideJar(dirPath)
-        .map(_.substring(dirPath.length))
-        .filter(name => name.startsWith("part-") && name.endsWith(s".$format"))
-      labelFilesMap += (label -> fileNames.map(dirPath + _))
-    }
-    labelFilesMap.toMap
   }
 
 }
