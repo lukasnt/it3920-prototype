@@ -27,7 +27,7 @@ The main notebook should be located at http://0.0.0.0:8080/#/notebook/2HSV6W3AT 
 #### Further development
 The main classes and functionality is located in this repository under the /src folder. For further development this is where most core classes and functionality is done. The notebooks are primarily for viewing the output from Spark (which is painful without) and visualizing the graphs, as well as doing integration tests with the spark binaries. Unit testing that does not require the spark binaries (basic models, logic etc.) should be located under the testing directories under /src.
 
-To get all the latest code changes into the notebook without restarting the docker compose, simply run the docker compose command once again or more specifically the restart-package service:
+To get all the latest code changes into the notebook without restarting the docker compose, simply run the docker compose command once again or more specifically the package-restart service:
 
 ```
 docker compose up package-restart
