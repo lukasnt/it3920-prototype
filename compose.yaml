@@ -44,5 +44,5 @@ services:
       bash -c "
       mvn package
       && curl -X PUT http://zeppelin:8080/api/interpreter/setting/restart/spark
-      && curl -X POST http://zeppelin:8080/api/notebook/job/2HVXJV9QH
+      && curl -X POST http://zeppelin:8080/api/notebook/job/2HSV6W3AT
       "
