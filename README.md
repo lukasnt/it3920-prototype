@@ -2,7 +2,13 @@
 #### Requirements
 - [Docker](https://docs.docker.com/get-docker/) installed
 
+Make sure to get pull in all the notebooks locally from the zeppelin-notebooks submodule repository, with the following command:  
 
+```
+git submodule update --init --recursive
+```
+
+#### Docker compose
 Run docker compose setup with the following commands:
 
 ```
@@ -11,8 +17,20 @@ docker compose up
 ```
 
 
-Note that building the docker image for the first time takes quite some time (around 5 min) because of needing to install all the binaries and distributions (Spark, Zeppelin, JDKs, Maven packages etc.). Subsequent runs should take as long time (only a few seconds) as it only sets up the containers specified in compose.yaml.
+Note that building the docker image for the first time takes quite some time (around 5 min) because of needing to install all the binaries and distributions (Spark, Zeppelin, JDKs, Maven packages etc.). Subsequent runs should not take as long time (only a few seconds) as it only sets up the containers specified in compose.yaml.
 
+#### Zeppelin notebooks
 To access the Zeppelin notebooks open up http://0.0.0.0:8080/#/ in your browser. See the [Explore Apache Zeppelin UI](https://zeppelin.apache.org/docs/0.10.0/quickstart/explore_ui.html) for more info about navigating in the notebooks.
 
 The main notebook should be located at http://0.0.0.0:8080/#/notebook/2HSV6W3AT which automatically runs at the compose command and starts the spark interpreter. Rest of the visualizations and integration tests with spark are located under the Tests folder.
+
+#### Development
+The main classes and functionality is located in this repository under the /src folder. For further development this is where most core classes and functionality is done. The notebooks are primarily for viewing the output from Spark (which is painful without) and visualizing the graphs, as well as doing integration tests with the spark binaries. Unit testing that does require the spark binaries (basic models, logic etc.) should be located under the testing directories under /src.
+
+To get all the latest code changes into the notebook without restarting the docker compose, simply run the docker compose command once again or more specifically the restart-package service:
+
+```
+docker compose up package-restart
+```
+
+This should package all the current code with maven into a jar and restart the spark interpreter in zeppelin with the new jars, and run the Main-notebook automatically. Should only take around 10 seconds, and skipping some phases such as tests can speed it up if necessary. By using an IDE (such as IntelliJ) and using a docker plugin this step can be automated into a run command with a single keypress.
