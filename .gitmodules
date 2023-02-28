@@ -1,0 +1,3 @@
+[submodule "zeppelin-notebooks"]
+	path = zeppelin-notebooks
+	url = ./zeppelin-notebooks/
