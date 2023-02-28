@@ -1,4 +1,4 @@
 [submodule "zeppelin-notebooks"]
-	path = ./zeppelin-notebooks/
 	url = https://gitlab.stud.idi.ntnu.no/lukasnt/zeppelin-notebooks.git
+	path = zeppelin-notebooks
 	branch = master
