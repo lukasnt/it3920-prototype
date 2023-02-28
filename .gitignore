@@ -7,3 +7,4 @@
 *.crc
 *.parquet
 _SUCCESS
+!.gitkeep

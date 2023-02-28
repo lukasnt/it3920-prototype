@@ -28,7 +28,6 @@ object SimpleCSVLoader {
 
     println("print after load")
     graph.vertices.collect().foreach(println)
-    //graph.edges.collect().foreach(println)
   }
 
 }
