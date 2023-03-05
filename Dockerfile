@@ -15,6 +15,7 @@ RUN cd /usr/home/spark-graphx-scala && mvn install
 
 FROM base AS openjdk
 RUN apt-get install -y openjdk-8-jdk
+RUN find /usr/lib/jvm -name "java-8-openjdk-*" | xargs -I {} mv {} /usr/lib/jvm/java-8-openjdk
 
 FROM mvn-install AS mvn-package
 COPY /src /usr/home/spark-graphx-scala/src
@@ -23,10 +24,10 @@ RUN cd /usr/home/spark-graphx-scala && mvn clean package
 FROM base
 COPY --from=zeppelin /opt/zeppelin /opt/zeppelin
 COPY --from=spark /opt/spark /opt/zeppelin/spark
-COPY --from=openjdk /usr/lib/jvm/java-8-openjdk-arm64 /lib/jvm/java-8-openjdk-arm64
+COPY --from=openjdk /usr/lib/jvm/java-8-openjdk /lib/jvm/java-8-openjdk
 COPY --from=mvn-package /usr/home/spark-graphx-scala/target /opt/zeppelin/target
 COPY zeppelin-site.xml /opt/zeppelin/conf/zeppelin-site.xml
-ENV JAVA_HOME=/lib/jvm/java-8-openjdk-arm64
+ENV JAVA_HOME=/lib/jvm/java-8-openjdk
 ENV PATH=$JAVA_HOME/bin:$PATH
 WORKDIR /opt/zeppelin
 CMD ["printenv"]
