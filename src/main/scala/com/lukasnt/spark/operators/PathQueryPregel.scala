@@ -36,12 +36,8 @@ object PathQueryPregel {
       // Vertex Program
       (id, attr, msg) => {
         val (node, stateSequence) = attr
-        val newStateSequence = stateSequence.map(state => {
-          val testFunc = currentQuery.getQueryBySeqNum(state.seqNum).testFunc
-          var newState = new PathQueryState(state.seqNum, state.next)
-          newState.testSuccess = testFunc(node)
-          newState
-        })
+        val newStateSequence = stateSequence.map(state =>
+          ConstPathExecutor.execute(currentQuery.getQueryBySeqNum(state.seqNum), state, node))
         (node, newStateSequence)
       },
       // Send Message
@@ -50,11 +46,9 @@ object PathQueryPregel {
       },
       // Merge Message
       (a, b) => {
-        a
+        List(a, b).flatten
       }
     )
-
-    //result.vertices.map(v => v._2._2).collect().foreach(println)
 
     result
   }
