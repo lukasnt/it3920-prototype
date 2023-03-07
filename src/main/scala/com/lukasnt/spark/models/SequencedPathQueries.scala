@@ -1,11 +1,13 @@
 package com.lukasnt.spark.models
 
+import com.lukasnt.spark.models.Types.PathQuery
+
 import scala.collection.mutable
 
-class TemporalPathQuery(val pathQuerySequence: List[(ConstPathQuery, PathAggFunc)] = List()) {
+class SequencedPathQueries(val pathQuerySequence: List[(PathQuery, PathAggFunc)] = List()) {
 
-  def concatPathQuery(constantPathQuery: ConstPathQuery, aggFunc: PathAggFunc): TemporalPathQuery = {
-    new TemporalPathQuery(pathQuerySequence :+ (constantPathQuery, aggFunc))
+  def concatPathQuery(constantPathQuery: PathQuery, aggFunc: PathAggFunc): SequencedPathQueries = {
+    new SequencedPathQueries(pathQuerySequence :+ (constantPathQuery, aggFunc))
   }
 
   def createInitStates(): List[PathQueryState] = {
@@ -19,7 +21,7 @@ class TemporalPathQuery(val pathQuerySequence: List[(ConstPathQuery, PathAggFunc
     states.toList
   }
 
-  def getQueryBySeqNum(seqNum: Int): ConstPathQuery = {
+  def getQueryBySeqNum(seqNum: Int): PathQuery = {
     pathQuerySequence(seqNum)._1
   }
 

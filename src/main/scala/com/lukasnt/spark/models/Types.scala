@@ -10,4 +10,6 @@ object Types {
 
   type TemporalPregelGraph[T <: Temporal] =
     Graph[(TemporalProperties[T], List[PathQueryState]), TemporalProperties[T]]
+
+  trait PathQuery {}
 }

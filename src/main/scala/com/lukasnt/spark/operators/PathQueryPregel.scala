@@ -1,8 +1,8 @@
 package com.lukasnt.spark.operators
 
 import com.lukasnt.spark.examples.SimplePathQuery
-import com.lukasnt.spark.models.PathQueryState
 import com.lukasnt.spark.models.Types.{TemporalGraph, TemporalPregelGraph}
+import com.lukasnt.spark.models.{ArbitraryPathQuery, ConstPathQuery, PathQueryState, VariablePathQuery}
 import org.apache.spark.graphx.EdgeDirection
 
 import java.time.ZonedDateTime
@@ -37,7 +37,15 @@ object PathQueryPregel {
       (id, attr, msg) => {
         val (node, stateSequence) = attr
         val newStateSequence = stateSequence.map(state =>
-          ConstPathExecutor.execute(currentQuery.getQueryBySeqNum(state.seqNum), state, node))
+          currentQuery.getQueryBySeqNum(state.seqNum) match {
+            case query: ConstPathQuery =>
+              ConstPathExecutor.execute(query, state, node)
+            case query: VariablePathQuery =>
+              VariablePathExecutor.execute(query, state, node)
+            case query: ArbitraryPathQuery =>
+              ArbitraryPathExecutor.execute(query, state, node)
+            case _ => state
+        })
         (node, newStateSequence)
       },
       // Send Message
