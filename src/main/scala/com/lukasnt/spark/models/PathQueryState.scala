@@ -1,17 +1,18 @@
 package com.lukasnt.spark.models
 
-class PathQueryState {
+class PathQueryState(val seqNum: Int = 0, val next: PathQueryState = null) extends Serializable {
 
-  val query: TemporalPathQuery = null
-  val prev: PathQueryState     = null
-  val next: PathQueryState     = null
-  val costComputed: Float      = 0.0f
-  val testSuccess: Boolean     = false
-  val currentLength: Int       = 0
-  val completed: Boolean       = false
+  var costComputed: Float  = 0.0f
+  var testSuccess: Boolean = false
+  var currentLength: Int   = 0
+  var completed: Boolean   = false
 
-  def this(query: TemporalPathQuery) {
+  def this(query: ConstPathQuery) {
     this()
   }
 
+  override def toString: String = {
+    s"PathQueryState(sequenceNumber=$seqNum, next=$next, costComputed=$costComputed, " +
+      s"testSuccess=$testSuccess, currentLength=$currentLength, completed=$completed)"
+  }
 }

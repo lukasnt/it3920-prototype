@@ -1,35 +1,30 @@
 package com.lukasnt.spark.models
 
-class TemporalPathQuery {
+import scala.collection.mutable
 
-  val seqNum: Int             = 0
-  val prev: TemporalPathQuery = null
-  val next: TemporalPathQuery = null
-  val cost: Float             = 0.0f
-  val test: String            = ""
-  val coTest: String          = ""
-  val minLength: Int          = 0
-  val maxLength: Int          = 0
-  val unbounded: Boolean      = false
+class TemporalPathQuery(val pathQuerySequence: List[(ConstPathQuery, PathAggFunc)] = List()) {
 
-  def this(test: String) {
-    this()
+  def concatPathQuery(constantPathQuery: ConstPathQuery, aggFunc: PathAggFunc): TemporalPathQuery = {
+    new TemporalPathQuery(pathQuerySequence :+ (constantPathQuery, aggFunc))
   }
 
-  def this(cost: Float) {
-    this()
+  def createInitStates(): List[PathQueryState] = {
+    // Create the states in reverse order so that the next reference is set correctly
+    val states               = mutable.ArrayBuffer.fill(pathQuerySequence.length)(null: PathQueryState)
+    var next: PathQueryState = null
+    for (seqNum <- pathQuerySequence.indices.reverse) {
+      states(seqNum) = new PathQueryState(seqNum, next)
+      next = states(seqNum)
+    }
+    states.toList
   }
 
-  def concat(other: TemporalPathQuery): TemporalPathQuery = {
-    new TemporalPathQuery()
+  def getQueryBySeqNum(seqNum: Int): ConstPathQuery = {
+    pathQuerySequence(seqNum)._1
   }
 
-  def lengthRange(min: Int, max: Int): TemporalPathQuery = {
-    new TemporalPathQuery()
-  }
-
-  def unboundLengthRange(min: Int): TemporalPathQuery = {
-    new TemporalPathQuery()
+  def getAggFuncBySeqNum(seqNum: Int): PathAggFunc = {
+    pathQuerySequence(seqNum)._2
   }
 
 }
