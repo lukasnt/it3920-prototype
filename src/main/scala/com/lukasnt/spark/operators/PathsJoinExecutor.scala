@@ -6,10 +6,10 @@ import org.apache.spark.rdd.RDD
 
 import java.time.ZonedDateTime
 
-object PathJoinPhase {
+object PathsJoinExecutor {
 
-  def joinPathsSequence(sequencedPathQueries: SequencedPathQueries,
-                        pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
+  def joinSequence(sequencedPathQueries: SequencedPathQueries,
+                   pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
     pathsSequence.reduceLeft((accumulatedPaths, constPaths) => {
       val joinedPaths = accumulatedPaths
         .groupBy(path => path.getEndNode)
@@ -44,13 +44,10 @@ object PathJoinPhase {
               .subgraph(e => e.srcAttr._2(seqNum).testSuccess && e.dstAttr._2.last.testSuccess)
               .edges
               .map(edge => new TemporalPath(List(edge)))
-          else
-            temporalPregelGraph
-              .subgraph(e => e.srcAttr._2.last.testSuccess)
-              .edges
-              .map(edge => new TemporalPath(List(edge)))
+          else temporalPregelGraph.edges.sparkContext.emptyRDD[TemporalPath]
         temporalPath
       })
+      .take(sequencedPathQueries.sequence.length - 1)
   }
 
 }
