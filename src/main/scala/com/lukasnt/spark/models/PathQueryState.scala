@@ -12,7 +12,7 @@ class PathQueryState(val seqNum: Int = 0, val next: PathQueryState = null) exten
   }
 
   override def toString: String = {
-    s"PathQueryState(sequenceNumber=$seqNum, next=$next, costComputed=$costComputed, " +
+    s"PathQueryState(seqNum=$seqNum, costComputed=$costComputed, " +
       s"testSuccess=$testSuccess, currentLength=$currentLength, completed=$completed)"
   }
 }

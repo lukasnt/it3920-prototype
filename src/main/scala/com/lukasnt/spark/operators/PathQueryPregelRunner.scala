@@ -10,9 +10,10 @@ import java.time.ZonedDateTime
 /**
   * Executes a temporal path query using Pregel.
   */
-object PathQueryPregel {
+object PathQueryPregelRunner {
 
-  val currentQuery = SimplePathQuery.exampleQuery()
+  // Global variable for the current query to be used under testing
+  var currentQuery = SimplePathQuery.exampleQuery()
 
   /**
     * Runs the temporal path query on a temporal graph.
@@ -20,9 +21,9 @@ object PathQueryPregel {
     * @return temporal graph with the updated PathQueryState for each vertex
     */
   def run(temporalGraph: TemporalGraph[ZonedDateTime]): TemporalPregelGraph[ZonedDateTime] = {
-
     // Create the init states beforehand as TemporaryPathQuery is not serializable
     val initStates = currentQuery.createInitStates()
+    println(initStates.map(_.seqNum).mkString(", "))
 
     // Map to temporal pregel graph
     val temporalStateGraph = temporalGraph.mapVertices((id, attr) => (attr, initStates))

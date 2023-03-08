@@ -8,25 +8,49 @@ import java.time.ZonedDateTime
 
 object PathJoinPhase {
 
+  def joinPathsSequence(sequencedPathQueries: SequencedPathQueries,
+                        pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
+    pathsSequence.reduceLeft((accumulatedPaths, constPaths) => {
+      val joinedPaths = accumulatedPaths
+        .groupBy(path => path.getEndNode)
+        .join(constPaths.groupBy(path => path.getStartNode))
+        .flatMap(pathsPairs => {
+          // TODO: Add the aggregation functions (for both test and interval-relation) from queries
+
+          // TODO: Check if this is correct
+          val (nodeId, (accPaths, cPaths)) = pathsPairs
+          val cPathsEdges                  = cPaths.map(c => c.edgeSequence.head).toList
+          accPaths.flatMap(p => p.outerJoinWithEdges(cPathsEdges))
+        })
+
+      joinedPaths
+    })
+  }
+
   def createConstPaths(sequencedPathQueries: SequencedPathQueries,
-                       temporalPregelGraph: TemporalPregelGraph[ZonedDateTime]): RDD[TemporalPath] = {
+                       temporalPregelGraph: TemporalPregelGraph[ZonedDateTime]): List[RDD[TemporalPath]] = {
     sequencedPathQueries.sequence.zipWithIndex
       .map(seqPathQuery => {
         val ((query, aggFunc), seqNum) = seqPathQuery
+        //temporalPregelGraph.vertices.collect.map(v => v._2._2).foreach(println)
+        println("SeqNum: " + seqNum)
+        println(sequencedPathQueries.sequence.length)
+
+        val seqLen = sequencedPathQueries.sequence.length
+
         val temporalPath =
-          if (seqNum < sequencedPathQueries.sequence.length - 1)
+          if (seqNum < seqLen - 1)
             temporalPregelGraph
-              .subgraph(e => e.srcAttr._2(seqNum).testSuccess && e.dstAttr._2(seqNum + 1).testSuccess)
+              .subgraph(e => e.srcAttr._2(seqNum).testSuccess && e.dstAttr._2.last.testSuccess)
               .edges
               .map(edge => new TemporalPath(List(edge)))
           else
             temporalPregelGraph
-              .subgraph(e => e.srcAttr._2(seqNum).testSuccess)
+              .subgraph(e => e.srcAttr._2.last.testSuccess)
               .edges
               .map(edge => new TemporalPath(List(edge)))
         temporalPath
       })
-      .reduce((a, b) => a.union(b))
   }
 
 }

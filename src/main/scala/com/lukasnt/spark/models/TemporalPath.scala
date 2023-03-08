@@ -19,7 +19,7 @@ class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]
     )
   }
 
-  def outerJoinWithEdges(edges: RDD[Edge[TemporalProperties[ZonedDateTime]]]): RDD[TemporalPath] = {
+  def outerJoinWithEdges(edges: List[Edge[TemporalProperties[ZonedDateTime]]]): List[TemporalPath] = {
     edges.map(edge => concatWithEdge(edge))
   }
 
@@ -31,11 +31,11 @@ class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]
     new TemporalPath(edgeSequence :+ edge)
   }
 
-  def outerJoinWithPaths(paths: RDD[TemporalPath]): RDD[TemporalPath] = {
+  def outerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
     paths.map(path => concatWithPath(path))
   }
 
-  def innerJoinWithPaths(paths: RDD[TemporalPath]): RDD[TemporalPath] = {
+  def innerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
     paths.filter(path => path.getStartNode == getEndNode).map(path => concatWithPath(path))
   }
 

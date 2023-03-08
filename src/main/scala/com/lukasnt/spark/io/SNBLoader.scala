@@ -47,7 +47,6 @@ class SNBLoader(val folderPath: String,
       val dstLabel  = label._3
       val edgeFiles = edgeLabelFiles(labelName)
       for (file <- edgeFiles) {
-        println(s"label: ${label.toString}")
         val edgesFile = propertiesLoader.readEdgesFile(sc, file, labelName, srcLabel, dstLabel)
         edges = edges.union(edgesFile)
       }
@@ -58,7 +57,6 @@ class SNBLoader(val folderPath: String,
     for (label <- VERTEX_LABELS) {
       val vertexFiles = vertexLabelFiles(label)
       for (file <- vertexFiles) {
-        println(s"label: $label")
         val verticesFile = propertiesLoader.readVerticesFile(sc, file, label)
         vertices = vertices.union(verticesFile)
       }
