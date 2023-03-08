@@ -1,0 +1,70 @@
+package com.lukasnt.spark.models
+
+import com.lukasnt.spark.models.Types.TemporalGraph
+import org.apache.spark.SparkContext
+import org.apache.spark.graphx.{Edge, Graph}
+import org.apache.spark.rdd.RDD
+
+import java.time.ZonedDateTime
+
+class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]]]) extends Serializable {
+
+  def asTemporalGraph(sc: SparkContext): TemporalGraph[ZonedDateTime] = {
+    Graph.apply(
+      sc.parallelize(
+        edgeSequence.map(edge =>
+          (edge.srcId,
+           new TemporalProperties[ZonedDateTime](edge.attr.interval, edge.attr.typeLabel, edge.attr.properties)))),
+      sc.parallelize(edgeSequence)
+    )
+  }
+
+  def outerJoinWithEdges(edges: RDD[Edge[TemporalProperties[ZonedDateTime]]]): RDD[TemporalPath] = {
+    edges.map(edge => concatWithEdge(edge))
+  }
+
+  def innerJoinWithEdges(edges: RDD[Edge[TemporalProperties[ZonedDateTime]]]): RDD[TemporalPath] = {
+    edges.filter(edge => edge.srcId == getEndNode).map(edge => concatWithEdge(edge))
+  }
+
+  def concatWithEdge(edge: Edge[TemporalProperties[ZonedDateTime]]): TemporalPath = {
+    new TemporalPath(edgeSequence :+ edge)
+  }
+
+  def outerJoinWithPaths(paths: RDD[TemporalPath]): RDD[TemporalPath] = {
+    paths.map(path => concatWithPath(path))
+  }
+
+  def innerJoinWithPaths(paths: RDD[TemporalPath]): RDD[TemporalPath] = {
+    paths.filter(path => path.getStartNode == getEndNode).map(path => concatWithPath(path))
+  }
+
+  def concatWithPath(path: TemporalPath): TemporalPath = {
+    new TemporalPath(edgeSequence ++ path.edgeSequence)
+  }
+
+  def getStartNode: Long = {
+    edgeSequence.head.srcId
+  }
+
+  def getEndNode: Long = {
+    edgeSequence.last.dstId
+  }
+
+  def getInterval: TemporalInterval[ZonedDateTime] = {
+    new TemporalInterval(getStartTimestamp, getEndTimestamp)
+  }
+
+  def getStartTimestamp: ZonedDateTime = {
+    edgeSequence.head.attr.interval.startTime
+  }
+
+  def getEndTimestamp: ZonedDateTime = {
+    edgeSequence.last.attr.interval.endTime
+  }
+
+  override def toString: String = {
+    edgeSequence.flatMap(edge => List(edge.srcId, edge.dstId)).mkString(" -> ")
+  }
+
+}
