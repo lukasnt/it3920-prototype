@@ -2,7 +2,7 @@ package com.lukasnt.spark.examples
 
 import com.lukasnt.spark.models.TemporalProperties
 import com.lukasnt.spark.models.Types.TemporalGraph
-import org.apache.spark.graphx.{Edge, VertexId}
+import org.apache.spark.graphx.{Edge, Graph, VertexId}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -136,6 +136,20 @@ object SimpleGraphVisualizer {
             });
         }).nodes(nodes).links(links).start();
     """
+  }
+
+  def drawGenericGraph[VD, ED](graph: Graph[VD, ED]): Unit = {
+    val vertices = graph.vertices.map(v => (v._1, v._2.toString))
+    val edges    = graph.edges.map(e => new Edge(e.srcId, e.dstId, e.attr.toString))
+    val profile  = new GenericGraphProfile()
+    drawGenericGraph[String, String](Graph.apply(vertices, edges), profile)
+  }
+
+  def drawGenericGraph[VD, ED](graph: Graph[VD, ED], profile: VisualizerProfile[VD, ED]): Unit = {
+    val uuid     = java.util.UUID.randomUUID
+    val vertices = graph.vertices.collect()
+    val edges    = graph.edges.collect()
+    println(s"""%html ${generateGraphDrawer(uuid, vertices, edges, profile)}""")
   }
 
 }
