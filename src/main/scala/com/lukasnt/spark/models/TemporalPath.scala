@@ -19,6 +19,14 @@ class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]
     )
   }
 
+  def asTemporalGraph(originalGraph: TemporalGraph[ZonedDateTime]): TemporalGraph[ZonedDateTime] = {
+    val sequenceVertices = edgeSequence.flatMap(edge => List(edge.srcId, edge.dstId)).distinct
+    Graph.apply(
+      originalGraph.vertices.filter(v => sequenceVertices.contains(v._1)),
+      originalGraph.edges.filter(e => edgeSequence.contains(e))
+    )
+  }
+
   def outerJoinWithEdges(edges: List[Edge[TemporalProperties[ZonedDateTime]]]): List[TemporalPath] = {
     edges.map(edge => concatWithEdge(edge))
   }
@@ -31,24 +39,24 @@ class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]
     new TemporalPath(edgeSequence :+ edge)
   }
 
-  def outerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
-    paths.map(path => concatWithPath(path))
+  def getEndNode: Long = {
+    edgeSequence.last.dstId
   }
 
-  def innerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
-    paths.filter(path => path.getStartNode == getEndNode).map(path => concatWithPath(path))
+  def outerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
+    paths.map(path => concatWithPath(path))
   }
 
   def concatWithPath(path: TemporalPath): TemporalPath = {
     new TemporalPath(edgeSequence ++ path.edgeSequence)
   }
 
-  def getStartNode: Long = {
-    edgeSequence.head.srcId
+  def innerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
+    paths.filter(path => path.getStartNode == getEndNode).map(path => concatWithPath(path))
   }
 
-  def getEndNode: Long = {
-    edgeSequence.last.dstId
+  def getStartNode: Long = {
+    edgeSequence.head.srcId
   }
 
   def getInterval: TemporalInterval[ZonedDateTime] = {
