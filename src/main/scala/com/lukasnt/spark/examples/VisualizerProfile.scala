@@ -6,8 +6,8 @@ import org.apache.spark.graphx.VertexId
 import java.time.ZonedDateTime
 
 object VisualizerProfile {
-  val defaultProfile: TemporalGraphProfile = new TemporalGraphProfile()
-  val defaultGraphProfile: GraphProfile    = new GraphProfile()
+  val defaultProfile: TemporalGraphProfile     = new TemporalGraphProfile()
+  val defaultGraphProfile: GenericGraphProfile = new GenericGraphProfile()
 }
 
 trait VisualizerProfile[VD, ED] {
@@ -80,10 +80,10 @@ class TemporalGraphProfile(override val textFont: String = "sans-serif",
 
 }
 
-class GraphProfile extends VisualizerProfile[String, String] {
+class GenericGraphProfile extends VisualizerProfile[String, String] {
 
   def vertexNameFunc(vertex: (VertexId, String)): String = {
-    if (displayId) vertex._1.toString else vertex._2
+    vertex._1.toString
   }
 
 }
