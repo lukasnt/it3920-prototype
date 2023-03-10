@@ -1,38 +1,40 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.models.Types.{PathQuery, Properties, TemporalGraph}
+import com.lukasnt.spark.models.Types.{Interval, PathQuery, Properties, TemporalGraph}
 import com.lukasnt.spark.models.{ArbitraryQuery, ConstQuery, SequencedQueries, VariableQuery}
-import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph}
-import org.apache.spark.rdd.RDD
-
-import scala.reflect.ClassTag
+import org.apache.spark.graphx.EdgeTriplet
 
 object SubgraphFilterExecutor {
 
   def executeSubgraphFilter(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalGraph = {
 
-    val accumulatedTriplets = sequencedQueries.sequence.zipWithIndex
-      .map(indexedQuery => {
-        val ((genericQuery, aggFunc), seqNum) = indexedQuery
+    val nodeTests        = sequencedQueries.sequence.map(query => extractConstQuery(query._1).testFunc)
+    val aggTests         = sequencedQueries.sequence.map(query => query._2.aggTest)
+    val aggIntervalTests = sequencedQueries.sequence.map(query => query._2.aggIntervalTest)
 
-        val constQuery      = extractConstQuery(genericQuery)
-        val testFunc        = constQuery.testFunc
-        val aggTest         = aggFunc.aggTest
-        val aggIntervalTest = aggFunc.aggIntervalTest
+    println("Is this updating at all?")
+    temporalGraph.subgraph(epred = triplet => tripletSatisfiesTests(triplet, aggTests, aggIntervalTests, nodeTests),
+                           vpred = (_, atr) => nodeSatisfiesTests(atr, nodeTests))
+  }
 
-        val triplets = temporalGraph.triplets.filter(t => {
-          aggTest(t.srcAttr, t.dstAttr, t.attr) &&
-          aggIntervalTest(t.srcAttr.interval, t.dstAttr.interval, t.attr.interval) &&
-          testFunc(t.srcAttr)
-        })
-        triplets
-      })
-      .reduceLeft((accTriplets, triplets) => {
-        accTriplets.union(triplets) // This is not working as expected, because of triplets uniqueness
-      })
+  private def tripletSatisfiesTests(triplet: EdgeTriplet[Properties, Properties],
+                                    aggTests: List[(Properties, Properties, Properties) => Boolean],
+                                    aggIntervalTest: List[(Interval, Interval, Interval) => Boolean],
+                                    nodeTests: List[Properties => Boolean]): Boolean = {
+    val satisfiesAggTests = aggTests
+      .map(func => func(triplet.srcAttr, triplet.dstAttr, triplet.attr))
+      .reduceLeft((a, b) => a || b)
+    val satisfiesAggIntervalTests = aggIntervalTest
+      .map(func => func(triplet.srcAttr.interval, triplet.dstAttr.interval, triplet.attr.interval))
+      .reduceLeft((a, b) => a || b)
+    val satisfiesNodeTests = nodeTests
+      .map(func => func(triplet.srcAttr))
+      .reduceLeft((a, b) => a || b)
+    satisfiesAggTests && satisfiesAggIntervalTests && satisfiesNodeTests
+  }
 
-    val result: TemporalGraph = graphFromTriplets[Properties, Properties](accumulatedTriplets)
-    result
+  private def nodeSatisfiesTests(node: Properties, nodeTests: List[Properties => Boolean]): Boolean = {
+    nodeTests.map(func => func(node)).reduce(_ || _)
   }
 
   private def extractConstQuery(genericQuery: PathQuery): ConstQuery = {
@@ -43,7 +45,7 @@ object SubgraphFilterExecutor {
       case _                 => new ConstQuery()
     }
   }
-
+  /*
   private def graphFromTriplets[VD: ClassTag, ED: ClassTag](triplets: RDD[EdgeTriplet[VD, ED]]): Graph[VD, ED] = {
     val vertices = triplets
       .flatMap(triplet => List((triplet.srcId, triplet.srcAttr), (triplet.dstId, triplet.dstAttr)))
@@ -51,5 +53,30 @@ object SubgraphFilterExecutor {
     val edges = triplets.map(triplet => Edge(triplet.srcId, triplet.dstId, triplet.attr))
     Graph.apply(vertices, edges)
   }
+
+
+    def executeSubgraphFilter(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalGraph = {
+
+      val accumulatedTriplets = sequencedQueries.sequence.zipWithIndex
+        .map(indexedQuery => {
+          val ((genericQuery, aggFunc), seqNum) = indexedQuery
+
+          val constQuery      = extractConstQuery(genericQuery)
+          val testFunc        = constQuery.testFunc
+          val aggTest         = aggFunc.aggTest
+          val aggIntervalTest = aggFunc.aggIntervalTest
+
+          val triplets = temporalGraph.triplets.filter(t => {
+            aggTest(t.srcAttr, t.dstAttr, t.attr) &&
+            aggIntervalTest(t.srcAttr.interval, t.dstAttr.interval, t.attr.interval) &&
+            testFunc(t.srcAttr)
+          })
+          triplets
+        })
+
+      val result: TemporalGraph = graphFromTriplets[Properties, Properties](accumulatedTriplets)
+      result
+    }
+ */
 
 }

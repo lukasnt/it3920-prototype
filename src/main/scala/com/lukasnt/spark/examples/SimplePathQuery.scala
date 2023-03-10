@@ -30,7 +30,7 @@ object SimplePathQuery {
         (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person" && tp.properties("firstName") == "Bryn"),
          new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
         (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person"),
-         new QueryAggFunc())
+         new QueryAggFunc(aggTest = (_, _, _) => false, aggIntervalTest = (_, _, _) => false))
       ))
     query
   }
