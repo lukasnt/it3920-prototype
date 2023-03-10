@@ -10,12 +10,13 @@ import java.util.UUID
 object HTMLGenerator {
 
   def generateGraphGrid(graphs: List[TemporalGraph],
-                        columns: Int = 10,
+                        maxColumns: Int = 10,
                         profile: TemporalGraphProfile = VisualizerProfiles.defaultProfile): String = {
-    val rows      = if (graphs.length / columns == 0) 1 else graphs.length / columns
+    val rows = if (graphs.length / maxColumns == 0) 1 else graphs.length / maxColumns
     val maxHeight = 100
-    val height    = Math.min(maxHeight, profile.height / rows)
-    val width     = profile.width / columns
+    val height = Math.min(maxHeight, profile.height / rows)
+    val width = profile.width / Math.min(maxColumns, graphs.length)
+
     val gridProfile = new TemporalGraphProfile(
       width = width,
       height = height,
@@ -24,7 +25,7 @@ object HTMLGenerator {
     graphs
       .map(g => generateContainedGraph(UUID.randomUUID(), g.vertices.collect(), g.edges.collect(), gridProfile))
       .mkString(
-        s"""<div style="display: grid; grid-template-columns: repeat($columns, 1fr); grid-template-rows: repeat($rows, 1fr);">""",
+        s"""<div style="display: grid; grid-template-columns: repeat($maxColumns, 1fr); grid-template-rows: repeat($rows, 1fr);">""",
         "",
         "</div>")
   }
@@ -42,11 +43,13 @@ object HTMLGenerator {
           ${generateNodesVar(vertices, profile.vertexNameFunc)}
           ${generateLinksVar(vertices, edges)}
           ${generateSVGVars(containerID, profile.width, profile.height, profile.nodeRadius)}
-          ${generateD3LayoutForce(profile.linkDistance,
-                                  profile.charge,
-                                  profile.chargeDistance,
-                                  profile.friction,
-                                  profile.linkStrength)}
+          ${
+      generateD3LayoutForce(profile.linkDistance,
+        profile.charge,
+        profile.chargeDistance,
+        profile.friction,
+        profile.linkStrength)
+    }
         })()
       </script>
     </div>
@@ -79,8 +82,8 @@ object HTMLGenerator {
   }
 
   private def generateNodesVar[VD](
-      vertices: Array[(VertexId, VD)],
-      vertexNameFunc: ((VertexId, VD)) => String = (v: (VertexId, VD)) => v._1.toString): String = {
+                                    vertices: Array[(VertexId, VD)],
+                                    vertexNameFunc: ((VertexId, VD)) => String = (v: (VertexId, VD)) => v._1.toString): String = {
     s"""var nodes = [""" +
       vertices
         .map(v => s"{id:${v._1},name:${"\"" + vertexNameFunc(v) + "\""}}")
@@ -127,25 +130,25 @@ object HTMLGenerator {
   }
 
   def generateGraph(graph: TemporalGraph, profile: TemporalGraphProfile = VisualizerProfiles.defaultProfile): String = {
-    val uuid     = java.util.UUID.randomUUID
+    val uuid = java.util.UUID.randomUUID
     val vertices = graph.vertices.collect()
-    val edges    = graph.edges.collect()
+    val edges = graph.edges.collect()
     generateContainedGraph[TemporalProperties[ZonedDateTime], TemporalProperties[ZonedDateTime]](uuid,
-                                                                                                 vertices,
-                                                                                                 edges,
-                                                                                                 profile)
+      vertices,
+      edges,
+      profile)
   }
 
   def generateGenericGraph[VD, ED](graph: Graph[VD, ED], profile: VisualizerProfile[VD, ED] = null): String = {
-    val uuid     = java.util.UUID.randomUUID
+    val uuid = java.util.UUID.randomUUID
     val vertices = graph.vertices.collect()
-    val edges    = graph.edges.collect()
+    val edges = graph.edges.collect()
 
     if (profile == null) {
       val genericVertices = graph.vertices.map(v => (v._1, v._2.toString)).collect()
-      val genericEdges    = graph.edges.map(e => new Edge(e.srcId, e.dstId, e.attr.toString)).collect()
-      val genericProfile  = new GenericGraphProfile()
-      val uuid            = java.util.UUID.randomUUID
+      val genericEdges = graph.edges.map(e => new Edge(e.srcId, e.dstId, e.attr.toString)).collect()
+      val genericProfile = new GenericGraphProfile()
+      val uuid = java.util.UUID.randomUUID
       generateContainedGraph[String, String](uuid, genericVertices, genericEdges, genericProfile)
     } else {
       generateContainedGraph(uuid, vertices, edges, profile)

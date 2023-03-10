@@ -1,10 +1,39 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.models.Types.TemporalPregelGraph
+import com.lukasnt.spark.models.Types.{TemporalGraph, TemporalPregelGraph}
 import com.lukasnt.spark.models.{SequencedQueries, TemporalPath}
 import org.apache.spark.rdd.RDD
 
 object PathsJoinExecutor {
+
+
+  def joinGraphs(sequencedPathQueries: SequencedQueries,
+                 temporalGraphs: List[TemporalGraph]): List[TemporalPath] = {
+    val edgeMappedPaths = temporalGraphs
+      .map(graph => graph.edges
+        .map(e => new TemporalPath(List(e))))
+    edgeMappedPaths.foreach(rdd => rdd.collect().foreach(println))
+
+    val result = edgeMappedPaths
+      .reduceLeft((accumulatedPaths, constPaths) => {
+        val joinedPaths = accumulatedPaths
+          .groupBy(path => path.getEndNode)
+          .join(constPaths.groupBy(path => path.getStartNode))
+          .flatMap(pathsPairs => {
+            // TODO: Add the aggregation functions (for both test and interval-relation) from queries
+
+            // TODO: Check if this is correct
+            val (nodeId, (accPaths, cPaths)) = pathsPairs
+            val cPathsEdges = cPaths.map(c => c.edgeSequence.head).toList
+            accPaths.flatMap(p => p.outerJoinWithPaths(cPaths.toList))
+          })
+
+        joinedPaths
+      })
+
+    result.collect().toList
+  }
+
 
   def joinSequence(sequencedPathQueries: SequencedQueries,
                    pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
@@ -17,7 +46,7 @@ object PathsJoinExecutor {
 
           // TODO: Check if this is correct
           val (nodeId, (accPaths, cPaths)) = pathsPairs
-          val cPathsEdges                  = cPaths.map(c => c.edgeSequence.head).toList
+          val cPathsEdges = cPaths.map(c => c.edgeSequence.head).toList
           accPaths.flatMap(p => p.outerJoinWithPaths(cPaths.toList))
         })
 
@@ -34,7 +63,7 @@ object PathsJoinExecutor {
         println("SeqNum: " + seqNum)
         println(sequencedPathQueries.sequence.length)
 
-        val seqLen  = sequencedPathQueries.sequence.length
+        val seqLen = sequencedPathQueries.sequence.length
         val aggTest = aggFunc.aggTest
 
         val temporalPath =
