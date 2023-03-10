@@ -9,7 +9,7 @@ import java.time.format.DateTimeFormatter
 
 object SimpleSNBLoader {
 
-  def load(): TemporalGraph[ZonedDateTime] = {
+  def load(): TemporalGraph = {
     val spark = SparkSession.builder.appName("Temporal Graph CSV Loader").getOrCreate()
     val sc    = spark.sparkContext
 

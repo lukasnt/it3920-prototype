@@ -1,5 +1,35 @@
 package com.lukasnt.spark.executors
 
+import com.lukasnt.spark.models.Types.TemporalPregelGraph
+import com.lukasnt.spark.models.{SequencedQueries, TemporalPath}
+import org.apache.spark.rdd.RDD
+
 object SubgraphFilterExecutor {
+
+  def createConstPaths(sequencedPathQueries: SequencedQueries,
+                       temporalPregelGraph: TemporalPregelGraph): List[RDD[TemporalPath]] = {
+    sequencedPathQueries.sequence.zipWithIndex
+      .map(seqPathQuery => {
+        val ((query, aggFunc), seqNum) = seqPathQuery
+        //temporalPregelGraph.vertices.collect.map(v => v._2._2).foreach(println)
+        println("SeqNum: " + seqNum)
+        println(sequencedPathQueries.sequence.length)
+
+        val seqLen = sequencedPathQueries.sequence.length
+        val aggTest = aggFunc.aggTest
+
+        val temporalPath =
+          if (seqNum < seqLen - 1)
+            temporalPregelGraph
+              .subgraph(e =>
+                e.srcAttr._2(seqNum).testSuccess && e.dstAttr._2.last.testSuccess
+                  && aggTest(null, null, e.attr))
+              .edges
+              .map(edge => new TemporalPath(List(edge)))
+          else temporalPregelGraph.edges.sparkContext.emptyRDD[TemporalPath]
+        temporalPath
+      })
+      .take(sequencedPathQueries.sequence.length - 1)
+  }
 
 }

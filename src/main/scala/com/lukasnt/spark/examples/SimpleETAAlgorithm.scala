@@ -1,7 +1,7 @@
 package com.lukasnt.spark.examples
 
 import com.lukasnt.spark.models.TemporalProperties
-import com.lukasnt.spark.models.Types.TemporalGraph
+import com.lukasnt.spark.models.Types.GenericTemporalGraph
 import org.apache.spark.graphx.{EdgeDirection, VertexId}
 
 import java.time.LocalDateTime
@@ -17,7 +17,7 @@ object SimpleETAAlgorithm {
     * @param srcId source vertex id
     * @return temporal graph with the earliest time arrival for each vertex
     */
-  def run(temporalGraph: TemporalGraph[LocalDateTime], srcId: VertexId): TemporalGraph[LocalDateTime] = {
+  def run(temporalGraph: GenericTemporalGraph[LocalDateTime], srcId: VertexId): GenericTemporalGraph[LocalDateTime] = {
     temporalGraph.pregel[LocalDateTime](
       LocalDateTime.MAX,
       Int.MaxValue,

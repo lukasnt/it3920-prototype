@@ -25,9 +25,10 @@ http://www.scalatest.org/
 One way to use ScalaTest is to help make JUnit or TestNG tests more
 clear and concise. Here's an example:
 */
-import scala.collection._
-import org.scalatest.Assertions
 import org.junit.Test
+import org.scalatest.Assertions
+
+import scala.collection._
 
 class StackSuite extends Assertions {
 

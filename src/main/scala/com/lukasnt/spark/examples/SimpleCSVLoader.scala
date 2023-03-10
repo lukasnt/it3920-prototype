@@ -24,7 +24,7 @@ object SimpleCSVLoader {
     val propertiesLoader = new LocalCSVLoader(temporalParser)
     val snbLoader = new SNBLoader("/sf0.003_raw", propertiesLoader)
 
-    val graph: TemporalGraph[ZonedDateTime] = snbLoader.load(sc)
+    val graph: TemporalGraph = snbLoader.load(sc)
 
     println("print after load")
     graph.vertices.collect().foreach(println)

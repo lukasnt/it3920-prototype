@@ -1,9 +1,7 @@
 package com.lukasnt.spark.visualizers
 
-import com.lukasnt.spark.models.TemporalProperties
+import com.lukasnt.spark.models.Types.Properties
 import org.apache.spark.graphx.VertexId
-
-import java.time.ZonedDateTime
 
 class TemporalGraphProfile(override val textFont: String = "sans-serif",
                            override val textSize: Int = 11,
@@ -23,9 +21,9 @@ class TemporalGraphProfile(override val textFont: String = "sans-serif",
                            override val displayInterval: Boolean = false,
                            override val displayFirstPropOnly: Boolean = true,
                            override val propertiesKeySet: Set[String] = Set("firstName"))
-    extends VisualizerProfile[TemporalProperties[ZonedDateTime], TemporalProperties[ZonedDateTime]] {
+    extends VisualizerProfile[Properties, Properties] {
 
-  def vertexNameFunc(vertex: (VertexId, TemporalProperties[ZonedDateTime])): String = {
+  def vertexNameFunc(vertex: (VertexId, Properties)): String = {
     val idString = if (displayId) vertex._1 else ""
     val intervalString = if (displayInterval) {
       s"(${vertex._2.interval.startTime}, ${vertex._2.interval.endTime})"

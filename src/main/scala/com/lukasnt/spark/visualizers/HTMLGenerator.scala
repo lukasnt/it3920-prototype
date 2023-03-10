@@ -9,9 +9,9 @@ import java.util.UUID
 
 object HTMLGenerator {
 
-  def generateGraphGrid(graphs: List[TemporalGraph[ZonedDateTime]],
+  def generateGraphGrid(graphs: List[TemporalGraph],
                         columns: Int = 10,
-                        profile: TemporalGraphProfile = VisualizerProfile.defaultProfile): String = {
+                        profile: TemporalGraphProfile = VisualizerProfiles.defaultProfile): String = {
     val rows      = if (graphs.length / columns == 0) 1 else graphs.length / columns
     val maxHeight = 100
     val height    = Math.min(maxHeight, profile.height / rows)
@@ -27,17 +27,6 @@ object HTMLGenerator {
         s"""<div style="display: grid; grid-template-columns: repeat($columns, 1fr); grid-template-rows: repeat($rows, 1fr);">""",
         "",
         "</div>")
-  }
-
-  def generateGraph(graph: TemporalGraph[ZonedDateTime],
-                    profile: TemporalGraphProfile = VisualizerProfile.defaultProfile): String = {
-    val uuid     = java.util.UUID.randomUUID
-    val vertices = graph.vertices.collect()
-    val edges    = graph.edges.collect()
-    generateContainedGraph[TemporalProperties[ZonedDateTime], TemporalProperties[ZonedDateTime]](uuid,
-                                                                                                 vertices,
-                                                                                                 edges,
-                                                                                                 profile)
   }
 
   private def generateContainedGraph[VD, ED](containerID: UUID,
@@ -135,6 +124,16 @@ object HTMLGenerator {
             });
         }).nodes(nodes).links(links).start();
     """
+  }
+
+  def generateGraph(graph: TemporalGraph, profile: TemporalGraphProfile = VisualizerProfiles.defaultProfile): String = {
+    val uuid     = java.util.UUID.randomUUID
+    val vertices = graph.vertices.collect()
+    val edges    = graph.edges.collect()
+    generateContainedGraph[TemporalProperties[ZonedDateTime], TemporalProperties[ZonedDateTime]](uuid,
+                                                                                                 vertices,
+                                                                                                 edges,
+                                                                                                 profile)
   }
 
   def generateGenericGraph[VD, ED](graph: Graph[VD, ED], profile: VisualizerProfile[VD, ED] = null): String = {

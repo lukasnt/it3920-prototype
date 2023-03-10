@@ -4,8 +4,6 @@ import com.lukasnt.spark.models.Types.TemporalPregelGraph
 import com.lukasnt.spark.models.{SequencedQueries, TemporalPath}
 import org.apache.spark.rdd.RDD
 
-import java.time.ZonedDateTime
-
 object PathsJoinExecutor {
 
   def joinSequence(sequencedPathQueries: SequencedQueries,
@@ -28,7 +26,7 @@ object PathsJoinExecutor {
   }
 
   def createConstPaths(sequencedPathQueries: SequencedQueries,
-                       temporalPregelGraph: TemporalPregelGraph[ZonedDateTime]): List[RDD[TemporalPath]] = {
+                       temporalPregelGraph: TemporalPregelGraph): List[RDD[TemporalPath]] = {
     sequencedPathQueries.sequence.zipWithIndex
       .map(seqPathQuery => {
         val ((query, aggFunc), seqNum) = seqPathQuery

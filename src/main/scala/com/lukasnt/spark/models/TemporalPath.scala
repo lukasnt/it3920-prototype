@@ -1,6 +1,6 @@
 package com.lukasnt.spark.models
 
-import com.lukasnt.spark.models.Types.TemporalGraph
+import com.lukasnt.spark.models.Types.{Interval, TemporalGraph}
 import org.apache.spark.SparkContext
 import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.rdd.RDD
@@ -9,7 +9,7 @@ import java.time.ZonedDateTime
 
 class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]]]) extends Serializable {
 
-  def asTemporalGraph(sc: SparkContext): TemporalGraph[ZonedDateTime] = {
+  def asTemporalGraph(sc: SparkContext): TemporalGraph = {
     Graph.apply(
       sc.parallelize(
         edgeSequence.map(edge =>
@@ -19,7 +19,7 @@ class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]
     )
   }
 
-  def asTemporalGraph(originalGraph: TemporalGraph[ZonedDateTime]): TemporalGraph[ZonedDateTime] = {
+  def asTemporalGraph(originalGraph: TemporalGraph): TemporalGraph = {
     val sequenceVertices = edgeSequence.flatMap(edge => List(edge.srcId, edge.dstId)).distinct
     Graph.apply(
       originalGraph.vertices.filter(v => sequenceVertices.contains(v._1)),
@@ -59,7 +59,7 @@ class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]
     edgeSequence.head.srcId
   }
 
-  def getInterval: TemporalInterval[ZonedDateTime] = {
+  def getInterval: Interval = {
     new TemporalInterval(getStartTimestamp, getEndTimestamp)
   }
 

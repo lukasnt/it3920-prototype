@@ -1,14 +1,12 @@
 package com.lukasnt.spark.examples
 
+import com.lukasnt.spark.executors.QueryPregelRunner
 import com.lukasnt.spark.models.Types.TemporalPregelGraph
 import com.lukasnt.spark.models.{ConstQuery, QueryAggFunc, SequencedQueries}
-import com.lukasnt.spark.executors.QueryPregelRunner
-
-import java.time.ZonedDateTime
 
 object SimplePathQuery {
 
-  def result(): TemporalPregelGraph[ZonedDateTime] = {
+  def result(): TemporalPregelGraph = {
     val temporalGraph = SimpleSNBLoader.load()
 
     QueryPregelRunner.run(temporalGraph)

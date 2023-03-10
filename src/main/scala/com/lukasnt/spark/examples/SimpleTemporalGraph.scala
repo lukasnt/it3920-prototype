@@ -1,6 +1,6 @@
 package com.lukasnt.spark.examples
 
-import com.lukasnt.spark.models.Types.TemporalGraph
+import com.lukasnt.spark.models.Types.GenericTemporalGraph
 import com.lukasnt.spark.models.{TemporalInterval, TemporalProperties}
 import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.rdd.RDD
@@ -42,7 +42,7 @@ object SimpleTemporalGraph {
                  ))
       ))
 
-    val graph: TemporalGraph[LocalDateTime] = Graph.fromEdges(
+    val graph: GenericTemporalGraph[LocalDateTime] = Graph.fromEdges(
       edges,
       new TemporalProperties(new TemporalInterval(LocalDateTime.of(0, 1, 1, 1, 0), LocalDateTime.of(2, 2, 2, 2, 2)),
                              "TestLabel",

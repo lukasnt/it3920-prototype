@@ -1,11 +1,7 @@
 package com.lukasnt.spark.models
 
-import java.time.ZonedDateTime
+import com.lukasnt.spark.models.Types.{Interval, Properties}
 
-class QueryAggFunc(val aggTest: (TemporalProperties[ZonedDateTime],
-                                TemporalProperties[ZonedDateTime],
-                                TemporalProperties[ZonedDateTime]) => Boolean = (_, _, _) => true,
-                   val aggCost: (Float, Float, TemporalProperties[ZonedDateTime]) => Float = (_, _, _) => 0.0f,
-                   val aggIntervalTest: (TemporalInterval[ZonedDateTime],
-                                        TemporalInterval[ZonedDateTime],
-                                        TemporalInterval[ZonedDateTime]) => Boolean = (_, _, _) => true) {}
+class QueryAggFunc(val aggTest: (Properties, Properties, Properties) => Boolean = (_, _, _) => true,
+                   val aggCost: (Float, Float, Properties) => Float = (_, _, _) => 0.0f,
+                   val aggIntervalTest: (Interval, Interval, Interval) => Boolean = (_, _, _) => true) {}

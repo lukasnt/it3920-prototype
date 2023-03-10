@@ -2,11 +2,6 @@ package com.lukasnt.spark.visualizers
 
 import org.apache.spark.graphx.VertexId
 
-object VisualizerProfile {
-  val defaultProfile: TemporalGraphProfile     = new TemporalGraphProfile()
-  val defaultGenericProfile: GenericGraphProfile = new GenericGraphProfile()
-}
-
 trait VisualizerProfile[VD, ED] {
 
   // Style settings
@@ -40,4 +35,5 @@ trait VisualizerProfile[VD, ED] {
   // --------------------------------------------------------------------------------
 
   def vertexNameFunc(vertex: (VertexId, VD)): String
+
 }

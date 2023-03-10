@@ -34,7 +34,7 @@ class SNBLoader(val folderPath: String,
     ("Post_hasTag_Tag", "Post", "Tag")
   )
 
-  override def load(sc: SparkContext): TemporalGraph[ZonedDateTime] = {
+  override def load(sc: SparkContext): TemporalGraph = {
     // Initialize the RDD of vertices and edges
     var vertices: RDD[(VertexId, TemporalProperties[ZonedDateTime])] = sc.emptyRDD
     var edges: RDD[Edge[TemporalProperties[ZonedDateTime]]]          = sc.emptyRDD
