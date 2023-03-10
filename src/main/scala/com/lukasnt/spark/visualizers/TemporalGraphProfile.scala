@@ -1,49 +1,9 @@
-package com.lukasnt.spark.examples
+package com.lukasnt.spark.visualizers
 
 import com.lukasnt.spark.models.TemporalProperties
 import org.apache.spark.graphx.VertexId
 
 import java.time.ZonedDateTime
-
-object VisualizerProfile {
-  val defaultProfile: TemporalGraphProfile     = new TemporalGraphProfile()
-  val defaultGraphProfile: GenericGraphProfile = new GenericGraphProfile()
-}
-
-trait VisualizerProfile[VD, ED] {
-
-  // Style settings
-  def textFont: String  = "sans-serif"
-  def textSize: Int     = 11
-  def textColor: String = "black"
-  def nodeRadius: Int   = 8
-  def nodeColor: String = "lightgreen"
-  def linkColor: String = "gray"
-  def linkWidth: Double = 1.5
-  // --------------------------------------------------------------------------------
-
-  // Canvas Settings
-  def width: Int  = 960
-  def height: Int = 500
-
-  // --------------------------------------------------------------------------------
-  // Force Layout Settings
-  def linkDistance: Int    = 200
-  def charge: Int          = -100
-  def chargeDistance: Int  = 300
-  def friction: Double     = 0.25
-  def linkStrength: Double = 0.5
-  // --------------------------------------------------------------------------------
-
-  // Vertex name function settings
-  def displayId: Boolean            = false
-  def displayInterval: Boolean      = false
-  def displayFirstPropOnly: Boolean = true
-  def propertiesKeySet: Set[String] = Set("firstName")
-  // --------------------------------------------------------------------------------
-
-  def vertexNameFunc(vertex: (VertexId, VD)): String
-}
 
 class TemporalGraphProfile(override val textFont: String = "sans-serif",
                            override val textSize: Int = 11,
@@ -76,14 +36,6 @@ class TemporalGraphProfile(override val textFont: String = "sans-serif",
       s"${vertex._2.properties.applyOrElse(propertiesKeySet.head, (_: String) => "")}"
     }
     List(idString, intervalString, propertiesString).filter(_ != "").mkString(", ")
-  }
-
-}
-
-class GenericGraphProfile extends VisualizerProfile[String, String] {
-
-  def vertexNameFunc(vertex: (VertexId, String)): String = {
-    vertex._1.toString
   }
 
 }
