@@ -1,8 +1,8 @@
-package com.lukasnt.spark.operators
+package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.examples.SimplePathQuery
 import com.lukasnt.spark.models.Types.{TemporalGraph, TemporalPregelGraph}
-import com.lukasnt.spark.models.{ArbitraryPathQuery, ConstPathQuery, PathQueryState, VariablePathQuery}
+import com.lukasnt.spark.models.{ArbitraryQuery, ConstQuery, QueryState, VariableQuery}
 import org.apache.spark.graphx.EdgeDirection
 
 import java.time.ZonedDateTime
@@ -10,7 +10,7 @@ import java.time.ZonedDateTime
 /**
   * Executes a temporal path query using Pregel.
   */
-object PathQueryPregelRunner {
+object QueryPregelRunner {
 
   // Global variable for the current query to be used under testing
   var currentQuery = SimplePathQuery.exampleQuery()
@@ -29,7 +29,7 @@ object PathQueryPregelRunner {
     val temporalStateGraph = temporalGraph.mapVertices((id, attr) => (attr, initStates))
 
     // Run Pregel
-    val result = temporalStateGraph.pregel[List[PathQueryState]](
+    val result = temporalStateGraph.pregel[List[QueryState]](
       initStates,
       Int.MaxValue,
       EdgeDirection.Out
@@ -39,12 +39,8 @@ object PathQueryPregelRunner {
         val (node, stateSequence) = attr
         val newStateSequence = stateSequence.map(state =>
           currentQuery.getQueryBySeqNum(state.seqNum) match {
-            case query: ConstPathQuery =>
-              ConstPathExecutor.execute(query, state, node)
-            case query: VariablePathQuery =>
-              VariablePathExecutor.execute(query, state, node)
-            case query: ArbitraryPathQuery =>
-              ArbitraryPathExecutor.execute(query, state, node)
+            case query: ConstQuery =>
+              QueryStateMapper.mapConstQuery(query, state, node)
             case _ => state
         })
         (node, newStateSequence)
@@ -55,7 +51,7 @@ object PathQueryPregelRunner {
       },
       // Merge Message
       (a, b) => {
-        List(a, b).flatten
+        a ++ b
       }
     )
 

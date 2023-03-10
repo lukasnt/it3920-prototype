@@ -1,4 +1,4 @@
-package com.lukasnt.spark.operators
+package com.lukasnt.spark.examples
 
 import com.lukasnt.spark.models.TemporalProperties
 import com.lukasnt.spark.models.Types.TemporalGraph
@@ -9,7 +9,7 @@ import java.time.LocalDateTime
 /**
   * Earliest Time Arrival algorithm.
   */
-object EarliestTimeArrival {
+object SimpleETAAlgorithm {
 
   /**
     * Runs the Earliest Time Arrival algorithm on a temporal graph.

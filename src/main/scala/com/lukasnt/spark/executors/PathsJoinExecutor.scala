@@ -1,14 +1,14 @@
-package com.lukasnt.spark.operators
+package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.TemporalPregelGraph
-import com.lukasnt.spark.models.{SequencedPathQueries, TemporalPath}
+import com.lukasnt.spark.models.{SequencedQueries, TemporalPath}
 import org.apache.spark.rdd.RDD
 
 import java.time.ZonedDateTime
 
 object PathsJoinExecutor {
 
-  def joinSequence(sequencedPathQueries: SequencedPathQueries,
+  def joinSequence(sequencedPathQueries: SequencedQueries,
                    pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
     pathsSequence.reduceLeft((accumulatedPaths, constPaths) => {
       val joinedPaths = accumulatedPaths
@@ -20,14 +20,14 @@ object PathsJoinExecutor {
           // TODO: Check if this is correct
           val (nodeId, (accPaths, cPaths)) = pathsPairs
           val cPathsEdges                  = cPaths.map(c => c.edgeSequence.head).toList
-          accPaths.flatMap(p => p.outerJoinWithEdges(cPathsEdges))
+          accPaths.flatMap(p => p.outerJoinWithPaths(cPaths.toList))
         })
 
       joinedPaths
     })
   }
 
-  def createConstPaths(sequencedPathQueries: SequencedPathQueries,
+  def createConstPaths(sequencedPathQueries: SequencedQueries,
                        temporalPregelGraph: TemporalPregelGraph[ZonedDateTime]): List[RDD[TemporalPath]] = {
     sequencedPathQueries.sequence.zipWithIndex
       .map(seqPathQuery => {
@@ -36,12 +36,15 @@ object PathsJoinExecutor {
         println("SeqNum: " + seqNum)
         println(sequencedPathQueries.sequence.length)
 
-        val seqLen = sequencedPathQueries.sequence.length
+        val seqLen  = sequencedPathQueries.sequence.length
+        val aggTest = aggFunc.aggTest
 
         val temporalPath =
           if (seqNum < seqLen - 1)
             temporalPregelGraph
-              .subgraph(e => e.srcAttr._2(seqNum).testSuccess && e.dstAttr._2.last.testSuccess)
+              .subgraph(e =>
+                e.srcAttr._2(seqNum).testSuccess && e.dstAttr._2.last.testSuccess
+                  && aggTest(null, null, e.attr))
               .edges
               .map(edge => new TemporalPath(List(edge)))
           else temporalPregelGraph.edges.sparkContext.emptyRDD[TemporalPath]

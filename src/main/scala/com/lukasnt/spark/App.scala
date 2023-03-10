@@ -1,6 +1,6 @@
 package com.lukasnt.spark
 
-import com.lukasnt.spark.examples.{SimpleCSVLoader, SimplePathQuery, SimpleTemporalGraph, SimpleTemporalInterval}
+import com.lukasnt.spark.examples.SimplePathQuery
 
 /**
   * @author ${user.name}
