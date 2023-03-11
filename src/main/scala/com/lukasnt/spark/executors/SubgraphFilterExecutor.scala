@@ -13,28 +13,36 @@ object SubgraphFilterExecutor {
     val aggIntervalTests = sequencedQueries.sequence.map(query => query._2.aggIntervalTest)
 
     println("Is this updating at all?")
-    temporalGraph.subgraph(epred = triplet => tripletSatisfiesTests(triplet, aggTests, aggIntervalTests, nodeTests),
-                           vpred = (_, atr) => nodeSatisfiesTests(atr, nodeTests))
+
+    val filteredGraph = temporalGraph.subgraph(
+      epred = triplet => tripletSatisfiesTests(triplet, aggTests, aggIntervalTests, nodeTests),
+      vpred = (_, atr) => nodeSatisfiesTests(atr, nodeTests))
+
+    filteredGraph.degrees.filter(_._2 > 0).foreach(println)
+
+    filteredGraph
   }
 
   private def tripletSatisfiesTests(triplet: EdgeTriplet[Properties, Properties],
                                     aggTests: List[(Properties, Properties, Properties) => Boolean],
-                                    aggIntervalTest: List[(Interval, Interval, Interval) => Boolean],
+                                    aggIntervalTests: List[(Interval, Interval, Interval) => Boolean],
                                     nodeTests: List[Properties => Boolean]): Boolean = {
-    val satisfiesAggTests = aggTests
-      .map(func => func(triplet.srcAttr, triplet.dstAttr, triplet.attr))
-      .reduceLeft((a, b) => a || b)
-    val satisfiesAggIntervalTests = aggIntervalTest
-      .map(func => func(triplet.srcAttr.interval, triplet.dstAttr.interval, triplet.attr.interval))
-      .reduceLeft((a, b) => a || b)
-    val satisfiesNodeTests = nodeTests
-      .map(func => func(triplet.srcAttr))
-      .reduceLeft((a, b) => a || b)
+    val sequenceLength            = Math.min(aggTests.length, Math.min(aggIntervalTests.length, nodeTests.length))
+    var satisfiesNodeTests        = false
+    var satisfiesAggTests         = false
+    var satisfiesAggIntervalTests = false
+    for (i <- 0 until sequenceLength - 1) {
+      satisfiesNodeTests = satisfiesNodeTests || (nodeTests(i)(triplet.srcAttr) && nodeTests(i + 1)(triplet.dstAttr))
+      satisfiesAggTests = satisfiesAggTests || aggTests(i)(triplet.srcAttr, triplet.dstAttr, triplet.attr)
+      satisfiesAggIntervalTests = satisfiesAggIntervalTests || aggIntervalTests(i)(triplet.srcAttr.interval,
+                                                                                   triplet.dstAttr.interval,
+                                                                                   triplet.attr.interval)
+    }
     satisfiesAggTests && satisfiesAggIntervalTests && satisfiesNodeTests
   }
 
   private def nodeSatisfiesTests(node: Properties, nodeTests: List[Properties => Boolean]): Boolean = {
-    nodeTests.map(func => func(node)).reduce(_ || _)
+    nodeTests.map(func => func(node)).reduceLeft((a, b) => a || b)
   }
 
   private def extractConstQuery(genericQuery: PathQuery): ConstQuery = {

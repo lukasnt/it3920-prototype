@@ -20,8 +20,8 @@ trait VisualizerProfile[VD, ED] {
 
   // --------------------------------------------------------------------------------
   // Force Layout Settings
-  def linkDistance: Int    = 200
-  def charge: Int          = -100
+  def linkDistance: Int    = 50
+  def charge: Int          = -300
   def chargeDistance: Int  = 300
   def friction: Double     = 0.25
   def linkStrength: Double = 0.5
