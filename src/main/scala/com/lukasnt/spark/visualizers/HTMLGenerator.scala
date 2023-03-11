@@ -15,7 +15,7 @@ object HTMLGenerator {
     val rows = if (graphs.length / maxColumns == 0) 1 else graphs.length / maxColumns
     val maxHeight = 100
     val height = Math.min(maxHeight, profile.height / rows)
-    val width = profile.width / Math.min(maxColumns, graphs.length)
+    val width = profile.width / Math.min(maxColumns, Math.max(graphs.length, 1))
 
     val gridProfile = new TemporalGraphProfile(
       width = width,

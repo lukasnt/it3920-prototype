@@ -30,3 +30,16 @@ class SequencedQueries(val sequence: List[(PathQuery, QueryAggFunc)] = List()) {
   }
 
 }
+
+object SequencedQueries {
+
+  def extractConstQuery(genericQuery: PathQuery): ConstQuery = {
+    genericQuery match {
+      case q: ConstQuery => q
+      case q: VariableQuery => q.constQuery
+      case q: ArbitraryQuery => q.constQuery
+      case _ => new ConstQuery()
+    }
+  }
+  
+}

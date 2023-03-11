@@ -12,13 +12,9 @@ object SubgraphFilterExecutor {
     val aggTests         = sequencedQueries.sequence.map(query => query._2.aggTest)
     val aggIntervalTests = sequencedQueries.sequence.map(query => query._2.aggIntervalTest)
 
-    println("Is this updating at all?")
-
     val filteredGraph = temporalGraph.subgraph(
       epred = triplet => tripletSatisfiesTests(triplet, aggTests, aggIntervalTests, nodeTests),
       vpred = (_, atr) => nodeSatisfiesTests(atr, nodeTests))
-
-    filteredGraph.degrees.filter(_._2 > 0).foreach(println)
 
     filteredGraph
   }
