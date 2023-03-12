@@ -1,7 +1,7 @@
 package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.{TemporalGraph, TemporalPregelGraph}
-import com.lukasnt.spark.models.{QueryState, SequencedQueries, UnweightedQueries}
+import com.lukasnt.spark.models.{QueryState, QueryStateMessages, SequencedQueries, UnweightedQueries}
 import org.apache.spark.graphx.EdgeDirection
 
 /**
@@ -16,17 +16,18 @@ object UnweightedPregelRunner {
     */
   def run(unweightedQueries: UnweightedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
     // Create the init states beforehand as TemporaryPathQuery is not serializable
-    val initStates = unweightedQueries.createInitStates()
+    val initStates   = unweightedQueries.createInitStates()
+    val initMessages = new QueryStateMessages(initStates)
 
     // Map to temporal pregel graph
     val temporalStateGraph = temporalGraph.mapVertices((id, attr) => (attr, initStates))
 
     // Extract the test functions from the queries
-    val nodeTestFuncs = unweightedQueries.sequence.map(q => SequencedQueries.extractConstQuery(q._1).testFunc)
+    val nodeTests = unweightedQueries.sequence.map(q => SequencedQueries.extractConstQuery(q._1).nodeTest)
 
     // Run Pregel
-    val result = temporalStateGraph.pregel[List[QueryState]](
-      initStates,
+    val result = temporalStateGraph.pregel[QueryStateMessages](
+      initMessages,
       Int.MaxValue,
       EdgeDirection.Out
     )(
@@ -34,7 +35,13 @@ object UnweightedPregelRunner {
       (id, attr, msg) => {
         val (node, stateSequence) = attr
         val newStateSequence =
-          stateSequence.map(state => QueryStateMapper.mapNodeTest(nodeTestFuncs(state.seqNum), state, node))
+          stateSequence.map(
+            state =>
+              QueryState
+                .builder()
+                .fromState(state)
+                .applyNodeTest(node, nodeTests(state.seqNum))
+                .build())
         (node, newStateSequence)
       },
       // Send Message
@@ -43,7 +50,7 @@ object UnweightedPregelRunner {
       },
       // Merge Message
       (a, b) => {
-        a ++ b
+        a.merge(b)
       }
     )
 

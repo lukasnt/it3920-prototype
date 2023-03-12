@@ -1,6 +1,6 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.models.Types.{TemporalGraph, TemporalPregelGraph}
+import com.lukasnt.spark.models.Types.TemporalPregelGraph
 import com.lukasnt.spark.models.{SequencedQueries, TemporalPath}
 import org.apache.spark.rdd.RDD
 
@@ -17,7 +17,7 @@ object PathsJoinExecutor {
 
           // TODO: Check if this is correct
           val (nodeId, (accPaths, cPaths)) = pathsPairs
-          val cPathsEdges = cPaths.map(c => c.edgeSequence.head).toList
+          val cPathsEdges                  = cPaths.map(c => c.edgeSequence.head).toList
           accPaths.flatMap(p => p.outerJoinWithPaths(cPaths.toList))
         })
 
@@ -30,22 +30,18 @@ object PathsJoinExecutor {
     sequencedPathQueries.sequence.zipWithIndex
       .map(seqPathQuery => {
         val ((query, aggFunc), seqNum) = seqPathQuery
-        //temporalPregelGraph.vertices.collect.map(v => v._2._2).foreach(println)
-        println("SeqNum: " + seqNum)
-        println(sequencedPathQueries.sequence.length)
 
-        val seqLen = sequencedPathQueries.sequence.length
+        val seqLen  = sequencedPathQueries.sequence.length
         val aggTest = aggFunc.aggTest
 
         val temporalPath =
           if (seqNum < seqLen - 1)
             temporalPregelGraph
               .subgraph(e =>
-                e.srcAttr._2(seqNum).testSuccess && e.dstAttr._2.last.testSuccess
-                  && aggTest(null, null, e.attr))
+                e.srcAttr._2(seqNum).testSuccess && e.dstAttr._2.last.testSuccess && aggTest(null, null, e.attr))
               .edges
               .map(edge => new TemporalPath(List(edge)))
-          else temporalPregelGraph.edges.sparkContext.emptyRDD[TemporalPath]
+          else null
         temporalPath
       })
       .take(sequencedPathQueries.sequence.length - 1)

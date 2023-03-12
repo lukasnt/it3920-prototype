@@ -1,9 +1,6 @@
 package com.lukasnt.spark.models
 
-import com.lukasnt.spark.models.Types.PathQuery
+import com.lukasnt.spark.models.Types.{PathQuery, Properties}
 
-import java.time.ZonedDateTime
-
-class ConstQuery(val costFunc: TemporalProperties[ZonedDateTime] => Float = _ => 0.0f,
-                 val testFunc: TemporalProperties[ZonedDateTime] => Boolean = _ => true)
+class ConstQuery(val nodeCost: Properties => Float = attr => 0.0f, val nodeTest: Properties => Boolean = attr => true)
     extends PathQuery {}

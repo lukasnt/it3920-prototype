@@ -7,8 +7,7 @@ import org.apache.spark.graphx.EdgeTriplet
 object SubgraphFilterExecutor {
 
   def executeSubgraphFilter(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalGraph = {
-
-    val nodeTests        = sequencedQueries.sequence.map(query => extractConstQuery(query._1).testFunc)
+    val nodeTests        = sequencedQueries.sequence.map(query => extractConstQuery(query._1).nodeTest)
     val aggTests         = sequencedQueries.sequence.map(query => query._2.aggTest)
     val aggIntervalTests = sequencedQueries.sequence.map(query => query._2.aggIntervalTest)
 
@@ -21,7 +20,7 @@ object SubgraphFilterExecutor {
 
   private def tripletSatisfiesTests(triplet: EdgeTriplet[Properties, Properties],
                                     aggTests: List[(Properties, Properties, Properties) => Boolean],
-                                    aggIntervalTests: List[(Interval, Interval, Interval) => Boolean],
+                                    aggIntervalTests: List[(Interval, Interval) => Boolean],
                                     nodeTests: List[Properties => Boolean]): Boolean = {
     val sequenceLength            = Math.min(aggTests.length, Math.min(aggIntervalTests.length, nodeTests.length))
     var satisfiesNodeTests        = false
@@ -31,7 +30,6 @@ object SubgraphFilterExecutor {
       satisfiesNodeTests = satisfiesNodeTests || (nodeTests(i)(triplet.srcAttr) && nodeTests(i + 1)(triplet.dstAttr))
       satisfiesAggTests = satisfiesAggTests || aggTests(i)(triplet.srcAttr, triplet.dstAttr, triplet.attr)
       satisfiesAggIntervalTests = satisfiesAggIntervalTests || aggIntervalTests(i)(triplet.srcAttr.interval,
-                                                                                   triplet.dstAttr.interval,
                                                                                    triplet.attr.interval)
     }
     satisfiesAggTests && satisfiesAggIntervalTests && satisfiesNodeTests

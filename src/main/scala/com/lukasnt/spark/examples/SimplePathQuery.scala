@@ -13,50 +13,59 @@ object SimplePathQuery {
   }
 
   def exampleQuery(): UnweightedQueries = {
-    val query = new UnweightedQueries(
+    new UnweightedQueries(
       List(
-        (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person" && tp.properties("firstName") == "Almira"),
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person" && v.properties("firstName") == "Almira"),
          new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
-        (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person"), new QueryAggFunc())
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person"), new QueryAggFunc())
       ))
-    query
   }
 
   def triplePathQuery(): UnweightedQueries = {
-    val query = new UnweightedQueries(
+    new UnweightedQueries(
       List(
-        (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person" && tp.properties("firstName") == "Almira"),
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person" && v.properties("firstName") == "Almira"),
          new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
-        (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person" && tp.properties("firstName") == "Bryn"),
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person" && v.properties("firstName") == "Bryn"),
          new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
-        (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person"),
-         new QueryAggFunc(aggTest = (_, _, _) => false, aggIntervalTest = (_, _, _) => false))
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person"),
+         new QueryAggFunc(aggTest = (_, _, _) => false, aggIntervalTest = (_, _) => false))
       ))
-    query
+
   }
 
   def quadPathQuery(): UnweightedQueries = {
-    val query = new UnweightedQueries(
+    new UnweightedQueries(
       List(
-        (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person" && tp.properties("firstName") == "Almira"),
-          new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
-        (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person" && tp.properties("firstName") == "Bryn"),
-          new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
-        (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person" && tp.properties("firstName") == "Hans"),
-          new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
-        (new ConstQuery(_ => 1, tp => tp.typeLabel == "Person"),
-          new QueryAggFunc(aggTest = (_, _, _) => false, aggIntervalTest = (_, _, _) => false))
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person" && v.properties("firstName") == "Almira"),
+         new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person" && v.properties("firstName") == "Bryn"),
+         new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person" && v.properties("firstName") == "Hans"),
+         new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person"),
+         new QueryAggFunc(aggTest = (_, _, _) => false, aggIntervalTest = (_, _) => false))
       ))
-    query
+
+  }
+
+  def knowsRelationsQuery(): UnweightedQueries = {
+    new UnweightedQueries(
+      List(
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person"),
+         new QueryAggFunc(aggTest = (_, _, e) => e.typeLabel == "Person_knows_Person")),
+        (new ConstQuery(_ => 1.0f, v => v.typeLabel == "Person"),
+         new QueryAggFunc(aggTest = (_, _, _) => false, aggIntervalTest = (_, _) => false))
+      ))
+
   }
 
   def emptyQuery(): UnweightedQueries = {
-    val query = new UnweightedQueries(
+    new UnweightedQueries(
       List(
         (new ConstQuery(), new QueryAggFunc()),
         (new ConstQuery(), new QueryAggFunc())
       ))
-    query
   }
 
 }

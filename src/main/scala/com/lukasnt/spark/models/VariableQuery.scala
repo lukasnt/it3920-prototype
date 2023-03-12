@@ -6,4 +6,4 @@ class VariableQuery(val constQuery: ConstQuery = null,
                     val aggFunc: QueryAggFunc = null,
                     val minLength: Int = 0,
                     val maxLength: Int = 0)
-  extends PathQuery {}
+    extends PathQuery {}
