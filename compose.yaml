@@ -5,6 +5,7 @@ services:
       context: .
     ports:
       - "8080:8080"
+      - "4040:4040"
     volumes:
       - type: bind
         source: ./zeppelin-notebooks
@@ -14,11 +15,16 @@ services:
         source: ./target
         target: /opt/zeppelin/target
         read_only: false
+      - type: bind
+        source: ./logs
+        target: /opt/zeppelin/logs
+        read_only: false
+      - ./log4j.properties:/opt/zeppelin/spark/conf/log4j.properties
     environment:
       - ZEPPELIN_NOTEBOOK_DIR=/opt/zeppelin/notebook
       - ZEPPELIN_ADDR=0.0.0.0
       - ZEPPELIN_PORT=8080
-      - ZEPPELIN_MEM=-Xmx16384m -XX:MaxPermSize=4096m
+      - ZEPPELIN_MEM=-Xmx16384m
     command: /opt/zeppelin/bin/zeppelin-daemon.sh upstart
     tty: true
 
