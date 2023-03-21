@@ -7,12 +7,9 @@ import org.apache.spark.sql.SparkSession
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-object SimpleCSVLoader {
+object SimpleSNBLoader {
 
-  /**
-    * Simple Temporal graph CSV loader example
-    */
-  def run(): Unit = {
+  def load(): TemporalGraph = {
     val spark = SparkSession.builder.appName("Temporal Graph CSV Loader").getOrCreate()
     val sc    = spark.sparkContext
 
@@ -22,12 +19,9 @@ object SimpleCSVLoader {
     }
 
     val propertiesLoader = new LocalCSVLoader(temporalParser)
-    val snbLoader = new SNBLoader("/sf0.003_raw", propertiesLoader)
+    val snbLoader        = new SNBLoader("/sf0.003_raw", propertiesLoader)
 
-    val graph: TemporalGraph = snbLoader.load(sc)
-
-    println("print after load")
-    graph.vertices.collect().foreach(println)
+    snbLoader.load(sc)
   }
 
 }
