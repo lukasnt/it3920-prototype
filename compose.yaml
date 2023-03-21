@@ -50,3 +50,22 @@ services:
       && curl -X PUT http://zeppelin:8080/api/interpreter/setting/restart/spark
       && curl -X POST http://zeppelin:8080/api/notebook/job/2HSV6W3AT
       "
+
+  spark-history-server:
+    build:
+      context: .
+      target: spark
+    ports:
+      - "18080:18080"
+    environment:
+      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=file:/opt/spark/logs -Dspark.history.ui.port=18080
+    volumes:
+      - type: bind
+        source: ./logs/spark-events
+        target: /opt/spark/logs
+        read_only: false
+    command: >
+      bash -c "
+      /opt/spark/sbin/start-history-server.sh 
+      && tail -F anything
+      "
