@@ -1,4 +1,4 @@
-package com.lukasnt.spark.models
+package com.lukasnt.spark.queries
 
 import com.lukasnt.spark.models.Types.{Interval, Properties}
 

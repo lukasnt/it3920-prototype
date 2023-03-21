@@ -1,10 +1,11 @@
 package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.TemporalPregelGraph
-import com.lukasnt.spark.models.{SequencedQueries, TemporalPath}
+import com.lukasnt.spark.models.TemporalPath
+import com.lukasnt.spark.queries.SequencedQueries
 import org.apache.spark.rdd.RDD
 
-object UnweightedJoinExecutor {
+object ConstJoinExecutor {
 
   def joinSequence(sequencedPathQueries: SequencedQueries,
                    pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {

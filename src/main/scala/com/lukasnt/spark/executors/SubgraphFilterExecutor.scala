@@ -1,13 +1,13 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.models.Types.{Interval, PathQuery, Properties, TemporalGraph}
-import com.lukasnt.spark.models.{ArbitraryQuery, ConstQuery, SequencedQueries, VariableQuery}
+import com.lukasnt.spark.models.Types.{Interval, Properties, TemporalGraph}
+import com.lukasnt.spark.queries.SequencedQueries
 import org.apache.spark.graphx.EdgeTriplet
 
 object SubgraphFilterExecutor {
 
   def executeSubgraphFilter(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalGraph = {
-    val nodeTests        = sequencedQueries.sequence.map(query => extractConstQuery(query._1).nodeTest)
+    val nodeTests        = sequencedQueries.sequence.map(query => query._1.nodeTest)
     val aggTests         = sequencedQueries.sequence.map(query => query._2.aggTest)
     val aggIntervalTests = sequencedQueries.sequence.map(query => query._2.aggIntervalTest)
 
@@ -39,14 +39,6 @@ object SubgraphFilterExecutor {
     nodeTests.map(func => func(node)).reduceLeft((a, b) => a || b)
   }
 
-  private def extractConstQuery(genericQuery: PathQuery): ConstQuery = {
-    genericQuery match {
-      case q: ConstQuery     => q
-      case q: VariableQuery  => q.constQuery
-      case q: ArbitraryQuery => q.constQuery
-      case _                 => new ConstQuery()
-    }
-  }
   /*
   private def graphFromTriplets[VD: ClassTag, ED: ClassTag](triplets: RDD[EdgeTriplet[VD, ED]]): Graph[VD, ED] = {
     val vertices = triplets

@@ -1,6 +1,7 @@
 package com.lukasnt.spark.models
 
-import org.apache.spark.graphx.Graph
+import com.lukasnt.spark.queries.ConstState
+import org.apache.spark.graphx.{Graph, VertexId}
 
 import java.time.ZonedDateTime
 import java.time.temporal.Temporal
@@ -19,8 +20,10 @@ object Types {
 
   type TemporalGraph = GenericTemporalGraph[ZonedDateTime]
 
-  type TemporalPregelGraph = Graph[(Properties, List[QueryState]), Properties]
+  type TemporalPregelGraph = Graph[(Properties, List[ConstState]), Properties]
 
-  trait PathQuery {}
+  case class PropertyVertex(id: VertexId, properties: Properties)
+
+  case class PropertyEdge(srcId: VertexId, dstId: VertexId, properties: Properties)
 
 }

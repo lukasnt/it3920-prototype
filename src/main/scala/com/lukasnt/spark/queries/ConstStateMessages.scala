@@ -1,6 +1,6 @@
-package com.lukasnt.spark.models
+package com.lukasnt.spark.queries
 
-class QueryStateMessages(val queryStates: List[QueryState]) extends Serializable {
+class ConstStateMessages(val queryStates: List[ConstState]) extends Serializable {
 
   def getMinCostBy(seqNum: Int): Float = {
     val seqFiltered = queryStates.filter(_.seqNum == seqNum)
@@ -12,8 +12,8 @@ class QueryStateMessages(val queryStates: List[QueryState]) extends Serializable
     if (seqLenFiltered.isEmpty) Float.MaxValue else seqLenFiltered.map(_.pathCost).min
   }
 
-  def merge(other: QueryStateMessages): QueryStateMessages = {
-    new QueryStateMessages(queryStates ++ other.queryStates)
+  def merge(other: ConstStateMessages): ConstStateMessages = {
+    new ConstStateMessages(queryStates ++ other.queryStates)
   }
 
 }

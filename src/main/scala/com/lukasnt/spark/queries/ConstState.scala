@@ -1,9 +1,9 @@
-package com.lukasnt.spark.models
+package com.lukasnt.spark.queries
 
 import com.lukasnt.spark.models.Types.{Interval, Properties}
 import org.apache.spark.graphx.EdgeTriplet
 
-class QueryState(val seqNum: Int = 0) extends Serializable {
+class ConstState(val seqNum: Int = 0) extends Serializable {
 
   var superstep: Int       = 0
   var pathCost: Float      = Float.MaxValue
@@ -31,57 +31,57 @@ class QueryState(val seqNum: Int = 0) extends Serializable {
 
 }
 
-object QueryState {
+object ConstState {
 
-  def builder() = new QueryStateBuilder()
+  def builder() = new ConstStateBuilder()
 
-  class QueryStateBuilder {
+  class ConstStateBuilder {
 
-    var queryState: QueryState = new QueryState()
+    var queryState: ConstState = new ConstState()
 
-    def build(): QueryState = {
+    def build(): ConstState = {
       queryState
     }
 
-    def fromState(state: QueryState): QueryStateBuilder = {
+    def fromState(state: ConstState): ConstStateBuilder = {
       queryState = state
       this
     }
 
-    def withSeqNum(seqNum: Int): QueryStateBuilder = {
-      queryState = new QueryState(seqNum)
+    def withSeqNum(seqNum: Int): ConstStateBuilder = {
+      queryState = new ConstState(seqNum)
       this
     }
 
-    def withInitPathCost(pathCost: Float): QueryStateBuilder = {
+    def withInitPathCost(pathCost: Float): ConstStateBuilder = {
       queryState.pathCost = pathCost
       this
     }
 
-    def applyNodeTest(nodeProperties: Properties, testFunc: Properties => Boolean): QueryStateBuilder = {
+    def applyNodeTest(nodeProperties: Properties, testFunc: Properties => Boolean): ConstStateBuilder = {
       queryState.testSuccess = testFunc(nodeProperties)
       this
     }
 
-    def applyNodeCost(nodeProperties: Properties, costFunc: Properties => Float): QueryStateBuilder = {
+    def applyNodeCost(nodeProperties: Properties, costFunc: Properties => Float): ConstStateBuilder = {
       queryState.nodeCost = costFunc(nodeProperties)
       this
     }
 
-    def applyPathCostUpdate(pathCost: Float): QueryStateBuilder = {
+    def applyPathCostUpdate(pathCost: Float): ConstStateBuilder = {
       queryState.pathCost = Math.min(queryState.pathCost, pathCost)
       this
     }
 
-    def incSuperstep(): QueryStateBuilder = {
+    def incSuperstep(): ConstStateBuilder = {
       queryState.superstep += 1
       this
     }
 
-    def applyWeightedPregelTriplet(edgeTriplet: EdgeTriplet[(Properties, List[QueryState]), Properties],
+    def applyWeightedPregelTriplet(edgeTriplet: EdgeTriplet[(Properties, List[ConstState]), Properties],
                                    aggTest: (Properties, Properties, Properties) => Boolean,
                                    aggIntervalTest: (Interval, Interval) => Boolean,
-                                   aggCost: (Float, Properties) => Float): QueryStateBuilder = {
+                                   aggCost: (Float, Properties) => Float): ConstStateBuilder = {
 
       // Extract all the properties and functions from the edge triplet
       val (srcNode, srcState)   = edgeTriplet.srcAttr

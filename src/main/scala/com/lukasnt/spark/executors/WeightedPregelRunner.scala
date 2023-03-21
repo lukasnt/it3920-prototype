@@ -1,28 +1,28 @@
 package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.{TemporalGraph, TemporalPregelGraph}
-import com.lukasnt.spark.models.{QueryState, QueryStateMessages, SequencedQueries, WeightedQueries}
+import com.lukasnt.spark.queries.{ConstState, ConstStateMessages, SequencedQueries}
 import com.lukasnt.spark.utils.Loggers
 import org.apache.spark.graphx.EdgeDirection
 
 object WeightedPregelRunner {
 
-  def run(weightedQueries: WeightedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
+  def run(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
 
     // Initialize the temporal pregel graph and the initial messages
-    val temporalStateGraph = initGraph(weightedQueries, temporalGraph)
-    val initialMessage     = initMessages(weightedQueries)
-    val maxPathLength      = weightedQueries.sequence.length * 3
+    val temporalStateGraph = initGraph(sequencedQueries, temporalGraph)
+    val initialMessage     = initMessages(sequencedQueries)
+    val maxPathLength      = sequencedQueries.sequence.length * 3
 
     //temporalStateGraph.vertices.collect().foreach(println)
 
     // Extract the aggregation function from the queries
-    val aggTests         = weightedQueries.sequence.map(q => q._2.aggTest)
-    val aggCosts         = weightedQueries.sequence.map(q => q._2.aggCost)
-    val aggIntervalTests = weightedQueries.sequence.map(q => q._2.aggIntervalTest)
+    val aggTests         = sequencedQueries.sequence.map(q => q._2.aggTest)
+    val aggCosts         = sequencedQueries.sequence.map(q => q._2.aggCost)
+    val aggIntervalTests = sequencedQueries.sequence.map(q => q._2.aggIntervalTest)
 
     // Run Pregel
-    val result = temporalStateGraph.pregel[QueryStateMessages](
+    val result = temporalStateGraph.pregel[ConstStateMessages](
       initialMsg = initialMessage,
       maxIterations = maxPathLength,
       activeDirection = EdgeDirection.Out
@@ -36,7 +36,7 @@ object WeightedPregelRunner {
         val newStateSequence =
           stateSequence.map(
             state =>
-              QueryState
+              ConstState
                 .builder()
                 .fromState(state)
                 .incSuperstep()
@@ -52,11 +52,11 @@ object WeightedPregelRunner {
           s"srcSuperstep: ${triplet.srcAttr._2.apply(2).superstep}, " +
             s"dstSuperStep: ${triplet.dstAttr._2.apply(2).superstep}")
 
-        val messages = new QueryStateMessages(
+        val messages = new ConstStateMessages(
           srcStateSequence
             .map(queryState => {
               val seqNum = queryState.seqNum
-              QueryState
+              ConstState
                 .builder()
                 .fromState(queryState)
                 .applyWeightedPregelTriplet(triplet, aggTests(seqNum), aggIntervalTests(seqNum), aggCosts(seqNum))
@@ -65,7 +65,7 @@ object WeightedPregelRunner {
           //.filter(newState => newState.testSuccess)
         )
 
-        List((triplet.srcId, new QueryStateMessages(List.empty)), (triplet.dstId, messages)).toIterator
+        List((triplet.srcId, new ConstStateMessages(List.empty)), (triplet.dstId, messages)).toIterator
       },
       // Merge Message
       mergeMsg = (a, b) => {
@@ -76,18 +76,18 @@ object WeightedPregelRunner {
     result
   }
 
-  def initGraph(weightedQueries: WeightedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
+  def initGraph(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
     // Extract the test, cost functions and empty states from the queries
-    val nodeTests   = weightedQueries.sequence.map(q => SequencedQueries.extractConstQuery(q._1).nodeTest)
-    val nodeCosts   = weightedQueries.sequence.map(q => SequencedQueries.extractConstQuery(q._1).nodeCost)
-    val emptyStates = weightedQueries.createInitStates()
+    val nodeTests   = sequencedQueries.sequence.map(q => q._1.nodeTest)
+    val nodeCosts   = sequencedQueries.sequence.map(q => q._1.nodeCost)
+    val emptyStates = sequencedQueries.createInitStates()
 
     // Map to temporal pregel graph
     val initGraph = temporalGraph.mapVertices((id, attr) => {
       val initStates =
         emptyStates.map(
           state =>
-            QueryState
+            ConstState
               .builder()
               .fromState(state)
               .applyNodeTest(attr, nodeTests(state.seqNum))
@@ -102,8 +102,8 @@ object WeightedPregelRunner {
     initGraph
   }
 
-  private def initMessages(weightedQueries: WeightedQueries): QueryStateMessages = {
-    new QueryStateMessages(List(QueryState.builder().withSeqNum(-1).withInitPathCost(Float.MaxValue).build()))
+  private def initMessages(weightedQueries: SequencedQueries): ConstStateMessages = {
+    new ConstStateMessages(List(ConstState.builder().withSeqNum(-1).withInitPathCost(Float.MaxValue).build()))
   }
 
 }

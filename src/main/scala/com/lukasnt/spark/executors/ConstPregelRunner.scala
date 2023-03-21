@@ -1,32 +1,32 @@
 package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.{TemporalGraph, TemporalPregelGraph}
-import com.lukasnt.spark.models.{QueryState, QueryStateMessages, SequencedQueries, UnweightedQueries}
+import com.lukasnt.spark.queries.{ConstState, ConstStateMessages, SequencedQueries}
 import org.apache.spark.graphx.EdgeDirection
 
 /**
   * Executes a temporal path query using Pregel.
   */
-object UnweightedPregelRunner {
+object ConstPregelRunner {
 
   /**
     * Runs the temporal path query on a temporal graph.
     * @param temporalGraph temporal graph
     * @return temporal graph with the updated PathQueryState for each vertex
     */
-  def run(unweightedQueries: UnweightedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
+  def run(unweightedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
     // Create the init states beforehand as TemporaryPathQuery is not serializable
     val initStates   = unweightedQueries.createInitStates()
-    val initMessages = new QueryStateMessages(initStates)
+    val initMessages = new ConstStateMessages(initStates)
 
     // Map to temporal pregel graph
     val temporalStateGraph = temporalGraph.mapVertices((id, attr) => (attr, initStates))
 
     // Extract the test functions from the queries
-    val nodeTests = unweightedQueries.sequence.map(q => SequencedQueries.extractConstQuery(q._1).nodeTest)
+    val nodeTests = unweightedQueries.sequence.map(q => q._1.nodeTest)
 
     // Run Pregel
-    val result = temporalStateGraph.pregel[QueryStateMessages](
+    val result = temporalStateGraph.pregel[ConstStateMessages](
       initMessages,
       Int.MaxValue,
       EdgeDirection.Out
@@ -37,7 +37,7 @@ object UnweightedPregelRunner {
         val newStateSequence =
           stateSequence.map(
             state =>
-              QueryState
+              ConstState
                 .builder()
                 .fromState(state)
                 .applyNodeTest(node, nodeTests(state.seqNum))
