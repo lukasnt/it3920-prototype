@@ -5,6 +5,7 @@ import org.apache.spark.graphx.EdgeTriplet
 
 class QueryState(val seqNum: Int = 0) extends Serializable {
 
+  var superstep: Int       = 0
   var pathCost: Float      = Float.MaxValue
   var nodeCost: Float      = 0.0f
   var testSuccess: Boolean = false
@@ -16,8 +17,16 @@ class QueryState(val seqNum: Int = 0) extends Serializable {
   }
 
   override def toString: String = {
-    s"QueryState(seqNum=$seqNum, pathCost=$pathCost, nodeCost=$nodeCost, testSuccess=$testSuccess, " +
-      s"currentLength=$currentLength, completed=$completed)"
+    s"QueryState(superstep=$superstep, seqNum=$seqNum, pathCost=$pathCost, nodeCost=$nodeCost, " +
+      s"testSuccess=$testSuccess, currentLength=$currentLength, completed=$completed)"
+  }
+
+  /**
+    * Combine all the fields of the state into a single hash code
+    */
+  override def hashCode(): Int = {
+    val state = Seq(superstep, seqNum, pathCost, nodeCost, testSuccess, currentLength, completed)
+    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
   }
 
 }
@@ -60,7 +69,12 @@ object QueryState {
     }
 
     def applyPathCostUpdate(pathCost: Float): QueryStateBuilder = {
-      queryState.pathCost = pathCost
+      queryState.pathCost = Math.min(queryState.pathCost, pathCost)
+      this
+    }
+
+    def incSuperstep(): QueryStateBuilder = {
+      queryState.superstep += 1
       this
     }
 
@@ -80,11 +94,12 @@ object QueryState {
         val aggCostResult = aggCost(queryState.pathCost, edgeProperties)
         queryState.pathCost = aggCostResult
         queryState.testSuccess = true
-        queryState.currentLength = srcState(queryState.seqNum).currentLength + 1
+        //queryState.currentLength = srcState(queryState.seqNum).currentLength + 1
       } else {
         queryState.testSuccess = false
       }
 
+      //queryState.pathCost = 1005.0f
       this
     }
 

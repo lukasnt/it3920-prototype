@@ -4,7 +4,7 @@ import com.lukasnt.spark.models.Types.TemporalPregelGraph
 import com.lukasnt.spark.models.{SequencedQueries, TemporalPath}
 import org.apache.spark.rdd.RDD
 
-object PathsJoinExecutor {
+object UnweightedJoinExecutor {
 
   def joinSequence(sequencedPathQueries: SequencedQueries,
                    pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
