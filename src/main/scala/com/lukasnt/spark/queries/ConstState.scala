@@ -5,28 +5,17 @@ import org.apache.spark.graphx.EdgeTriplet
 
 class ConstState(val seqNum: Int = 0) extends Serializable {
 
-  var superstep: Int       = 0
-  var pathCost: Float      = Float.MaxValue
-  var nodeCost: Float      = 0.0f
-  var testSuccess: Boolean = false
-  var currentLength: Int   = 0
-  var completed: Boolean   = false
-
-  def this(query: ConstQuery) {
-    this()
-  }
+  var superstep: Int        = 0
+  var pathCost: Float       = Float.MaxValue
+  var nodeCost: Float       = 0.0f
+  var source: Boolean       = false
+  var intermediate: Boolean = false
+  var destination: Boolean  = false
+  var currentLength: Int    = 0
 
   override def toString: String = {
-    s"QueryState(superstep=$superstep, seqNum=$seqNum, pathCost=$pathCost, nodeCost=$nodeCost, " +
-      s"testSuccess=$testSuccess, currentLength=$currentLength, completed=$completed)"
-  }
-
-  /**
-    * Combine all the fields of the state into a single hash code
-    */
-  override def hashCode(): Int = {
-    val state = Seq(superstep, seqNum, pathCost, nodeCost, testSuccess, currentLength, completed)
-    state.map(_.hashCode()).foldLeft(0)((a, b) => 31 * a + b)
+    s"QueryState(seqNum=$seqNum, superstep=$superstep, pathCost=$pathCost, nodeCost=$nodeCost, " +
+      s"intermediate=$intermediate, source=$source, destination=$destination, currentLength=$currentLength"
   }
 
 }
@@ -44,7 +33,13 @@ object ConstState {
     }
 
     def fromState(state: ConstState): ConstStateBuilder = {
-      queryState = state
+      queryState.superstep = state.superstep
+      queryState.pathCost = state.pathCost
+      queryState.nodeCost = state.nodeCost
+      queryState.source = state.source
+      queryState.intermediate = state.intermediate
+      queryState.destination = state.destination
+      queryState.currentLength = state.currentLength
       this
     }
 
@@ -59,7 +54,7 @@ object ConstState {
     }
 
     def applyNodeTest(nodeProperties: Properties, testFunc: Properties => Boolean): ConstStateBuilder = {
-      queryState.testSuccess = testFunc(nodeProperties)
+      queryState.intermediate = testFunc(nodeProperties)
       this
     }
 
@@ -93,10 +88,10 @@ object ConstState {
       if (aggTestResult && aggIntervalTestResult) {
         val aggCostResult = aggCost(queryState.pathCost, edgeProperties)
         queryState.pathCost = aggCostResult
-        queryState.testSuccess = true
+        queryState.intermediate = true
         //queryState.currentLength = srcState(queryState.seqNum).currentLength + 1
       } else {
-        queryState.testSuccess = false
+        queryState.intermediate = false
       }
 
       //queryState.pathCost = 1005.0f

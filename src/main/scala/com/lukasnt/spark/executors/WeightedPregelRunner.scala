@@ -1,13 +1,12 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.models.Types.{TemporalGraph, TemporalPregelGraph}
+import com.lukasnt.spark.models.Types.{SequencedPregelGraph, TemporalGraph}
 import com.lukasnt.spark.queries.{ConstState, ConstStateMessages, SequencedQueries}
-import com.lukasnt.spark.utils.Loggers
 import org.apache.spark.graphx.EdgeDirection
 
 object WeightedPregelRunner {
 
-  def run(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
+  def run(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): SequencedPregelGraph = {
 
     // Initialize the temporal pregel graph and the initial messages
     val temporalStateGraph = initGraph(sequencedQueries, temporalGraph)
@@ -48,9 +47,11 @@ object WeightedPregelRunner {
       sendMsg = triplet => {
         val srcStateSequence = triplet.srcAttr._2
 
+        /*
         Loggers.default.debug(
           s"srcSuperstep: ${triplet.srcAttr._2.apply(2).superstep}, " +
             s"dstSuperStep: ${triplet.dstAttr._2.apply(2).superstep}")
+         */
 
         val messages = new ConstStateMessages(
           srcStateSequence
@@ -76,7 +77,7 @@ object WeightedPregelRunner {
     result
   }
 
-  def initGraph(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
+  def initGraph(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): SequencedPregelGraph = {
     // Extract the test, cost functions and empty states from the queries
     val nodeTests   = sequencedQueries.sequence.map(q => q._1.nodeTest)
     val nodeCosts   = sequencedQueries.sequence.map(q => q._1.nodeCost)

@@ -1,12 +1,12 @@
 package com.lukasnt.spark.examples
 
 import com.lukasnt.spark.executors.ConstPregelRunner
-import com.lukasnt.spark.models.Types.TemporalPregelGraph
+import com.lukasnt.spark.models.Types.SequencedPregelGraph
 import com.lukasnt.spark.queries.{ConstQuery, QueryAggFunc, SequencedQueries}
 
 object SimpleConstQueries {
 
-  def result(): TemporalPregelGraph = {
+  def result(): SequencedPregelGraph = {
     val temporalGraph = SimpleSNBLoader.load()
 
     ConstPregelRunner.run(exampleQuery(), temporalGraph)

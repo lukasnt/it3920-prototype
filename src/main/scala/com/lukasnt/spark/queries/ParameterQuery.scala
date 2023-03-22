@@ -1,18 +1,18 @@
 package com.lukasnt.spark.queries
 
-import com.lukasnt.spark.models.Types.{Interval, PropertyEdge, PropertyVertex}
+import com.lukasnt.spark.models.Types.{AttrEdge, AttrVertex, Interval}
 
 class ParameterQuery() {
 
-  private var sourcePredicate: PropertyVertex => Boolean = { _ =>
+  private var sourcePredicate: AttrVertex => Boolean = { _ =>
     true
   }
 
-  private var intermediatePredicate: PropertyEdge => Boolean = { _ =>
+  private var intermediatePredicate: AttrEdge => Boolean = { _ =>
     true
   }
 
-  private var destinationPredicate: PropertyVertex => Boolean = { _ =>
+  private var destinationPredicate: AttrVertex => Boolean = { _ =>
     true
   }
 
@@ -20,7 +20,7 @@ class ParameterQuery() {
     b
   }
 
-  private var weightMap: PropertyEdge => Float = { _ =>
+  private var weightMap: AttrEdge => Float = { _ =>
     1.0f
   }
 
@@ -56,17 +56,17 @@ object ParameterQuery {
       this
     }
 
-    def withSourcePredicate(predicate: PropertyVertex => Boolean): ParameterQueryBuilder = {
+    def withSourcePredicate(predicate: AttrVertex => Boolean): ParameterQueryBuilder = {
       query.sourcePredicate = predicate
       this
     }
 
-    def withIntermediatePredicate(predicate: PropertyEdge => Boolean): ParameterQueryBuilder = {
+    def withIntermediatePredicate(predicate: AttrEdge => Boolean): ParameterQueryBuilder = {
       query.intermediatePredicate = predicate
       this
     }
 
-    def withDestinationPredicate(predicate: PropertyVertex => Boolean): ParameterQueryBuilder = {
+    def withDestinationPredicate(predicate: AttrVertex => Boolean): ParameterQueryBuilder = {
       query.destinationPredicate = predicate
       this
     }
@@ -76,7 +76,7 @@ object ParameterQuery {
       this
     }
 
-    def withWeightMap(weightMap: PropertyEdge => Float): ParameterQueryBuilder = {
+    def withWeightMap(weightMap: AttrEdge => Float): ParameterQueryBuilder = {
       query.weightMap = weightMap
       this
     }

@@ -1,6 +1,6 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.models.Types.{TemporalGraph, TemporalPregelGraph}
+import com.lukasnt.spark.models.Types.{TemporalGraph, SequencedPregelGraph}
 import com.lukasnt.spark.queries.{ConstState, ConstStateMessages, SequencedQueries}
 import org.apache.spark.graphx.EdgeDirection
 
@@ -14,7 +14,7 @@ object ConstPregelRunner {
     * @param temporalGraph temporal graph
     * @return temporal graph with the updated PathQueryState for each vertex
     */
-  def run(unweightedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalPregelGraph = {
+  def run(unweightedQueries: SequencedQueries, temporalGraph: TemporalGraph): SequencedPregelGraph = {
     // Create the init states beforehand as TemporaryPathQuery is not serializable
     val initStates   = unweightedQueries.createInitStates()
     val initMessages = new ConstStateMessages(initStates)

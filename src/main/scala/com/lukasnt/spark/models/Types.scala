@@ -1,6 +1,6 @@
 package com.lukasnt.spark.models
 
-import com.lukasnt.spark.queries.ConstState
+import com.lukasnt.spark.queries.{ConstState, IntervalsState}
 import org.apache.spark.graphx.{Graph, VertexId}
 
 import java.time.ZonedDateTime
@@ -20,10 +20,14 @@ object Types {
 
   type TemporalGraph = GenericTemporalGraph[ZonedDateTime]
 
-  type TemporalPregelGraph = Graph[(Properties, List[ConstState]), Properties]
+  type PregelGraph = Graph[PregelVertex, Properties]
 
-  case class PropertyVertex(id: VertexId, properties: Properties)
+  type SequencedPregelGraph = Graph[(Properties, List[ConstState]), Properties]
 
-  case class PropertyEdge(srcId: VertexId, dstId: VertexId, properties: Properties)
+  case class AttrVertex(id: VertexId, attr: Properties)
+
+  case class AttrEdge(srcId: VertexId, dstId: VertexId, attr: Properties)
+
+  case class PregelVertex(constState: ConstState, intervalsState: IntervalsState)
 
 }

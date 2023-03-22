@@ -1,6 +1,6 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.models.Types.TemporalPregelGraph
+import com.lukasnt.spark.models.Types.SequencedPregelGraph
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.queries.SequencedQueries
 import org.apache.spark.rdd.RDD
@@ -27,7 +27,7 @@ object ConstJoinExecutor {
   }
 
   def createConstPaths(sequencedPathQueries: SequencedQueries,
-                       temporalPregelGraph: TemporalPregelGraph): List[RDD[TemporalPath]] = {
+                       temporalPregelGraph: SequencedPregelGraph): List[RDD[TemporalPath]] = {
     sequencedPathQueries.sequence.zipWithIndex
       .map(seqPathQuery => {
         val ((query, aggFunc), seqNum) = seqPathQuery
@@ -39,7 +39,7 @@ object ConstJoinExecutor {
           if (seqNum < seqLen - 1)
             temporalPregelGraph
               .subgraph(e =>
-                e.srcAttr._2(seqNum).testSuccess && e.dstAttr._2.last.testSuccess && aggTest(null, null, e.attr))
+                e.srcAttr._2(seqNum).intermediate && e.dstAttr._2.last.intermediate && aggTest(null, null, e.attr))
               .edges
               .map(edge => new TemporalPath(List(edge)))
           else null
