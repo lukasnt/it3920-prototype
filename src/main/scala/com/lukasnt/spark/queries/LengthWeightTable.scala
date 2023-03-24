@@ -17,6 +17,11 @@ class LengthWeightTable(val topK: Int = 10) extends Serializable {
     LengthWeightTable(newTableData)
   }
 
+  def mergeWithTable(other: LengthWeightTable): LengthWeightTable = {
+    val newTableData = tableData ++ other.tableData
+    LengthWeightTable(newTableData)
+  }
+
   override def toString: String = {
     s"[${tableData.mkString(", ")}]"
   }

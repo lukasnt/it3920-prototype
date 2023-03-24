@@ -17,22 +17,15 @@ class IntervalMessage extends Serializable {
 
 object IntervalMessage {
 
-  def apply(interval: Interval, length: Int, lengthWeightTable: LengthWeightTable): IntervalMessage =
+  def apply(interval: Interval, length: Int, lengthWeightTable: LengthWeightTable): IntervalMessage = {
+    val newInterval          = interval
+    val newLength            = length
+    val newLengthWeightTable = lengthWeightTable
     new IntervalMessage {
-      override val interval: Interval                   = interval
-      override val length: Int                          = length
-      override val lengthWeightTable: LengthWeightTable = lengthWeightTable
+      override val interval: Interval                   = newInterval
+      override val length: Int                          = newLength
+      override val lengthWeightTable: LengthWeightTable = newLengthWeightTable
     }
-
-  def apply(interval: Interval, length: Int): IntervalMessage = new IntervalMessage {
-    override val interval: Interval = interval
-    override val length: Int        = length
   }
-
-  def apply(interval: Interval): IntervalMessage = new IntervalMessage {
-    override val interval: Interval = interval
-  }
-
-  def apply(): IntervalMessage = new IntervalMessage
 
 }
