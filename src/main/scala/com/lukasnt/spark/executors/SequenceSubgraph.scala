@@ -4,18 +4,18 @@ import com.lukasnt.spark.models.Types.{Interval, Properties, TemporalGraph}
 import com.lukasnt.spark.queries.SequencedQueries
 import org.apache.spark.graphx.EdgeTriplet
 
-object SubgraphFilterExecutor {
+class SequenceSubgraph(sequencedQueries: SequencedQueries) extends SubgraphExecutor[Properties, Properties] {
 
-  def executeSubgraphFilter(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalGraph = {
-    val nodeTests        = sequencedQueries.sequence.map(query => query._1.nodeTest)
-    val aggTests         = sequencedQueries.sequence.map(query => query._2.aggTest)
-    val aggIntervalTests = sequencedQueries.sequence.map(query => query._2.aggIntervalTest)
+  val nodeTests: List[Properties => Boolean] =
+    sequencedQueries.sequence.map(query => query._1.nodeTest)
+  val aggTests: List[(Properties, Properties, Properties) => Boolean] =
+    sequencedQueries.sequence.map(query => query._2.aggTest)
+  val aggIntervalTests: List[(Interval, Interval) => Boolean] =
+    sequencedQueries.sequence.map(query => query._2.aggIntervalTest)
 
-    val filteredGraph = temporalGraph.subgraph(
-      epred = triplet => tripletSatisfiesTests(triplet, aggTests, aggIntervalTests, nodeTests),
-      vpred = (_, atr) => nodeSatisfiesTests(atr, nodeTests))
-
-    filteredGraph
+  def subgraph(temporalGraph: TemporalGraph): TemporalGraph = {
+    temporalGraph.subgraph(epred = triplet => tripletSatisfiesTests(triplet, aggTests, aggIntervalTests, nodeTests),
+                           vpred = (_, atr) => nodeSatisfiesTests(atr, nodeTests))
   }
 
   private def tripletSatisfiesTests(triplet: EdgeTriplet[Properties, Properties],
@@ -72,5 +72,12 @@ object SubgraphFilterExecutor {
       result
     }
  */
+
+}
+
+object SequenceSubgraph {
+
+  def apply(temporalGraph: TemporalGraph, sequencedQueries: SequencedQueries): TemporalGraph =
+    new SequenceSubgraph(sequencedQueries).subgraph(temporalGraph)
 
 }

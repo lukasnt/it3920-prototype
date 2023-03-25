@@ -4,32 +4,23 @@ import com.lukasnt.spark.models.Types.{AttrEdge, AttrVertex, Interval}
 
 class ParameterQuery() {
 
-  private var sourcePredicate: AttrVertex => Boolean = { _ =>
-    true
-  }
+  private var _sourcePredicate: AttrVertex => Boolean             = (v) => { v.attr.interval != null }
+  private var _intermediatePredicate: AttrEdge => Boolean         = (e) => { e.attr.interval != null }
+  private var _destinationPredicate: AttrVertex => Boolean        = (v) => { v.attr.interval != null }
+  private var _intervalRelation: (Interval, Interval) => Interval = (a, b) => { a.getUnion(b) }
+  private var _weightMap: AttrEdge => Float                       = (_) => { 1.0f }
+  private var _minLength: Int                                     = 1
+  private var _maxLength: Int                                     = 10
+  private var _topK: Int                                          = 5
 
-  private var intermediatePredicate: AttrEdge => Boolean = { _ =>
-    true
-  }
-
-  private var destinationPredicate: AttrVertex => Boolean = { _ =>
-    true
-  }
-
-  private var intervalRelation: (Interval, Interval) => Interval = { (a, b) =>
-    b
-  }
-
-  private var weightMap: AttrEdge => Float = { _ =>
-    1.0f
-  }
-
-  private var minLength: Int = 1
-
-  private var maxLength: Int = 10
-
-  private var topK: Int = 5
-
+  def sourcePredicate: AttrVertex => Boolean             = this._sourcePredicate
+  def intermediatePredicate: AttrEdge => Boolean         = this._intermediatePredicate
+  def destinationPredicate: AttrVertex => Boolean        = this._destinationPredicate
+  def intervalRelation: (Interval, Interval) => Interval = this._intervalRelation
+  def weightMap: AttrEdge => Float                       = this._weightMap
+  def minLength: Int                                     = this._minLength
+  def maxLength: Int                                     = this._maxLength
+  def topK: Int                                          = this._topK
 }
 
 object ParameterQuery {
@@ -45,57 +36,56 @@ object ParameterQuery {
     }
 
     def fromQuery(query: ParameterQuery): ParameterQueryBuilder = {
-      this.query.sourcePredicate = query.sourcePredicate
-      this.query.intermediatePredicate = query.intermediatePredicate
-      this.query.destinationPredicate = query.destinationPredicate
-      this.query.intervalRelation = query.intervalRelation
-      this.query.weightMap = query.weightMap
-      this.query.minLength = query.minLength
-      this.query.maxLength = query.maxLength
-      this.query.topK = query.topK
+      this.query._sourcePredicate = query._sourcePredicate
+      this.query._intermediatePredicate = query._intermediatePredicate
+      this.query._destinationPredicate = query._destinationPredicate
+      this.query._intervalRelation = query._intervalRelation
+      this.query._weightMap = query._weightMap
+      this.query._minLength = query._minLength
+      this.query._maxLength = query._maxLength
+      this.query._topK = query._topK
       this
     }
 
     def withSourcePredicate(predicate: AttrVertex => Boolean): ParameterQueryBuilder = {
-      query.sourcePredicate = predicate
+      query._sourcePredicate = predicate
       this
     }
 
     def withIntermediatePredicate(predicate: AttrEdge => Boolean): ParameterQueryBuilder = {
-      query.intermediatePredicate = predicate
+      query._intermediatePredicate = predicate
       this
     }
 
     def withDestinationPredicate(predicate: AttrVertex => Boolean): ParameterQueryBuilder = {
-      query.destinationPredicate = predicate
+      query._destinationPredicate = predicate
       this
     }
 
     def withIntervalRelation(relation: (Interval, Interval) => Interval): ParameterQueryBuilder = {
-      query.intervalRelation = relation
+      query._intervalRelation = relation
       this
     }
 
     def withWeightMap(weightMap: AttrEdge => Float): ParameterQueryBuilder = {
-      query.weightMap = weightMap
+      query._weightMap = weightMap
       this
     }
 
     def withMinLength(minLength: Int): ParameterQueryBuilder = {
-      query.minLength = minLength
+      query._minLength = minLength
       this
     }
 
     def withMaxLength(maxLength: Int): ParameterQueryBuilder = {
-      query.maxLength = maxLength
+      query._maxLength = maxLength
       this
     }
 
     def withTopK(topK: Int): ParameterQueryBuilder = {
-      query.topK = topK
+      query._topK = topK
       this
     }
 
   }
-
 }

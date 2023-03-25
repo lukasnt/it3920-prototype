@@ -18,7 +18,7 @@ object Types {
 
   type GenericTemporalGraph[T <: Temporal] = Graph[TemporalProperties[T], TemporalProperties[T]]
 
-  type TemporalGraph = GenericTemporalGraph[ZonedDateTime]
+  type TemporalGraph = Graph[Properties, Properties]
 
   type PregelGraph = Graph[PregelVertex, Properties]
 

@@ -8,20 +8,19 @@ import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 
 import scala.util.Random
 
-class ParameterPregelRunner extends PregelRunner[PregelVertex, Properties, IntervalMessage] {
+class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMessage] {
 
   override def maxIterations(): Int = 100
 
-  override def activeDirection(): EdgeDirection = EdgeDirection.Out
+  override def activeDirection(): EdgeDirection = EdgeDirection.Either
 
-  override def initMessages(): IntervalMessage = {
+  override def initMessages(): IntervalMessage =
     IntervalMessage(TemporalInterval(),
                     0,
                     LengthWeightTable(
                       List(
                         LengthWeightTable.Entry(0, Random.nextFloat(), 0)
                       )))
-  }
 
   override def preprocessGraph(temporalGraph: TemporalGraph): Graph[PregelVertex, Properties] = {
     val initConstState = ConstState.builder().withSeqNum(0).build()
@@ -49,10 +48,9 @@ class ParameterPregelRunner extends PregelRunner[PregelVertex, Properties, Inter
                              currentState: PregelVertex,
                              mergedMessage: IntervalMessage): PregelVertex = {
     Loggers.default.debug(
-      s"id: $vertexId, " +
-        s"superstep: ${currentState.constState.superstep}, " +
-        s"firstEntry: ${currentState.intervalsState.intervalData.head}, " +
-        s"mergedMessage: $mergedMessage"
+      s"id: $vertexId, superstep: " +
+        s"${currentState.constState.superstep}, firstEntry: " +
+        s"${currentState.intervalsState.intervalData.head}"
     )
 
     val newConstState = ConstState
@@ -75,9 +73,8 @@ class ParameterPregelRunner extends PregelRunner[PregelVertex, Properties, Inter
   }
 
   override def sendMessage(triplet: EdgeTriplet[PregelVertex, Properties]): Iterator[(VertexId, IntervalMessage)] = {
-    val interval = triplet.attr.interval
     val length   = triplet.srcAttr.constState.superstep
-    val table    = triplet.srcAttr.intervalsState.intervalData.head.lengthWeightTable
+    val interval = triplet.attr.interval
 
     Loggers.default.debug(
       s"srcId: ${triplet.srcId}, " +
@@ -85,23 +82,16 @@ class ParameterPregelRunner extends PregelRunner[PregelVertex, Properties, Inter
         s"srcSuperstep: ${triplet.srcAttr.constState.superstep}, " +
         s"dstSuperstep: ${triplet.dstAttr.constState.superstep}")
 
-    Iterator((triplet.dstId, IntervalMessage(interval, length, table)))
+    Iterator((triplet.dstId, IntervalMessage(interval, length, LengthWeightTable(List()))))
   }
 
-  override def mergeMessage(msg1: IntervalMessage, msg2: IntervalMessage): IntervalMessage = {
-    val interval    = msg1.interval.getUnion(msg2.interval)
-    val length      = Math.max(msg1.length, msg2.length)
-    val mergedTable = msg1.lengthWeightTable.mergeWithTable(msg2.lengthWeightTable)
-
-    IntervalMessage(interval, length, mergedTable)
+  override def mergeMessage(msgA: IntervalMessage, msgB: IntervalMessage): IntervalMessage = {
+    msgA
   }
-
 }
 
-object ParameterPregelRunner {
-
+object TemplatePregel {
   def apply(temporalGraph: TemporalGraph): Graph[PregelVertex, Properties] = {
-    new ParameterPregelRunner().run(temporalGraph)
+    new TemplatePregel().run(temporalGraph)
   }
-
 }

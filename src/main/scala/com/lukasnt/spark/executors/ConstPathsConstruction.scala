@@ -1,11 +1,28 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.models.Types.SequencedPregelGraph
 import com.lukasnt.spark.models.TemporalPath
-import com.lukasnt.spark.queries.SequencedQueries
+import com.lukasnt.spark.models.Types.Properties
+import com.lukasnt.spark.queries.{ConstState, SequencedQueries}
+import org.apache.spark.graphx.Graph
 import org.apache.spark.rdd.RDD
 
-object ConstJoinExecutor {
+class ConstPathsConstruction(sequencedQueries: SequencedQueries)
+    extends PathsConstructionExecutor[(Properties, List[ConstState]), Properties] {
+
+  override def constructPaths(pregelGraph: Graph[(Properties, List[ConstState]), Properties]): RDD[TemporalPath] = {
+    val constPathSequence = ConstPathsConstruction.createConstPaths(sequencedQueries, pregelGraph)
+    val pathsResult       = ConstPathsConstruction.joinSequence(sequencedQueries, constPathSequence)
+    pathsResult
+  }
+
+}
+
+object ConstPathsConstruction {
+
+  def apply(pregelGraph: Graph[(Properties, List[ConstState]), Properties],
+            sequencedQueries: SequencedQueries): RDD[TemporalPath] = {
+    new ConstPathsConstruction(sequencedQueries).constructPaths(pregelGraph)
+  }
 
   def joinSequence(sequencedPathQueries: SequencedQueries,
                    pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
@@ -26,8 +43,9 @@ object ConstJoinExecutor {
     })
   }
 
-  def createConstPaths(sequencedPathQueries: SequencedQueries,
-                       temporalPregelGraph: SequencedPregelGraph): List[RDD[TemporalPath]] = {
+  def createConstPaths(
+      sequencedPathQueries: SequencedQueries,
+      temporalPregelGraph: Graph[(Properties, List[ConstState]), Properties]): List[RDD[TemporalPath]] = {
     sequencedPathQueries.sequence.zipWithIndex
       .map(seqPathQuery => {
         val ((query, aggFunc), seqNum) = seqPathQuery

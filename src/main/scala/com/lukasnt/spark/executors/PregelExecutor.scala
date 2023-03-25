@@ -11,7 +11,7 @@ import scala.reflect.ClassTag
   * @tparam ED the edge data type
   * @tparam A the Pregel message type
   */
-abstract class PregelRunner[VD: ClassTag, ED: ClassTag, A: ClassTag] extends Serializable {
+abstract class PregelExecutor[VD: ClassTag, ED: ClassTag, A: ClassTag] extends Serializable {
 
   /**
     * Documentation from GraphX:
@@ -68,11 +68,11 @@ abstract class PregelRunner[VD: ClassTag, ED: ClassTag, A: ClassTag] extends Ser
     * Documentation from GraphX:
     * a user supplied function that takes two incoming messages of type A and merges them into a single message of type A.
     * This function must be commutative and associative and ideally the size of A should not increase.
-    * @param msg1 message 1
-    * @param msg2 message 2
+    * @param msgA message 1
+    * @param msgB message 2
     * @return new merged message
     */
-  def mergeMessage(msg1: A, msg2: A): A
+  def mergeMessage(msgA: A, msgB: A): A
 
   /**
     * Runs the pregel algorithm on the given graph
