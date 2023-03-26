@@ -41,5 +41,9 @@ object IntervalsState {
 
   def apply(): IntervalsState = new IntervalsState
 
-  case class Entry(interval: Interval, lengthWeightTable: LengthWeightTable)
+  case class Entry(interval: Interval, lengthWeightTable: LengthWeightTable) {
+    override def toString: String = {
+      s"IntervalEntry(${interval.toString}, ${lengthWeightTable.toString})"
+    }
+  }
 }

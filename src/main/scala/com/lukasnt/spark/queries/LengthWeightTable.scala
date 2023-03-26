@@ -53,5 +53,9 @@ object LengthWeightTable {
     override val activeEntries: List[Entry]  = actives.sortBy(_.weight).take(topK)
   }
 
-  case class Entry(length: Int, weight: Float, parentId: VertexId)
+  case class Entry(length: Int, weight: Float, parentId: VertexId) {
+    override def toString: String = {
+      s"Entry($length|$weight|$parentId)"
+    }
+  }
 }

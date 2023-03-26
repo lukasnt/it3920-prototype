@@ -104,7 +104,7 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
   }
 
   override def toString: String = {
-    s"($startTime, $endTime)"
+    s"Interval($startTime, $endTime)"
   }
 
 }

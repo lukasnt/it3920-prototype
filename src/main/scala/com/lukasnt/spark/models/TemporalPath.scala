@@ -1,13 +1,13 @@
 package com.lukasnt.spark.models
 
-import com.lukasnt.spark.models.Types.{Interval, TemporalGraph}
+import com.lukasnt.spark.models.Types.{Interval, Properties, TemporalGraph}
 import org.apache.spark.SparkContext
 import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.rdd.RDD
 
 import java.time.ZonedDateTime
 
-class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]]]) extends Serializable {
+class TemporalPath(val edgeSequence: List[Edge[Properties]]) extends Serializable {
 
   def asTemporalGraph(sc: SparkContext): TemporalGraph = {
     Graph.apply(
@@ -28,46 +28,46 @@ class TemporalPath(val edgeSequence: List[Edge[TemporalProperties[ZonedDateTime]
   }
 
   def outerJoinWithEdges(edges: List[Edge[TemporalProperties[ZonedDateTime]]]): List[TemporalPath] = {
-    edges.map(edge => concatWithEdge(edge))
+    edges.map(edge => this :+ edge)
   }
 
   def innerJoinWithEdges(edges: RDD[Edge[TemporalProperties[ZonedDateTime]]]): RDD[TemporalPath] = {
-    edges.filter(edge => edge.srcId == getEndNode).map(edge => concatWithEdge(edge))
+    edges.filter(edge => edge.srcId == endNode).map(edge => this :+ edge)
   }
 
-  def concatWithEdge(edge: Edge[TemporalProperties[ZonedDateTime]]): TemporalPath = {
+  def :+(edge: Edge[TemporalProperties[ZonedDateTime]]): TemporalPath = {
     new TemporalPath(edgeSequence :+ edge)
   }
 
-  def getEndNode: Long = {
+  def endNode: Long = {
     edgeSequence.last.dstId
   }
 
   def outerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
-    paths.map(path => concatWithPath(path))
-  }
-
-  def concatWithPath(path: TemporalPath): TemporalPath = {
-    new TemporalPath(edgeSequence ++ path.edgeSequence)
+    paths.map(path => this + path)
   }
 
   def innerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
-    paths.filter(path => path.getStartNode == getEndNode).map(path => concatWithPath(path))
+    paths.filter(path => path.startNode == endNode).map(path => this + path)
   }
 
-  def getStartNode: Long = {
+  def +(path: TemporalPath): TemporalPath = {
+    new TemporalPath(edgeSequence ++ path.edgeSequence)
+  }
+
+  def startNode: Long = {
     edgeSequence.head.srcId
   }
 
-  def getInterval: Interval = {
-    new TemporalInterval(getStartTimestamp, getEndTimestamp)
+  def interval: Interval = {
+    new TemporalInterval(startTimestamp, endTimestamp)
   }
 
-  def getStartTimestamp: ZonedDateTime = {
+  def startTimestamp: ZonedDateTime = {
     edgeSequence.head.attr.interval.startTime
   }
 
-  def getEndTimestamp: ZonedDateTime = {
+  def endTimestamp: ZonedDateTime = {
     edgeSequence.last.attr.interval.endTime
   }
 

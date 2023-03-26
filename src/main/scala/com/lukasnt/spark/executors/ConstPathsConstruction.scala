@@ -28,8 +28,8 @@ object ConstPathsConstruction {
                    pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
     pathsSequence.reduceLeft((accumulatedPaths, constPaths) => {
       val joinedPaths = accumulatedPaths
-        .groupBy(path => path.getEndNode)
-        .join(constPaths.groupBy(path => path.getStartNode))
+        .groupBy(path => path.endNode)
+        .join(constPaths.groupBy(path => path.startNode))
         .flatMap(pathsPairs => {
           // TODO: Add the aggregation functions (for both test and interval-relation) from queries
 
