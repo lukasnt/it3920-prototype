@@ -21,14 +21,14 @@ object SimpleParameterQueries {
   def interactionPaths(city1: String = "1226",
                        city2: String = "1363",
                        minLength: Int = 2,
-                       topK: Int = 5): ParameterQuery = {
+                       topK: Int = 3): ParameterQuery = {
     ParameterQuery
       .builder()
-      .withSourcePredicate(s => s.attr.typeLabel == "Person" && s.attr.properties("LocationCityId") == city1)
+      .withSourcePredicate(s => s.attr.typeLabel == "Person" && s.attr.properties("gender") == "male")
       .withIntermediatePredicate(e => e.attr.typeLabel == "Person_knows_Person")
-      .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("LocationCityId") == city2)
+      .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("gender") == "female")
       .withIntervalRelation((a, b) => a.getUnion(b))
-      .withWeightMap(_ => 2.0f)
+      .withWeightMap(e => e.attr.interval.getDuration.toFloat)
       .withMinLength(minLength)
       .withMaxLength(10)
       .withTopK(topK)

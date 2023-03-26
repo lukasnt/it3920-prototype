@@ -10,10 +10,27 @@ class ParameterSubgraph(parameterQuery: ParameterQuery) extends SubgraphExecutor
   val intermediatePredicate: AttrEdge => Boolean  = parameterQuery.intermediatePredicate
   val destinationPredicate: AttrVertex => Boolean = parameterQuery.destinationPredicate
 
+  /**
+    * The subgraph function that filters the graph to keep only the vertices and edges that are source or destination or pass the intermediate predicate.
+    * In addition, maps the graph such that the Pregel phase can use the source and destination properties on vertices.
+    * @param temporalGraph The graph to filter
+    * @return The filtered graph
+    */
   override def subgraph(temporalGraph: TemporalGraph): Graph[Properties, Properties] = {
+    // Map the graph first to add source and destination properties such that the Pregel phase can use them
+    // Then filter the graph to keep only the vertices that are source or destination or pass the intermediate predicate
     temporalGraph
+      .mapVertices(
+        (id, attr) =>
+          new Properties(
+            attr.interval,
+            attr.typeLabel,
+            attr.properties +
+              ("source"     -> sourcePredicate(AttrVertex(id, attr)).toString,
+              "destination" -> destinationPredicate(AttrVertex(id, attr)).toString)
+        ))
       .subgraph(
-        vpred = (id, attr) => sourcePredicate(AttrVertex(id, attr)) || destinationPredicate(AttrVertex(id, attr)),
+        vpred = (id, attr) => attr.properties("source").toBoolean || attr.properties("destination").toBoolean,
         epred = edge => intermediatePredicate(AttrEdge(edge.srcId, edge.dstId, edge.attr))
       )
   }

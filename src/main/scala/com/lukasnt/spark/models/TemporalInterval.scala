@@ -77,6 +77,14 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
   }
 
   /**
+    * @param interval interval to compare with
+    * @return true if this interval is before the given interval, false otherwise
+    */
+  def before(interval: TemporalInterval[T]): Boolean = {
+    this.endTime.until(interval.startTime, ChronoUnit.NANOS) > 0
+  }
+
+  /**
     * @param interval interval to get the union with
     * @return the union interval
     */
@@ -89,11 +97,10 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
   }
 
   /**
-    * @param interval interval to compare with
-    * @return true if this interval is before the given interval, false otherwise
+    * @return the duration of the interval in ChronoUnit.NANOS
     */
-  def before(interval: TemporalInterval[T]): Boolean = {
-    this.endTime.until(interval.startTime, ChronoUnit.NANOS) > 0
+  def getDuration: Long = {
+    this.startTime.until(this.endTime, ChronoUnit.NANOS)
   }
 
   override def toString: String = {

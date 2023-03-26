@@ -33,7 +33,7 @@ class SequencePregel(sequencedQueries: SequencedQueries)
             ConstState
               .builder()
               .fromState(state)
-              .applyNodeTest(attr, nodeTests(state.seqNum))
+              .applySourceTest(attr, nodeTests(state.seqNum))
               .applyNodeCost(attr, nodeCosts(state.seqNum))
               .applyPathCostUpdate(if (state.seqNum == 0) nodeCosts(state.seqNum)(attr) else Float.MaxValue)
               .build())

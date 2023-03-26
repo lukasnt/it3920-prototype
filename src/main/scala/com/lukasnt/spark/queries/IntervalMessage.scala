@@ -7,7 +7,7 @@ class IntervalMessage extends Serializable {
 
   val interval: Interval                   = TemporalInterval()
   val length: Int                          = 0
-  val lengthWeightTable: LengthWeightTable = LengthWeightTable(List())
+  val lengthWeightTable: LengthWeightTable = LengthWeightTable(List(), List(), 10)
 
   override def toString: String = {
     s"IntervalMessage(interval=$interval, length=$length, lengthWeightTable=$lengthWeightTable)"

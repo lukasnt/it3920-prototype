@@ -17,10 +17,11 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
   override def initMessages(): IntervalMessage =
     IntervalMessage(TemporalInterval(),
                     0,
-                    LengthWeightTable(
-                      List(
-                        LengthWeightTable.Entry(0, Random.nextFloat(), 0)
-                      )))
+                    LengthWeightTable(history = List(),
+                                      actives = List(
+                                        LengthWeightTable.Entry(0, Random.nextFloat(), 0)
+                                      ),
+                                      topK = 10))
 
   override def preprocessGraph(temporalGraph: TemporalGraph): Graph[PregelVertex, Properties] = {
     val initConstState = ConstState.builder().withSeqNum(0).build()
@@ -32,11 +33,13 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
           initConstState,
           IntervalsState(
             List(
-              IntervalsState.Entry(TemporalInterval(),
-                                   LengthWeightTable(
-                                     List(
+              IntervalsState.Entry(interval = TemporalInterval(),
+                                   lengthWeightTable = LengthWeightTable(
+                                     history = List(),
+                                     actives = List(
                                        LengthWeightTable.Entry(0, Random.nextFloat(), 0)
-                                     )
+                                     ),
+                                     topK = 10
                                    ))
             )
           )
@@ -63,9 +66,9 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
       .updateWithEntry(
         IntervalsState.Entry(
           mergedMessage.interval,
-          mergedMessage.lengthWeightTable.updateWithEntry(
-            LengthWeightTable.Entry(mergedMessage.length, Random.nextFloat(), vertexId)
-          )
+          mergedMessage.lengthWeightTable
+            .updateWithEntry(LengthWeightTable.Entry(mergedMessage.length, Random.nextFloat(), vertexId), 10)
+            .flushActiveEntries()
         )
       )
 
@@ -82,7 +85,7 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
         s"srcSuperstep: ${triplet.srcAttr.constState.superstep}, " +
         s"dstSuperstep: ${triplet.dstAttr.constState.superstep}")
 
-    Iterator((triplet.dstId, IntervalMessage(interval, length, LengthWeightTable(List()))))
+    Iterator((triplet.dstId, IntervalMessage(interval, length, LengthWeightTable(List(), List(), 0))))
   }
 
   override def mergeMessage(msgA: IntervalMessage, msgB: IntervalMessage): IntervalMessage = {
@@ -91,7 +94,9 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
 }
 
 object TemplatePregel {
+
   def apply(temporalGraph: TemporalGraph): Graph[PregelVertex, Properties] = {
     new TemplatePregel().run(temporalGraph)
   }
+
 }

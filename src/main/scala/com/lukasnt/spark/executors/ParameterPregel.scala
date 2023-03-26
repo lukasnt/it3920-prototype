@@ -28,29 +28,36 @@ class ParameterPregel(parameterQuery: ParameterQuery)
   override def initMessages(): IntervalMessage = {
     IntervalMessage(interval = TemporalInterval(),
                     length = 0,
-                    LengthWeightTable(List(
+                    LengthWeightTable(history = List(),
+                                      actives = List(
                                         LengthWeightTable.Entry(0, Random.nextFloat(), 0)
                                       ),
                                       topK = topK))
   }
 
   override def preprocessGraph(temporalGraph: TemporalGraph): Graph[PregelVertex, Properties] = {
-    val initConstState = ConstState.builder().withSeqNum(0).build()
-
     // Map to temporal pregel graph
     temporalGraph.mapVertices(
-      (_, _) =>
+      (id, attr) =>
         PregelVertex(
-          initConstState,
+          ConstState
+            .builder()
+            .applySourceTest(attr, attr => sourcePredicate(AttrVertex(id, attr)))
+            .applyIntermediateTest(attr, _ => true)
+            .applyDestinationTest(attr, attr => destinationPredicate(AttrVertex(id, attr)))
+            .build(),
           IntervalsState(
             List(
-              IntervalsState.Entry(TemporalInterval(),
-                                   LengthWeightTable(
-                                     List(
-                                       LengthWeightTable.Entry(0, Random.nextFloat(), 0)
-                                     ),
-                                     topK = topK
-                                   ))
+              IntervalsState.Entry(
+                interval = TemporalInterval(),
+                lengthWeightTable = LengthWeightTable(
+                  history = List(),
+                  actives = List(
+                    LengthWeightTable.Entry(0, Random.nextFloat(), id)
+                  ),
+                  topK = topK
+                )
+              )
             )
           )
       )
@@ -64,23 +71,24 @@ class ParameterPregel(parameterQuery: ParameterQuery)
     Loggers.default.debug(
       s"id: $vertexId, " +
         s"superstep: ${currentState.constState.superstep}, " +
-        s"firstEntry: ${currentState.intervalsState.intervalData.head}, " +
+        s"firstEntry: ${currentState.intervalsState.firstTable}, " +
         s"mergedMessage: $mergedMessage"
     )
+
+    val currentTable = currentState.intervalsState.intervalData.head.lengthWeightTable
 
     val newConstState = ConstState
       .builder()
       .fromState(currentState.constState)
       .incSuperstep()
-      .applyPathCostUpdate(currentState.constState.pathCost - Random.nextFloat())
       .build()
     val newIntervalsState = currentState.intervalsState
       .updateWithEntry(
         IntervalsState.Entry(
           mergedMessage.interval,
-          mergedMessage.lengthWeightTable.updateWithEntry(
-            LengthWeightTable.Entry(mergedMessage.length, Random.nextFloat(), vertexId)
-          )
+          currentTable
+            .mergeWithTable(mergedMessage.lengthWeightTable, topK)
+            .flushActiveEntries()
         )
       )
 
@@ -94,22 +102,42 @@ class ParameterPregel(parameterQuery: ParameterQuery)
     }
 
     val interval = triplet.attr.interval
-    val length   = triplet.srcAttr.constState.superstep
-    val table    = LengthWeightTable(triplet.srcAttr.intervalsState.intervalData.head.lengthWeightTable.tableData)
+    val table    = triplet.srcAttr.intervalsState.firstTable
+    val length   = table.currentLength
+
+    val messageInterval = interval
+    val messageLength   = length + 1
+    val messageTable = LengthWeightTable(
+      history = List(),
+      actives = table
+        .getEntriesByLength(length)
+        .map(
+          entry =>
+            LengthWeightTable.Entry(messageLength,
+                                    entry.weight + weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)),
+                                    triplet.srcId)),
+      topK = topK
+    )
 
     Loggers.default.debug(
       s"srcId: ${triplet.srcId}, " +
         s"dstId: ${triplet.dstId}, " +
         s"srcSuperstep: ${triplet.srcAttr.constState.superstep}, " +
-        s"dstSuperstep: ${triplet.dstAttr.constState.superstep}")
+        s"dstSuperstep: ${triplet.dstAttr.constState.superstep}, " +
+        s"interval: $messageInterval, " +
+        s"length: $messageLength, " +
+        s"table: $table, " +
+        s"messageTable: $messageTable, " +
+        s"weight: ${triplet.attr.properties("weight")}"
+    )
 
-    Iterator((triplet.dstId, IntervalMessage(interval, length, table)))
+    Iterator((triplet.dstId, IntervalMessage(messageInterval, messageLength, messageTable)))
   }
 
   override def mergeMessage(msgA: IntervalMessage, msgB: IntervalMessage): IntervalMessage = {
     val interval    = msgA.interval.getUnion(msgB.interval)
     val length      = Math.max(msgA.length, msgB.length)
-    val mergedTable = msgA.lengthWeightTable.mergeWithTable(msgB.lengthWeightTable)
+    val mergedTable = msgA.lengthWeightTable.mergeWithTable(msgB.lengthWeightTable, topK)
 
     IntervalMessage(interval, length, mergedTable)
   }

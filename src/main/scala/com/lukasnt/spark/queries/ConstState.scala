@@ -53,8 +53,18 @@ object ConstState {
       this
     }
 
-    def applyNodeTest(nodeProperties: Properties, testFunc: Properties => Boolean): ConstStateBuilder = {
-      queryState.intermediate = testFunc(nodeProperties)
+    def applySourceTest(nodeProperties: Properties, testFunc: Properties => Boolean): ConstStateBuilder = {
+      queryState.source = testFunc(nodeProperties)
+      this
+    }
+
+    def applyIntermediateTest(edgeProperties: Properties, testFunc: Properties => Boolean): ConstStateBuilder = {
+      queryState.intermediate = testFunc(edgeProperties)
+      this
+    }
+
+    def applyDestinationTest(nodeProperties: Properties, testFunc: Properties => Boolean): ConstStateBuilder = {
+      queryState.destination = testFunc(nodeProperties)
       this
     }
 
@@ -70,6 +80,11 @@ object ConstState {
 
     def incSuperstep(): ConstStateBuilder = {
       queryState.superstep += 1
+      this
+    }
+
+    def incCurrentLength(): ConstStateBuilder = {
+      queryState.currentLength += 1
       this
     }
 

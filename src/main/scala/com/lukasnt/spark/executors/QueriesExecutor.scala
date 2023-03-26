@@ -13,8 +13,9 @@ object QueriesExecutor {
   }
 
   def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult = {
-    val subgraph    = ParameterSubgraph(temporalGraph, parameterQuery)
-    val pregelGraph = ParameterPregel(subgraph, parameterQuery)
+    val subgraph      = ParameterSubgraph(temporalGraph, parameterQuery)
+    val weightedGraph = ParameterWeightMap(subgraph, parameterQuery)
+    val pregelGraph   = ParameterPregel(weightedGraph, parameterQuery)
     new QueryResult(temporalGraph, List())
   }
 
