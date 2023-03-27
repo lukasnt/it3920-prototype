@@ -30,7 +30,7 @@ class ParameterPregel(parameterQuery: ParameterQuery)
                     length = 0,
                     LengthWeightTable(history = List(),
                                       actives = List(
-                                        LengthWeightTable.Entry(0, Random.nextFloat(), 0)
+                                        LengthWeightTable.Entry(0, 0, 0)
                                       ),
                                       topK = topK))
   }
@@ -52,9 +52,7 @@ class ParameterPregel(parameterQuery: ParameterQuery)
                 interval = TemporalInterval(),
                 lengthWeightTable = LengthWeightTable(
                   history = List(),
-                  actives = List(
-                    LengthWeightTable.Entry(0, Random.nextFloat(), id)
-                  ),
+                  actives = List(),
                   topK = topK
                 )
               )
@@ -115,7 +113,8 @@ class ParameterPregel(parameterQuery: ParameterQuery)
           entry =>
             LengthWeightTable.Entry(messageLength,
                                     entry.weight + weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)),
-                                    triplet.srcId)),
+                                    triplet.srcId)
+        ),
       topK = topK
     )
 

@@ -28,14 +28,30 @@ class LengthWeightTable() extends Serializable {
     LengthWeightTable(newHistory, List(), 10)
   }
 
+  def filterByLengthRange(minLength: Int, maxLength: Int, topK: Int): LengthWeightTable = {
+    val newActiveEntries  = activeEntries.filter(entry => entry.length >= minLength && entry.length <= maxLength)
+    val newHistoryEntries = historyEntries.filter(entry => entry.length >= minLength && entry.length <= maxLength)
+    LengthWeightTable(newHistoryEntries, newActiveEntries, topK)
+  }
+
   def getEntriesByLength(length: Int): List[Entry] = {
-    (historyEntries ++ activeEntries).filter(_.length == length)
+    entries.filter(_.length == length)
+  }
+
+  def entries: List[Entry] = {
+    historyEntries ++ activeEntries
   }
 
   def currentLength: Int =
     if (activeEntries.nonEmpty) activeEntries.map(_.length).max
     else if (historyEntries.nonEmpty) historyEntries.map(_.length).max
     else 0
+
+  def topEntry: Option[Entry] = {
+    if (activeEntries.nonEmpty) Some(activeEntries.maxBy(_.weight))
+    else if (historyEntries.nonEmpty) Some(historyEntries.maxBy(_.weight))
+    else None
+  }
 
   override def toString: String = {
     s"(history=[${historyEntries.mkString(", ")}], actives=[${activeEntries.mkString(", ")}])"

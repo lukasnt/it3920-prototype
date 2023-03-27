@@ -20,7 +20,7 @@ object SimpleParameterQueries {
 
   def interactionPaths(city1: String = "1226",
                        city2: String = "1363",
-                       minLength: Int = 2,
+                       minLength: Int = 3,
                        topK: Int = 3): ParameterQuery = {
     ParameterQuery
       .builder()

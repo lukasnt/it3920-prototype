@@ -1,7 +1,7 @@
 package com.lukasnt.spark.models
 
 import com.lukasnt.spark.queries.{ConstState, IntervalsState}
-import org.apache.spark.graphx.{Graph, VertexId}
+import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph, VertexId}
 
 import java.time.ZonedDateTime
 import java.time.temporal.Temporal
@@ -29,5 +29,25 @@ object Types {
   case class AttrEdge(srcId: VertexId, dstId: VertexId, attr: Properties)
 
   case class PregelVertex(constState: ConstState, intervalsState: IntervalsState)
+
+  object AttrVertex {
+
+    def apply(vertex: (VertexId, Properties)): AttrVertex = {
+      new AttrVertex(vertex._1, vertex._2)
+    }
+
+  }
+
+  object AttrEdge {
+
+    def apply(edge: Edge[Properties]): AttrEdge = {
+      new AttrEdge(edge.srcId, edge.dstId, edge.attr)
+    }
+
+    def apply(triplet: EdgeTriplet[Properties, Properties]): AttrEdge = {
+      new AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)
+    }
+
+  }
 
 }

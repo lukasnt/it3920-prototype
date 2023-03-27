@@ -59,6 +59,8 @@ class TemporalPath(val edgeSequence: List[Edge[Properties]]) extends Serializabl
     edgeSequence.head.srcId
   }
 
+  def length: Int = edgeSequence.length
+
   def interval: Interval = {
     new TemporalInterval(startTimestamp, endTimestamp)
   }
@@ -72,7 +74,23 @@ class TemporalPath(val edgeSequence: List[Edge[Properties]]) extends Serializabl
   }
 
   override def toString: String = {
-    edgeSequence.flatMap(edge => List(edge.srcId, edge.dstId)).mkString(" -> ")
+    (edgeSequence.map(edge => edge.srcId) :+ edgeSequence.last.dstId).mkString("->")
+  }
+
+}
+
+object TemporalPath {
+
+  def apply(edgeSequence: List[Edge[Properties]]): TemporalPath = {
+    new TemporalPath(edgeSequence)
+  }
+
+  def apply(edge: Edge[Properties]): TemporalPath = {
+    new TemporalPath(List(edge))
+  }
+
+  def apply(): TemporalPath = {
+    new TemporalPath(List())
   }
 
 }
