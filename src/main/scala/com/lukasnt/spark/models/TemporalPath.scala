@@ -1,6 +1,6 @@
 package com.lukasnt.spark.models
 
-import com.lukasnt.spark.models.Types.{Interval, Properties, TemporalGraph}
+import com.lukasnt.spark.models.Types.{AttrVertex, Interval, Properties, TemporalGraph}
 import org.apache.spark.SparkContext
 import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.rdd.RDD
@@ -11,10 +11,8 @@ class TemporalPath(val edgeSequence: List[Edge[Properties]]) extends Serializabl
 
   def asTemporalGraph(sc: SparkContext): TemporalGraph = {
     Graph.apply(
-      sc.parallelize(
-        edgeSequence.map(edge =>
-          (edge.srcId,
-           new TemporalProperties[ZonedDateTime](edge.attr.interval, edge.attr.typeLabel, edge.attr.properties)))),
+      sc.parallelize(edgeSequence.map(edge =>
+        (edge.srcId, new Properties(edge.attr.interval, edge.attr.typeLabel, edge.attr.properties)))),
       sc.parallelize(edgeSequence)
     )
   }
@@ -22,37 +20,37 @@ class TemporalPath(val edgeSequence: List[Edge[Properties]]) extends Serializabl
   def asTemporalGraph(originalGraph: TemporalGraph): TemporalGraph = {
     val sequenceVertices = edgeSequence.flatMap(edge => List(edge.srcId, edge.dstId)).distinct
     Graph.apply(
-      originalGraph.vertices.filter(v => sequenceVertices.contains(v._1)),
-      originalGraph.edges.filter(e => edgeSequence.contains(e))
+      originalGraph.vertices.filter(v => sequenceVertices.contains(AttrVertex(v).id)),
+      originalGraph.edges.filter(e => edgeSequence.exists(se => e.srcId == se.srcId && e.dstId == se.dstId))
     )
   }
 
-  def outerJoinWithEdges(edges: List[Edge[TemporalProperties[ZonedDateTime]]]): List[TemporalPath] = {
+  def outerJoinWithEdges(edges: List[Edge[Properties]]): List[TemporalPath] = {
     edges.map(edge => this :+ edge)
   }
 
-  def innerJoinWithEdges(edges: RDD[Edge[TemporalProperties[ZonedDateTime]]]): RDD[TemporalPath] = {
-    edges.filter(edge => edge.srcId == endNode).map(edge => this :+ edge)
-  }
-
-  def :+(edge: Edge[TemporalProperties[ZonedDateTime]]): TemporalPath = {
+  def :+(edge: Edge[Properties]): TemporalPath = {
     new TemporalPath(edgeSequence :+ edge)
   }
 
-  def endNode: Long = {
-    edgeSequence.last.dstId
+  def innerJoinWithEdges(edges: RDD[Edge[Properties]]): RDD[TemporalPath] = {
+    edges.filter(edge => edge.srcId == endNode).map(edge => this :+ edge)
   }
 
   def outerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
     paths.map(path => this + path)
   }
 
+  def +(path: TemporalPath): TemporalPath = {
+    new TemporalPath(edgeSequence ++ path.edgeSequence)
+  }
+
   def innerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
     paths.filter(path => path.startNode == endNode).map(path => this + path)
   }
 
-  def +(path: TemporalPath): TemporalPath = {
-    new TemporalPath(edgeSequence ++ path.edgeSequence)
+  def endNode: Long = {
+    edgeSequence.last.dstId
   }
 
   def startNode: Long = {
