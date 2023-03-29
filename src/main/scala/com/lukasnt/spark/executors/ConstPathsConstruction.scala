@@ -9,10 +9,10 @@ import org.apache.spark.rdd.RDD
 class ConstPathsConstruction(sequencedQueries: SequencedQueries)
     extends PathsConstructionExecutor[(Properties, List[ConstState]), Properties] {
 
-  override def constructPaths(pregelGraph: Graph[(Properties, List[ConstState]), Properties]): RDD[TemporalPath] = {
+  override def constructPaths(pregelGraph: Graph[(Properties, List[ConstState]), Properties]): List[TemporalPath] = {
     val constPathSequence = ConstPathsConstruction.createConstPaths(sequencedQueries, pregelGraph)
     val pathsResult       = ConstPathsConstruction.joinSequence(sequencedQueries, constPathSequence)
-    pathsResult
+    pathsResult.collect().toList
   }
 
 }
@@ -20,7 +20,7 @@ class ConstPathsConstruction(sequencedQueries: SequencedQueries)
 object ConstPathsConstruction {
 
   def apply(pregelGraph: Graph[(Properties, List[ConstState]), Properties],
-            sequencedQueries: SequencedQueries): RDD[TemporalPath] = {
+            sequencedQueries: SequencedQueries): List[TemporalPath] = {
     new ConstPathsConstruction(sequencedQueries).constructPaths(pregelGraph)
   }
 

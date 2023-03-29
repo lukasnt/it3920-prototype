@@ -9,7 +9,7 @@ object QueriesExecutor {
     val subgraph    = SequenceSubgraph(temporalGraph, sequencedQueries)
     val pregelGraph = ConstPregel(subgraph, sequencedQueries)
     val paths       = ConstPathsConstruction(pregelGraph, sequencedQueries)
-    new QueryResult(temporalGraph, paths.collect().toList)
+    new QueryResult(temporalGraph, paths)
   }
 
   def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult = {

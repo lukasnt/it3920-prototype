@@ -6,6 +6,6 @@ import org.apache.spark.rdd.RDD
 
 abstract class PathsConstructionExecutor[VD, ED] extends Serializable {
 
-  def constructPaths(pregelGraph: Graph[VD, ED]): RDD[TemporalPath]
+  def constructPaths(pregelGraph: Graph[VD, ED]): List[TemporalPath]
 
 }
