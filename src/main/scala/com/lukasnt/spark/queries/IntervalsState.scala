@@ -27,6 +27,11 @@ class IntervalsState extends Serializable {
     if (intervalData.nonEmpty) intervalData.head.interval else TemporalInterval()
   }
 
+  def entriesOverlappingWith(interval: Interval, topK: Int): LengthWeightTable = {
+    //LengthWeightTable(intervalData.filter(entry => entry.interval.overlaps(interval)).flatMap(_.lengthWeightTable.entries))
+    ???
+  }
+
   override def toString: String = {
     s"[${intervalData.mkString(", ")}]"
   }

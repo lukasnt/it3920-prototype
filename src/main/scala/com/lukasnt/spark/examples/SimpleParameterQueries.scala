@@ -20,8 +20,8 @@ object SimpleParameterQueries {
 
   def interactionPaths(city1: String = "1226",
                        city2: String = "1363",
-                       minLength: Int = 2,
-                       topK: Int = 100): ParameterQuery = {
+                       minLength: Int = 4,
+                       topK: Int = 10): ParameterQuery = {
     ParameterQuery
       .builder()
       .withSourcePredicate(s => s.attr.typeLabel == "Person" && s.attr.properties("gender") == "male")

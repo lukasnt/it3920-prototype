@@ -34,12 +34,10 @@ class LengthWeightTable() extends Serializable {
     LengthWeightTable(newHistoryEntries, newActiveEntries, topK)
   }
 
-  def getEntriesByLength(length: Int): List[Entry] = {
-    entries.filter(_.length == length)
-  }
-
-  def entries: List[Entry] = {
-    historyEntries ++ activeEntries
+  def filterByLength(length: Int, topK: Int): LengthWeightTable = {
+    val newActiveEntries  = activeEntries.filter(entry => entry.length == length)
+    val newHistoryEntries = historyEntries.filter(entry => entry.length == length)
+    LengthWeightTable(newHistoryEntries, newActiveEntries, topK)
   }
 
   def currentLength: Int =
@@ -47,10 +45,20 @@ class LengthWeightTable() extends Serializable {
     else if (historyEntries.nonEmpty) historyEntries.map(_.length).max
     else 0
 
-  def topEntry: Option[Entry] = {
-    if (activeEntries.nonEmpty) Some(activeEntries.maxBy(_.weight))
-    else if (historyEntries.nonEmpty) Some(historyEntries.maxBy(_.weight))
+  def minEntry: Option[Entry] = {
+    if (activeEntries.nonEmpty) Some(activeEntries.minBy(_.weight))
+    else if (historyEntries.nonEmpty) Some(historyEntries.minBy(_.weight))
     else None
+  }
+
+  def activesSize: Int = activeEntries.size
+
+  def historySize: Int = historyEntries.size
+
+  def size = entries.size
+
+  def entries: List[Entry] = {
+    historyEntries ++ activeEntries
   }
 
   override def toString: String = {

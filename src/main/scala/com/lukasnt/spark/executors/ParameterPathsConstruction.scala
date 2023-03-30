@@ -3,7 +3,6 @@ package com.lukasnt.spark.executors
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.models.Types.{AttrEdge, Interval, PregelVertex, Properties}
 import com.lukasnt.spark.queries.{LengthWeightTable, ParameterQuery, PathWeightTable}
-import com.lukasnt.spark.utils.Loggers
 import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph, VertexId}
 import org.apache.spark.rdd.RDD
 
@@ -17,22 +16,15 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
 
   override def constructPaths(pregelGraph: Graph[PregelVertex, Properties]): List[TemporalPath] = {
     newConstructPaths(pregelGraph)
-
-    //legacyConstructPaths(pregelGraph)
   }
 
   def newConstructPaths(pregelGraph: Graph[PregelVertex, Properties]): List[TemporalPath] = {
-    val triplets = findDestinationTriplets(pregelGraph).collect()
-    /*triplets.foreach(triplet => {
-      println(triplet.dstId)
-      println(triplet.dstAttr.intervalsState.firstTable)
-    })*/
     var pathTable = createInitPathTable(findDestinationTriplets(pregelGraph), topK, minLength, maxLength)
     while (pathTable.entries.exists(entry => entry.remainingLength > 1)) {
       pathTable = extendPaths(pathTable, topK, pregelGraph)
     }
     pathTable.entries.foreach(println)
-    pathTable.entries.map(entry => entry.path).toList
+    pathTable.entries.map(entry => entry.path)
   }
 
   private def findDestinationTriplets(
@@ -49,8 +41,6 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
       .map(triplet => (triplet.dstId, triplet.dstAttr.intervalsState.firstTable))
       .aggregate[PathWeightTable](PathWeightTable(List(), topK))(
         seqOp = (pathTable, stateTable) => {
-          Loggers.default.debug(s"stateTable: ${stateTable}, pathTable: ${pathTable.entries}")
-
           // Skip the table if the destination vertex is already in the path table
           if (pathTable.entries.exists(_.path.endNode == stateTable._1)) {
             pathTable
@@ -60,24 +50,14 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
           }
         },
         combOp = (tableA, tableB) => {
-
           // Filter out duplicate entries (same destination node)
           val filteredTableB =
             PathWeightTable(
               tableB.entries.filter(entry => !tableA.entries.exists(_.path.endNode == entry.path.endNode)),
               topK)
-
-          /*
-          Loggers.default.debug(s"tableA: ${tableA.entries}")
-          Loggers.default.debug(s"tableB: ${tableB.entries}")
-          Loggers.default.debug(s"filteredTableB: ${filteredTableB.entries}")
-           */
-
           tableA.mergeWithTable(filteredTableB, topK)
         }
       )
-    //println(s"initPathTable: ${result.entries}")
-    //println(s"initPathTable size: ${result.entries.size}")
     result
   }
 
@@ -112,26 +92,13 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
         (startEdge.srcId, startEdge.dstId, entry.remainingLength)
       })
 
-    /*
-        println(s"entries: ${pathsTable.entries}")
-        println(s"remainingLength: ${groupedEntries.values.head.head.remainingLength - 1}")
-        println("groupedEntries: ")
-        groupedEntries.foreach(println)
-     */
-
     val result = groupedEntries.values
       .flatMap(entries => {
-        //println(s"Entries in group: $entries")
         val nextEntries = findNextEntries(entries.head.path.startNode,
                                           entries.head.remainingLength - 1,
                                           null,
                                           entries.length,
                                           vertexMap)
-        /*
-        println(s"entries: ${entries.length}")
-        println(s"nextEntries: ${nextEntries.entries.length}")
-         */
-
         if (entries.head.remainingLength - 1 > 0) {
           // Find the next entry for this group and extend the paths
           // val nextEntry = findNextEntry(entries.head.path.startNode, entries.head.remainingLength - 1, null, vertexMap)
@@ -143,9 +110,6 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
       })
       .toList
       .sortBy(_.remainingWeight)
-    /*
-    println(s"result: $result")
-     */
 
     PathWeightTable(result, topK)
   }
@@ -155,18 +119,11 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
                               interval: Interval,
                               groupLength: Int,
                               vertexMap: Map[VertexId, PregelVertex]): LengthWeightTable = {
-    LengthWeightTable(history = List(),
-                      actives = vertexMap(parentVertex).intervalsState.firstTable
-                        .getEntriesByLength(remainingLength),
-                      topK = groupLength)
+    vertexMap(parentVertex).intervalsState.firstTable
+      .filterByLength(remainingLength, groupLength)
   }
 
   private def pairwiseExtendPaths(pathTable: PathWeightTable, lengthWeightTable: LengthWeightTable): PathWeightTable = {
-
-    //println("Pairwise extend paths")
-    //println(s"pathTable: ${pathsTable.entries}")
-    //println(s"lengthWeightTable: ${lengthWeightTable.entries}")
-
     PathWeightTable(
       tableEntries = pathTable.entries.zip(lengthWeightTable.entries).map {
         case (pathEntry, lengthWeightEntry) =>
@@ -180,15 +137,10 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     )
   }
 
+  /*
   def legacyConstructPaths(pregelGraph: Graph[PregelVertex, Properties]): List[TemporalPath] = {
     val destinationTriplets = pregelGraph.triplets
       .filter(triplet => triplet.dstAttr.constState.destination)
-
-    /*
-    destinationTriplets
-      .collect()
-      .foreach(triplet => println(s"Source: ${triplet.srcId}, Destination: ${triplet.dstId}"))
-     */
 
     var currentPathsTable: PathWeightTable = destinationTriplets
       .map(
@@ -225,16 +177,15 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
         //vertexMap(entry.path.startNode).intervalsState.firstTable.entries.foreach(println)
         //println(s"entry.remainingWeight: ${entry.remainingWeight}")
 
-        val lengthEntries = vertexMap(entry.path.startNode).intervalsState.firstTable
-          .getEntriesByLength(entry.remainingLength)
-          .sortBy(_.weight)
+        val lengthFiltered = vertexMap(entry.path.startNode).intervalsState.firstTable
+          .filterByLength(entry.remainingLength, topK)
 
         val nextVertexEntry =
-          if (lengthEntries.length > 1) {
-            val first = lengthEntries.find(_.weight >= entry.remainingWeight)
-            if (first.nonEmpty) first.get else lengthEntries.head
+          if (lengthFiltered.size > 1) {
+            val first = lengthFiltered.entries.find(_.weight >= entry.remainingWeight)
+            if (first.nonEmpty) first.get else lengthFiltered.minEntry.get
           } else
-            lengthEntries.head
+            lengthFiltered.minEntry.get
 
         val tripletWeights = pregelGraph.triplets
           .filter(triplet => triplet.srcId == nextVertexEntry.parentId && triplet.dstId == entry.path.startNode)
@@ -264,12 +215,10 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
                             remainingLength: Int,
                             interval: Interval,
                             vertexMap: Map[VertexId, PregelVertex]): LengthWeightTable.Entry = {
-    //println(s"Parent: $parentVertex, Length: $remainingLength, Interval: $interval")
-    //println(s"Table: ${vertexMap(parentVertex).intervalsState.firstTable}")
-
     vertexMap(parentVertex).intervalsState.firstTable
-      .getEntriesByLength(remainingLength)
-      .minBy(_.weight)
+      .filterByLength(remainingLength, topK)
+      .minEntry
+      .get
   }
 
   private def extendWithEntry(pathTable: PathWeightTable,
@@ -283,5 +232,6 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
       ))
     PathWeightTable(newEntries, topK)
   }
+ */
 
 }

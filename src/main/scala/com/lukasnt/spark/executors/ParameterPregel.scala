@@ -6,8 +6,6 @@ import com.lukasnt.spark.queries._
 import com.lukasnt.spark.utils.Loggers
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 
-import scala.util.Random
-
 class ParameterPregel(parameterQuery: ParameterQuery)
     extends PregelExecutor[PregelVertex, Properties, IntervalMessage] {
 
@@ -40,13 +38,13 @@ class ParameterPregel(parameterQuery: ParameterQuery)
     temporalGraph.mapVertices(
       (id, attr) =>
         PregelVertex(
-          ConstState
+          constState = ConstState
             .builder()
-            .applySourceTest(attr, attr => sourcePredicate(AttrVertex(id, attr)))
+            .applySourceTest(attr, vertexAttr => sourcePredicate(AttrVertex(id, vertexAttr)))
             .applyIntermediateTest(attr, _ => true)
-            .applyDestinationTest(attr, attr => destinationPredicate(AttrVertex(id, attr)))
+            .applyDestinationTest(attr, vertexAttr => destinationPredicate(AttrVertex(id, vertexAttr)))
             .build(),
-          IntervalsState(
+          intervalsState = IntervalsState(
             List(
               IntervalsState.Entry(
                 interval = TemporalInterval(),
@@ -108,7 +106,8 @@ class ParameterPregel(parameterQuery: ParameterQuery)
     val messageTable = LengthWeightTable(
       history = List(),
       actives = table
-        .getEntriesByLength(length)
+        .filterByLength(length, topK)
+        .entries
         .map(
           entry =>
             LengthWeightTable.Entry(messageLength,
