@@ -9,10 +9,11 @@ import org.apache.spark.rdd.RDD
 class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     extends PathsConstructionExecutor[PregelVertex, Properties] {
 
-  val minLength: Int               = parameterQuery.minLength
-  val maxLength: Int               = parameterQuery.maxLength
-  val topK: Int                    = parameterQuery.topK
-  val weightMap: AttrEdge => Float = parameterQuery.weightMap
+  val minLength: Int                                     = parameterQuery.minLength
+  val maxLength: Int                                     = parameterQuery.maxLength
+  val topK: Int                                          = parameterQuery.topK
+  val weightMap: AttrEdge => Float                       = parameterQuery.weightMap
+  val intervalFunction: (Interval, Interval) => Interval = parameterQuery.intervalRelation
 
   override def constructPaths(pregelGraph: Graph[PregelVertex, Properties]): List[TemporalPath] = {
     newConstructPaths(pregelGraph)
@@ -71,9 +72,13 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
       .filterByLengthRange(minLength, maxLength, topK)
       .entries
       .map(entry => {
-        PathWeightTable.Entry(path = TemporalPath(Edge[Properties](entry.parentId, vertex, null)),
-                              remainingWeight = entry.weight,
-                              remainingLength = entry.length)
+        PathWeightTable.Entry(
+          interval = interval,
+          remainingLength = entry.length,
+          weight = entry.weight,
+          path = TemporalPath(
+            Edge[Properties](srcId = entry.parentId, dstId = vertex, attr = new Properties(interval, null, null)))
+        )
       })
     PathWeightTable(tableEntries, topK)
   }
@@ -85,28 +90,25 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     val vertexSet = pathsTable.entries.map(entry => entry.path.startNode).toSet
     val vertexMap = pregelGraph.vertices.filter { case (id, _) => vertexSet.contains(id) }.collect().toMap
 
-    // Group the paths by their start-node and remaining length
+    // Group the paths by their first edge and remaining length
     val groupedEntries =
       pathsTable.entries.groupBy(entry => {
         val startEdge = entry.path.edgeSequence.head
-        (startEdge.srcId, startEdge.dstId, entry.remainingLength)
+        (startEdge.srcId, startEdge.dstId, startEdge.attr.interval, entry.remainingLength)
       })
 
-    groupedEntries.values
-      .map(entries => {
-        val nextEntries = findNextEntries(entries.head.path.startNode,
-                                          entries.head.remainingLength - 1,
-                                          null,
-                                          entries.length,
-                                          vertexMap)
-        if (entries.head.remainingLength - 1 > 0) {
-          // Find the next entries for this group and pairwise extend the paths
-          pairwiseExtendPaths(
-            pathTable = PathWeightTable(entries, entries.length),
-            lengthWeightTable = nextEntries,
-          )
-        } else PathWeightTable(entries, entries.length)
-      })
+    groupedEntries
+      .map {
+        case ((srcId, _, interval, remainingLength), entries) =>
+          if (remainingLength - 1 > 0) {
+            // Find the next entries for this group and pairwise extend the paths
+            pairwiseExtendPaths(
+              pathTable = PathWeightTable(entries, entries.length),
+              lengthWeightTable = findNextEntries(srcId, remainingLength - 1, interval, entries.length, vertexMap),
+              interval = interval
+            )
+          } else PathWeightTable(entries, entries.length)
+      }
       .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK))
   }
 
@@ -117,16 +119,24 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
                               vertexMap: Map[VertexId, PregelVertex]): LengthWeightTable = {
     vertexMap(parentVertex).intervalsState
       .lengthFilteredTable(remainingLength, groupLength)
+    //.intervalFunctionFilteredTable(intervalFunction, interval, -1)
+    //.filterByLength(remainingLength, groupLength)
   }
 
-  private def pairwiseExtendPaths(pathTable: PathWeightTable, lengthWeightTable: LengthWeightTable): PathWeightTable = {
+  private def pairwiseExtendPaths(pathTable: PathWeightTable,
+                                  lengthWeightTable: LengthWeightTable,
+                                  interval: Interval): PathWeightTable = {
     PathWeightTable(
       tableEntries = pathTable.entries.zip(lengthWeightTable.entries).map {
         case (pathEntry, lengthWeightEntry) =>
           PathWeightTable.Entry(
-            path = TemporalPath(Edge[Properties](lengthWeightEntry.parentId, pathEntry.path.startNode, null)) + pathEntry.path,
-            remainingWeight = pathEntry.remainingWeight,
-            remainingLength = lengthWeightEntry.length
+            interval = interval,
+            remainingLength = lengthWeightEntry.length,
+            weight = pathEntry.weight,
+            path = TemporalPath(
+              Edge[Properties](lengthWeightEntry.parentId,
+                               pathEntry.path.startNode,
+                               new Properties(interval, null, null))) + pathEntry.path
           )
       },
       topK = pathTable.entries.length

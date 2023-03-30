@@ -46,6 +46,15 @@ class IntervalStates extends Serializable {
       .reduce(_.mergeWithTable(_, topK))
   }
 
+  def intervalFunctionFilteredTable(intervalFunction: (Interval, Interval) => Interval,
+                                    interval: Interval,
+                                    topK: Int): LengthWeightTable = {
+    intervalTables
+      .filter(intervalTable => intervalFunction(intervalTable.interval, interval).equals(interval))
+      .map(_.table)
+      .reduce(_.mergeWithTable(_, topK))
+  }
+
   override def toString: String = {
     s"[${intervalTables.mkString(", ")}]"
   }
