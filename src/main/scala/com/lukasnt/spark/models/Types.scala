@@ -1,6 +1,6 @@
 package com.lukasnt.spark.models
 
-import com.lukasnt.spark.queries.{ConstState, IntervalsState}
+import com.lukasnt.spark.queries.{ConstState, IntervalStates}
 import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph, VertexId}
 
 import java.time.ZonedDateTime
@@ -28,7 +28,7 @@ object Types {
 
   case class AttrEdge(srcId: VertexId, dstId: VertexId, attr: Properties)
 
-  case class PregelVertex(constState: ConstState, intervalsState: IntervalsState)
+  case class PregelVertex(constState: ConstState, intervalsState: IntervalStates)
 
   object AttrVertex {
 

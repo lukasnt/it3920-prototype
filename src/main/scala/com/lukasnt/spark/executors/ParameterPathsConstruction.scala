@@ -92,26 +92,22 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
         (startEdge.srcId, startEdge.dstId, entry.remainingLength)
       })
 
-    val result = groupedEntries.values
-      .flatMap(entries => {
+    groupedEntries.values
+      .map(entries => {
         val nextEntries = findNextEntries(entries.head.path.startNode,
                                           entries.head.remainingLength - 1,
                                           null,
                                           entries.length,
                                           vertexMap)
         if (entries.head.remainingLength - 1 > 0) {
-          // Find the next entry for this group and extend the paths
-          // val nextEntry = findNextEntry(entries.head.path.startNode, entries.head.remainingLength - 1, null, vertexMap)
+          // Find the next entries for this group and pairwise extend the paths
           pairwiseExtendPaths(
             pathTable = PathWeightTable(entries, entries.length),
             lengthWeightTable = nextEntries,
-          ).entries
-        } else entries
+          )
+        } else PathWeightTable(entries, entries.length)
       })
-      .toList
-      .sortBy(_.remainingWeight)
-
-    PathWeightTable(result, topK)
+      .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK))
   }
 
   private def findNextEntries(parentVertex: VertexId,
@@ -119,8 +115,8 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
                               interval: Interval,
                               groupLength: Int,
                               vertexMap: Map[VertexId, PregelVertex]): LengthWeightTable = {
-    vertexMap(parentVertex).intervalsState.firstTable
-      .filterByLength(remainingLength, groupLength)
+    vertexMap(parentVertex).intervalsState
+      .lengthFilteredTable(remainingLength, groupLength)
   }
 
   private def pairwiseExtendPaths(pathTable: PathWeightTable, lengthWeightTable: LengthWeightTable): PathWeightTable = {

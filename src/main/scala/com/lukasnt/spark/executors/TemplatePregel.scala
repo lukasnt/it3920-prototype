@@ -2,7 +2,7 @@ package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.TemporalInterval
 import com.lukasnt.spark.models.Types.{PregelVertex, Properties, TemporalGraph}
-import com.lukasnt.spark.queries.{ConstState, IntervalMessage, IntervalsState, LengthWeightTable}
+import com.lukasnt.spark.queries.{ConstState, IntervalMessage, IntervalStates, LengthWeightTable}
 import com.lukasnt.spark.utils.Loggers
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 
@@ -31,10 +31,10 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
       (_, _) =>
         PregelVertex(
           initConstState,
-          IntervalsState(
+          IntervalStates(
             List(
-              IntervalsState.Entry(interval = TemporalInterval(),
-                                   lengthWeightTable = LengthWeightTable(
+              IntervalStates.IntervalTable(interval = TemporalInterval(),
+                                   table = LengthWeightTable(
                                      history = List(),
                                      actives = List(
                                        LengthWeightTable.Entry(0, Random.nextFloat(), 0)
@@ -53,7 +53,7 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
     Loggers.default.debug(
       s"id: $vertexId, superstep: " +
         s"${currentState.constState.superstep}, firstEntry: " +
-        s"${currentState.intervalsState.intervalData.head}"
+        s"${currentState.intervalsState.intervalTables.head}"
     )
 
     val newConstState = ConstState
@@ -63,8 +63,8 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
       .applyPathCostUpdate(currentState.constState.pathCost - Random.nextFloat())
       .build()
     val newIntervalsState = currentState.intervalsState
-      .updateWithEntry(
-        IntervalsState.Entry(
+      .updateWithTable(
+        IntervalStates.IntervalTable(
           mergedMessage.interval,
           mergedMessage.lengthWeightTable
             .updateWithEntry(LengthWeightTable.Entry(mergedMessage.length, Random.nextFloat(), vertexId), 10)

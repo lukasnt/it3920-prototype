@@ -51,11 +51,7 @@ class LengthWeightTable() extends Serializable {
     else None
   }
 
-  def activesSize: Int = activeEntries.size
-
-  def historySize: Int = historyEntries.size
-
-  def size = entries.size
+  def size: Int = entries.size
 
   def entries: List[Entry] = {
     historyEntries ++ activeEntries

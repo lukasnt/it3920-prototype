@@ -44,11 +44,11 @@ class ParameterPregel(parameterQuery: ParameterQuery)
             .applyIntermediateTest(attr, _ => true)
             .applyDestinationTest(attr, vertexAttr => destinationPredicate(AttrVertex(id, vertexAttr)))
             .build(),
-          intervalsState = IntervalsState(
+          intervalsState = IntervalStates(
             List(
-              IntervalsState.Entry(
+              IntervalStates.IntervalTable(
                 interval = TemporalInterval(),
-                lengthWeightTable = LengthWeightTable(
+                table = LengthWeightTable(
                   history = List(),
                   actives = List(),
                   topK = topK
@@ -71,7 +71,7 @@ class ParameterPregel(parameterQuery: ParameterQuery)
         s"mergedMessage: $mergedMessage"
     )
 
-    val currentTable = currentState.intervalsState.intervalData.head.lengthWeightTable
+    val currentTable = currentState.intervalsState.intervalTables.head.table
 
     val newConstState = ConstState
       .builder()
@@ -79,8 +79,8 @@ class ParameterPregel(parameterQuery: ParameterQuery)
       .incSuperstep()
       .build()
     val newIntervalsState = currentState.intervalsState
-      .updateWithEntry(
-        IntervalsState.Entry(
+      .updateWithTable(
+        IntervalStates.IntervalTable(
           mergedMessage.interval,
           currentTable
             .mergeWithTable(mergedMessage.lengthWeightTable, topK)
