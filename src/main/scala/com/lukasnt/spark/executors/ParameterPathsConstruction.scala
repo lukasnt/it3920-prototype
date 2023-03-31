@@ -2,7 +2,7 @@ package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.models.Types.{AttrEdge, Interval, PregelVertex, Properties}
-import com.lukasnt.spark.queries.{LengthWeightTable, ParameterQuery, PathWeightTable}
+import com.lukasnt.spark.queries.{IntervalStates, LengthWeightTable, ParameterQuery, PathWeightTable}
 import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph, VertexId}
 import org.apache.spark.rdd.RDD
 
@@ -111,7 +111,7 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
             // Find the next entries for this group and pairwise extend the paths
             pairwiseExtendPaths(
               pathTable = PathWeightTable(entries, entries.length),
-              lengthWeightTable = findNextEntries(srcId, remainingLength - 1, interval, entries.length, vertexMap),
+              lengthWeightTable = findNextTable(srcId, remainingLength - 1, interval, entries.length, vertexMap),
               interval = interval
             )
           } else PathWeightTable(entries, entries.length)
@@ -119,11 +119,11 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
       .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK))
   }
 
-  private def findNextEntries(parentVertex: VertexId,
-                              remainingLength: Int,
-                              interval: Interval,
-                              groupCount: Int,
-                              vertexMap: Map[VertexId, PregelVertex]): LengthWeightTable = {
+  private def findNextTable(parentVertex: VertexId,
+                            remainingLength: Int,
+                            interval: Interval,
+                            groupCount: Int,
+                            vertexMap: Map[VertexId, PregelVertex]): LengthWeightTable = {
     vertexMap(parentVertex).intervalStates
       .intervalFilteredTable(validEdgeInterval, interval, topK = -1)
       .filterByLength(remainingLength, groupCount)
@@ -147,6 +147,17 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
       },
       topK = pathTable.entries.length
     )
+  }
+
+  private def findNextEntries(parentVertex: VertexId,
+                              remainingLength: Int,
+                              interval: Interval,
+                              groupCount: Int,
+                              vertexMap: Map[VertexId, PregelVertex]): List[IntervalStates.IntervalEntry] = {
+    vertexMap(parentVertex).intervalStates
+      .intervalFilteredStates(validEdgeInterval, interval)
+      .lengthFilteredStates(remainingLength)
+      .flattenEntries
   }
 
   /*
