@@ -25,7 +25,7 @@ object SimpleParameterQueries {
                        topK: Int = 10): ParameterQuery = {
     ParameterQuery
       .builder()
-      .withPathType(TemporalPathType.Continuous)
+      .withPathType(TemporalPathType.NonTemporal)
       .withSourcePredicate(s => s.attr.typeLabel == "Person" && s.attr.properties("gender") == "male")
       .withIntermediatePredicate(e => e.attr.typeLabel == "Person_knows_Person")
       .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("gender") == "female")

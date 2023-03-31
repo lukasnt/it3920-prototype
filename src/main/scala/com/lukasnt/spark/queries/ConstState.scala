@@ -53,22 +53,22 @@ object ConstState {
       this
     }
 
-    def applySourceTest(nodeProperties: Properties, testFunc: Properties => Boolean): ConstStateBuilder = {
+    def applySourceTest(testFunc: Properties => Boolean, nodeProperties: Properties): ConstStateBuilder = {
       queryState.source = testFunc(nodeProperties)
       this
     }
 
-    def applyIntermediateTest(edgeProperties: Properties, testFunc: Properties => Boolean): ConstStateBuilder = {
+    def applyIntermediateTest(testFunc: Properties => Boolean, edgeProperties: Properties): ConstStateBuilder = {
       queryState.intermediate = testFunc(edgeProperties)
       this
     }
 
-    def applyDestinationTest(nodeProperties: Properties, testFunc: Properties => Boolean): ConstStateBuilder = {
+    def applyDestinationTest(testFunc: Properties => Boolean, nodeProperties: Properties): ConstStateBuilder = {
       queryState.destination = testFunc(nodeProperties)
       this
     }
 
-    def applyNodeCost(nodeProperties: Properties, costFunc: Properties => Float): ConstStateBuilder = {
+    def applyNodeCost(costFunc: Properties => Float, nodeProperties: Properties): ConstStateBuilder = {
       queryState.nodeCost = costFunc(nodeProperties)
       this
     }

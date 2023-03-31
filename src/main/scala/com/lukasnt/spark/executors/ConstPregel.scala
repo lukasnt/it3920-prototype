@@ -33,7 +33,7 @@ class ConstPregel(sequencedQueries: SequencedQueries)
           ConstState
             .builder()
             .fromState(state)
-            .applySourceTest(node, nodeTests(state.seqNum))
+            .applySourceTest(nodeTests(state.seqNum), node)
             .build())
     (node, newStateSequence)
   }

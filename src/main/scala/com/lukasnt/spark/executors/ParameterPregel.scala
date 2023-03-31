@@ -42,9 +42,9 @@ class ParameterPregel(parameterQuery: ParameterQuery)
         PregelVertex(
           constState = ConstState
             .builder()
-            .applySourceTest(attr, vertexAttr => sourcePredicate(AttrVertex(id, vertexAttr)))
-            .applyIntermediateTest(attr, _ => true)
-            .applyDestinationTest(attr, vertexAttr => destinationPredicate(AttrVertex(id, vertexAttr)))
+            .applySourceTest(vertexAttr => sourcePredicate(AttrVertex(id, vertexAttr)), attr)
+            .applyIntermediateTest(_ => true, attr)
+            .applyDestinationTest(vertexAttr => destinationPredicate(AttrVertex(id, vertexAttr)), attr)
             .build(),
           intervalsState = IntervalStates(
             List(
