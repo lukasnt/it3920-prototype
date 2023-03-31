@@ -37,7 +37,7 @@ object PathWeightTable {
 
   case class Entry(interval: Interval, remainingLength: Int, weight: Float, path: TemporalPath) {
     override def toString: String = {
-      s"Entry($remainingLength|$weight|$path)"
+      s"Entry($interval|$remainingLength|$weight|$path)"
     }
 
   }

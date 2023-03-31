@@ -53,7 +53,7 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
     Loggers.default.debug(
       s"id: $vertexId, superstep: " +
         s"${currentState.constState.superstep}, firstEntry: " +
-        s"${currentState.intervalsState.intervalTables.head}"
+        s"${currentState.intervalStates.intervalTables.head}"
     )
 
     val newConstState = ConstState
@@ -62,7 +62,7 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
       .incSuperstep()
       .applyPathCostUpdate(currentState.constState.pathCost - Random.nextFloat())
       .build()
-    val newIntervalsState = currentState.intervalsState
+    val newIntervalsState = currentState.intervalStates
       .updateWithTable(
         IntervalStates.IntervalTable(
           mergedMessage.interval,

@@ -15,7 +15,7 @@ class ParameterPregel(parameterQuery: ParameterQuery)
   val destinationPredicate: AttrVertex => Boolean        = parameterQuery.destinationPredicate
   val validEdgeInterval: (Interval, Interval) => Boolean = parameterQuery.temporalPathType.validEdgeInterval
   val nextInterval: (Interval, Interval) => Interval     = parameterQuery.temporalPathType.nextInterval
-  val initInterval: (Interval) => Interval               = parameterQuery.temporalPathType.initInterval
+  val initInterval: Interval => Interval                 = parameterQuery.temporalPathType.initInterval
   val weightMap: AttrEdge => Float                       = parameterQuery.weightMap
   val minLength: Int                                     = parameterQuery.minLength
   val maxLength: Int                                     = parameterQuery.maxLength
@@ -46,7 +46,7 @@ class ParameterPregel(parameterQuery: ParameterQuery)
             .applyIntermediateTest(_ => true, attr)
             .applyDestinationTest(vertexAttr => destinationPredicate(AttrVertex(id, vertexAttr)), attr)
             .build(),
-          intervalsState = IntervalStates(
+          intervalStates = IntervalStates(
             List(
               IntervalStates.IntervalTable(
                 interval = TemporalInterval(),
@@ -69,18 +69,18 @@ class ParameterPregel(parameterQuery: ParameterQuery)
     Loggers.default.debug(
       s"id: $vertexId, " +
         s"superstep: ${currentState.constState.superstep}, " +
-        s"firstEntry: ${currentState.intervalsState.firstTable}, " +
+        s"firstEntry: ${currentState.intervalStates.firstTable}, " +
         s"mergedMessage: $mergedMessage"
     )
 
-    val currentTable = currentState.intervalsState.intervalTables.head.table
+    val currentTable = currentState.intervalStates.intervalTables.head.table
 
     val newConstState = ConstState
       .builder()
       .fromState(currentState.constState)
       .incSuperstep()
       .build()
-    val newIntervalsState = currentState.intervalsState
+    val newIntervalsState = currentState.intervalStates
       .updateWithTable(
         IntervalStates.IntervalTable(
           mergedMessage.interval,
@@ -107,8 +107,8 @@ class ParameterPregel(parameterQuery: ParameterQuery)
         s"dstSuperstep: ${triplet.dstAttr.constState.superstep}, " +
         s"tripletInterval: ${triplet.attr.interval}, ")
 
-    val interval = triplet.srcAttr.intervalsState.firstInterval
-    val table    = triplet.srcAttr.intervalsState.firstTable
+    val interval = triplet.srcAttr.intervalStates.firstInterval
+    val table    = triplet.srcAttr.intervalStates.firstTable
     val length   = table.currentLength
 
     val messageInterval =

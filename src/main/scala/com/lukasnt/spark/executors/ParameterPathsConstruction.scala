@@ -39,28 +39,34 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
                                   topK: Int,
                                   minLength: Int,
                                   maxLength: Int): PathWeightTable = {
-    val result = triplets
-      .map(triplet => (triplet.dstId, triplet.dstAttr.intervalsState.firstTable))
+    triplets
+      .map(triplet => (triplet.dstId, triplet.dstAttr.intervalStates))
       .aggregate[PathWeightTable](PathWeightTable(List(), topK))(
-        seqOp = (pathTable, stateTable) => {
-          // Skip the table if the destination vertex is already in the path table
-          if (pathTable.entries.exists(_.path.endNode == stateTable._1)) {
-            pathTable
-          } else {
-            pathTable.mergeWithTable(createPathTable(stateTable._2, stateTable._1, topK, minLength, maxLength, null),
-                                     topK)
-          }
+        seqOp = {
+          case (pathTable, (vertex, intervalStates)) =>
+            // Skip the table if the destination vertex is already in the path table
+            if (pathTable.entries.exists(_.path.endNode == vertex))
+              pathTable
+            else
+              // Merge the aggregated path-table into all interval-tables merged, resulting in one path-table
+              pathTable.mergeWithTable(
+                // Merge all interval tables into one path-table
+                other = intervalStates.intervalTables
+                  .map(intervalTable => {
+                    createPathTable(intervalTable.table, vertex, topK, minLength, maxLength, intervalTable.interval)
+                  })
+                  .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK)),
+                topK = topK
+              )
         },
-        combOp = (tableA, tableB) => {
-          // Filter out duplicate entries (same destination node)
-          val filteredTableB =
-            PathWeightTable(
-              tableB.entries.filter(entry => !tableA.entries.exists(_.path.endNode == entry.path.endNode)),
-              topK)
-          tableA.mergeWithTable(filteredTableB, topK)
+        combOp = {
+          case (tableA, tableB) =>
+            // Filter out duplicate entries (same destination node)
+            val filteredEntries =
+              tableB.entries.filter(entry => !tableA.entries.exists(_.path.endNode == entry.path.endNode))
+            tableA.mergeWithTable(PathWeightTable(filteredEntries, topK), topK)
         }
       )
-    result
   }
 
   private def createPathTable(table: LengthWeightTable,
@@ -116,12 +122,11 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
   private def findNextEntries(parentVertex: VertexId,
                               remainingLength: Int,
                               interval: Interval,
-                              groupLength: Int,
+                              groupCount: Int,
                               vertexMap: Map[VertexId, PregelVertex]): LengthWeightTable = {
-    vertexMap(parentVertex).intervalsState
-      .lengthFilteredTable(remainingLength, groupLength)
-    //.intervalFunctionFilteredTable(intervalFunction, interval, -1)
-    //.filterByLength(remainingLength, groupLength)
+    vertexMap(parentVertex).intervalStates
+      .intervalFilteredTable(validEdgeInterval, interval, topK = -1)
+      .filterByLength(remainingLength, groupCount)
   }
 
   private def pairwiseExtendPaths(pathTable: PathWeightTable,

@@ -28,7 +28,7 @@ object Types {
 
   case class AttrEdge(srcId: VertexId, dstId: VertexId, attr: Properties)
 
-  case class PregelVertex(constState: ConstState, intervalsState: IntervalStates)
+  case class PregelVertex(constState: ConstState, intervalStates: IntervalStates)
 
   object AttrVertex {
 
