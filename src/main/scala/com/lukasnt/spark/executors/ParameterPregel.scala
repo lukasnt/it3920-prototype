@@ -13,7 +13,9 @@ class ParameterPregel(parameterQuery: ParameterQuery)
   val sourcePredicate: AttrVertex => Boolean             = parameterQuery.sourcePredicate
   val intermediatePredicate: AttrEdge => Boolean         = parameterQuery.intermediatePredicate
   val destinationPredicate: AttrVertex => Boolean        = parameterQuery.destinationPredicate
-  val intervalRelation: (Interval, Interval) => Interval = parameterQuery.intervalRelation
+  val validEdgeInterval: (Interval, Interval) => Boolean = parameterQuery.temporalPathType.validEdgeInterval
+  val nextInterval: (Interval, Interval) => Interval     = parameterQuery.temporalPathType.nextInterval
+  val initInterval: (Interval) => Interval               = parameterQuery.temporalPathType.initInterval
   val weightMap: AttrEdge => Float                       = parameterQuery.weightMap
   val minLength: Int                                     = parameterQuery.minLength
   val maxLength: Int                                     = parameterQuery.maxLength
@@ -92,17 +94,27 @@ class ParameterPregel(parameterQuery: ParameterQuery)
   }
 
   override def sendMessage(triplet: EdgeTriplet[PregelVertex, Properties]): Iterator[(VertexId, IntervalMessage)] = {
+    val superstep = triplet.srcAttr.constState.superstep
     // Make sure that in the first iteration only the source vertices send messages
-    if (triplet.srcAttr.constState.superstep == 0 && !triplet.srcAttr.constState.source) {
+    if (superstep <= 1 && !triplet.srcAttr.constState.source) {
       return Iterator.empty
     }
 
-    val interval = triplet.attr.interval
+    Loggers.default.debug(
+      s"srcId: ${triplet.srcId}, " +
+        s"dstId: ${triplet.dstId}, " +
+        s"srcSuperstep: ${triplet.srcAttr.constState.superstep}, " +
+        s"dstSuperstep: ${triplet.dstAttr.constState.superstep}, " +
+        s"tripletInterval: ${triplet.attr.interval}, ")
+
+    val interval = triplet.srcAttr.intervalsState.firstInterval
     val table    = triplet.srcAttr.intervalsState.firstTable
     val length   = table.currentLength
 
-    val messageInterval = interval
-    val messageLength   = length + 1
+    val messageInterval =
+      if (interval.isNullInterval) initInterval(triplet.attr.interval)
+      else nextInterval(interval, triplet.attr.interval)
+    val messageLength = length + 1
     val messageTable = LengthWeightTable(
       history = List(),
       actives = table
@@ -129,7 +141,9 @@ class ParameterPregel(parameterQuery: ParameterQuery)
         s"weight: ${triplet.attr.properties("weight")}"
     )
 
-    Iterator((triplet.dstId, IntervalMessage(messageInterval, messageLength, messageTable)))
+    if (!messageInterval.isNullInterval)
+      Iterator((triplet.dstId, IntervalMessage(messageInterval, messageLength, messageTable)))
+    else Iterator.empty
   }
 
   override def mergeMessage(msgA: IntervalMessage, msgB: IntervalMessage): IntervalMessage = {

@@ -29,12 +29,12 @@ class TemporalPath(val edgeSequence: List[Edge[Properties]]) extends Serializabl
     edges.map(edge => this :+ edge)
   }
 
-  def :+(edge: Edge[Properties]): TemporalPath = {
-    new TemporalPath(edgeSequence :+ edge)
-  }
-
   def innerJoinWithEdges(edges: RDD[Edge[Properties]]): RDD[TemporalPath] = {
     edges.filter(edge => edge.srcId == endNode).map(edge => this :+ edge)
+  }
+
+  def :+(edge: Edge[Properties]): TemporalPath = {
+    new TemporalPath(edgeSequence :+ edge)
   }
 
   def outerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {

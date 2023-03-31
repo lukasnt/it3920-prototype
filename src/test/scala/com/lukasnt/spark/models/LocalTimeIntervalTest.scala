@@ -18,7 +18,7 @@ class LocalTimeIntervalTest {
   @Test
   def intervalNotBefore(): Unit = {
     val interval1 = new TemporalInterval(LocalTime.of(0, 0), LocalTime.of(0, 2))
-    val interval2 = new TemporalInterval(LocalTime.of(0, 2), LocalTime.of(0, 3))
+    val interval2 = new TemporalInterval(LocalTime.of(0, 1), LocalTime.of(0, 3))
     assertFalse(interval1.before(interval2))
   }
 
@@ -50,13 +50,15 @@ class LocalTimeIntervalTest {
     val interval1 = new TemporalInterval(LocalTime.of(0, 0), LocalTime.of(0, 3))
     val interval2 = new TemporalInterval(LocalTime.of(0, 2), LocalTime.of(0, 4))
     assertTrue(interval1.overlaps(interval2))
+    assertTrue(interval1.overlaps(interval1))
   }
 
   @Test
   def intervalNotOverlaps(): Unit = {
     val interval1 = new TemporalInterval(LocalTime.of(0, 0), LocalTime.of(0, 3))
     val interval2 = new TemporalInterval(LocalTime.of(0, 3), LocalTime.of(0, 4))
-    assertTrue(interval1.overlaps(interval2))
+    assertFalse(interval1.overlaps(interval2))
+    assertFalse(interval2.overlaps(interval1))
   }
 
   @Test

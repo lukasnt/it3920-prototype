@@ -10,6 +10,21 @@ import java.time.temporal.{ChronoUnit, Temporal}
   */
 class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends Serializable {
 
+  override def equals(obj: Any): Boolean = {
+    if (this.startTime == null && this.endTime == null) {
+      if (obj == null) true
+      else
+        obj match {
+          case interval: TemporalInterval[T] => interval.startTime == null && interval.endTime == null
+          case _                             => false
+        }
+    } else
+      obj match {
+        case interval: TemporalInterval[T] => this.equals(interval)
+        case _                             => false
+      }
+  }
+
   /**
     * @param interval interval to compare with
     * @return true if this interval is equal the given interval, false otherwise
@@ -73,7 +88,8 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
     * @return true if this interval overlaps the given interval, false otherwise
     */
   def overlaps(interval: TemporalInterval[T]): Boolean = {
-    !this.before(interval) && !interval.before(this)
+    this.startTime.until(interval.endTime, ChronoUnit.NANOS) > 0 &&
+    this.endTime.until(interval.startTime, ChronoUnit.NANOS) < 0
   }
 
   /**
@@ -81,7 +97,7 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
     * @return true if this interval is before the given interval, false otherwise
     */
   def before(interval: TemporalInterval[T]): Boolean = {
-    this.endTime.until(interval.startTime, ChronoUnit.NANOS) > 0
+    this.endTime.until(interval.startTime, ChronoUnit.NANOS) >= 0
   }
 
   /**
@@ -101,6 +117,10 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
     */
   def getDuration: Long = {
     this.startTime.until(this.endTime, ChronoUnit.NANOS)
+  }
+
+  def isNullInterval: Boolean = {
+    this == TemporalInterval()
   }
 
   override def toString: String = {

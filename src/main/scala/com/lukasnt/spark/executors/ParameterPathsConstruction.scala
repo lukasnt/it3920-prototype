@@ -13,7 +13,8 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
   val maxLength: Int                                     = parameterQuery.maxLength
   val topK: Int                                          = parameterQuery.topK
   val weightMap: AttrEdge => Float                       = parameterQuery.weightMap
-  val intervalFunction: (Interval, Interval) => Interval = parameterQuery.intervalRelation
+  val validEdgeInterval: (Interval, Interval) => Boolean = parameterQuery.temporalPathType.validEdgeInterval
+  val nextInterval: (Interval, Interval) => Interval     = parameterQuery.temporalPathType.nextInterval
 
   override def constructPaths(pregelGraph: Graph[PregelVertex, Properties]): List[TemporalPath] = {
     newConstructPaths(pregelGraph)

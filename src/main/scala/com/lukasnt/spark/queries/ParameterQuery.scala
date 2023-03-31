@@ -1,26 +1,27 @@
 package com.lukasnt.spark.queries
 
-import com.lukasnt.spark.models.Types.{AttrEdge, AttrVertex, Interval}
+import com.lukasnt.spark.models.TemporalPathType
+import com.lukasnt.spark.models.Types.{AttrEdge, AttrVertex}
 
 class ParameterQuery() {
 
-  private var _sourcePredicate: AttrVertex => Boolean             = (v) => { v.attr.interval != null }
-  private var _intermediatePredicate: AttrEdge => Boolean         = (e) => { e.attr.interval != null }
-  private var _destinationPredicate: AttrVertex => Boolean        = (v) => { v.attr.interval != null }
-  private var _intervalRelation: (Interval, Interval) => Interval = (a, b) => { a.getUnion(b) }
-  private var _weightMap: AttrEdge => Float                       = (_) => { 1.0f }
-  private var _minLength: Int                                     = 1
-  private var _maxLength: Int                                     = 10
-  private var _topK: Int                                          = 5
+  private var _temporalPathType: TemporalPathType          = TemporalPathType.Continuous
+  private var _sourcePredicate: AttrVertex => Boolean      = (v) => { v.attr.interval != null }
+  private var _intermediatePredicate: AttrEdge => Boolean  = (e) => { e.attr.interval != null }
+  private var _destinationPredicate: AttrVertex => Boolean = (v) => { v.attr.interval != null }
+  private var _weightMap: AttrEdge => Float                = (_) => { 1.0f }
+  private var _minLength: Int                              = 1
+  private var _maxLength: Int                              = 10
+  private var _topK: Int                                   = 5
 
-  def sourcePredicate: AttrVertex => Boolean             = this._sourcePredicate
-  def intermediatePredicate: AttrEdge => Boolean         = this._intermediatePredicate
-  def destinationPredicate: AttrVertex => Boolean        = this._destinationPredicate
-  def intervalRelation: (Interval, Interval) => Interval = this._intervalRelation
-  def weightMap: AttrEdge => Float                       = this._weightMap
-  def minLength: Int                                     = this._minLength
-  def maxLength: Int                                     = this._maxLength
-  def topK: Int                                          = this._topK
+  def sourcePredicate: AttrVertex => Boolean      = this._sourcePredicate
+  def intermediatePredicate: AttrEdge => Boolean  = this._intermediatePredicate
+  def destinationPredicate: AttrVertex => Boolean = this._destinationPredicate
+  def temporalPathType: TemporalPathType          = this._temporalPathType
+  def weightMap: AttrEdge => Float                = this._weightMap
+  def minLength: Int                              = this._minLength
+  def maxLength: Int                              = this._maxLength
+  def topK: Int                                   = this._topK
 }
 
 object ParameterQuery {
@@ -39,7 +40,7 @@ object ParameterQuery {
       this.query._sourcePredicate = query._sourcePredicate
       this.query._intermediatePredicate = query._intermediatePredicate
       this.query._destinationPredicate = query._destinationPredicate
-      this.query._intervalRelation = query._intervalRelation
+      this.query._temporalPathType = query._temporalPathType
       this.query._weightMap = query._weightMap
       this.query._minLength = query._minLength
       this.query._maxLength = query._maxLength
@@ -62,8 +63,8 @@ object ParameterQuery {
       this
     }
 
-    def withIntervalRelation(relation: (Interval, Interval) => Interval): ParameterQueryBuilder = {
-      query._intervalRelation = relation
+    def withPathType(pathType: TemporalPathType): ParameterQueryBuilder = {
+      query._temporalPathType = pathType
       this
     }
 
