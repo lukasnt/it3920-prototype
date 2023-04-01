@@ -84,7 +84,7 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
           remainingLength = entry.length,
           weight = entry.weight,
           path = TemporalPath(
-            Edge[Properties](srcId = entry.parentId, dstId = vertex, attr = new Properties(interval, null, null)))
+            Edge[Properties](srcId = entry.parentId, dstId = vertex, attr = new Properties(interval, "", Map())))
         )
       })
     PathWeightTable(tableEntries, topK)
@@ -111,12 +111,40 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
             // Find the next entries for this group and pairwise extend the paths
             pairwiseExtendPaths(
               pathTable = PathWeightTable(entries, entries.length),
-              lengthWeightTable = findNextTable(srcId, remainingLength - 1, interval, entries.length, vertexMap),
-              interval = interval
+              intervalEntries = findNextEntries(srcId, remainingLength - 1, interval, entries.length, vertexMap)
             )
           } else PathWeightTable(entries, entries.length)
       }
       .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK))
+  }
+
+  private def pairwiseExtendPaths(pathTable: PathWeightTable,
+                                  intervalEntries: List[IntervalStates.IntervalEntry]): PathWeightTable = {
+    PathWeightTable(
+      tableEntries = pathTable.entries.zip(intervalEntries).map {
+        case (pathEntry, IntervalStates.IntervalEntry(interval, entry)) =>
+          PathWeightTable.Entry(
+            interval = interval,
+            remainingLength = entry.length,
+            weight = pathEntry.weight,
+            path = TemporalPath(
+              Edge[Properties](entry.parentId, pathEntry.path.startNode, new Properties(interval, "", Map()))
+            ) + pathEntry.path
+          )
+      },
+      topK = pathTable.entries.length
+    )
+  }
+
+  private def findNextEntries(parentVertex: VertexId,
+                              remainingLength: Int,
+                              interval: Interval,
+                              groupCount: Int,
+                              vertexMap: Map[VertexId, PregelVertex]): List[IntervalStates.IntervalEntry] = {
+    vertexMap(parentVertex).intervalStates
+      .intervalFilteredStates(validEdgeInterval, interval)
+      .lengthFilteredStates(remainingLength)
+      .flattenEntries(groupCount)
   }
 
   private def findNextTable(parentVertex: VertexId,
@@ -142,22 +170,12 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
             path = TemporalPath(
               Edge[Properties](lengthWeightEntry.parentId,
                                pathEntry.path.startNode,
-                               new Properties(interval, null, null))) + pathEntry.path
+                               new Properties(interval, "", Map()))
+            ) + pathEntry.path
           )
       },
       topK = pathTable.entries.length
     )
-  }
-
-  private def findNextEntries(parentVertex: VertexId,
-                              remainingLength: Int,
-                              interval: Interval,
-                              groupCount: Int,
-                              vertexMap: Map[VertexId, PregelVertex]): List[IntervalStates.IntervalEntry] = {
-    vertexMap(parentVertex).intervalStates
-      .intervalFilteredStates(validEdgeInterval, interval)
-      .lengthFilteredStates(remainingLength)
-      .flattenEntries
   }
 
   /*

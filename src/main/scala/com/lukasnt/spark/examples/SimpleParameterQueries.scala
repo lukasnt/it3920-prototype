@@ -22,10 +22,11 @@ object SimpleParameterQueries {
   def interactionPaths(city1: String = "1226",
                        city2: String = "1363",
                        minLength: Int = 4,
-                       topK: Int = 10): ParameterQuery = {
+                       topK: Int = 10,
+                       pathType: TemporalPathType = TemporalPathType.Continuous): ParameterQuery = {
     ParameterQuery
       .builder()
-      .withPathType(TemporalPathType.Continuous)
+      .withPathType(pathType)
       .withSourcePredicate(s => s.attr.typeLabel == "Person" && s.attr.properties("gender") == "male")
       .withIntermediatePredicate(e => e.attr.typeLabel == "Person_knows_Person")
       .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("gender") == "female")

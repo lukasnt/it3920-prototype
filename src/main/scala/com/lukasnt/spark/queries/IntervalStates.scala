@@ -28,6 +28,18 @@ class IntervalStates extends Serializable {
       IntervalTable(intervalTable.interval, intervalTable.table.filterByLength(length, topK = -1))))
   }
 
+  def flattenEntries(topK: Int): List[IntervalEntry] = {
+    intervalTables
+      .flatMap(
+        intervalTable =>
+          intervalTable.table.entries
+            .map(entry => IntervalEntry(intervalTable.interval, entry))
+            .sortBy(_.entry.weight)
+            .take(topK))
+      .sortBy(_.entry.weight)
+      .take(topK)
+  }
+
   def flattenEntries: List[IntervalEntry] = {
     intervalTables.flatMap(intervalTable =>
       intervalTable.table.entries.map(entry => IntervalEntry(intervalTable.interval, entry)))
