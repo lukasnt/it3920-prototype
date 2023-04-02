@@ -19,6 +19,18 @@ class IntervalStates extends Serializable {
     IntervalStates(intervalTables ++ newIntervalTables)
   }
 
+  def mergeStates(otherStates: IntervalStates, topK: Int): IntervalStates = {
+    IntervalStates(
+      (this.intervalTables ++ otherStates.intervalTables)
+        .groupBy(_.interval)
+        .map {
+          case (interval, tables) =>
+            IntervalTable(interval, tables.map(_.table).reduce((a, b) => a.mergeWithTable(b, topK)))
+        }
+        .toList
+    )
+  }
+
   def intervalFilteredStates(filterFunction: (Interval, Interval) => Boolean, interval: Interval): IntervalStates = {
     IntervalStates(intervalTables.filter(intervalTable => filterFunction(intervalTable.interval, interval)))
   }
@@ -43,6 +55,11 @@ class IntervalStates extends Serializable {
   def flattenEntries: List[IntervalEntry] = {
     intervalTables.flatMap(intervalTable =>
       intervalTable.table.entries.map(entry => IntervalEntry(intervalTable.interval, entry)))
+  }
+
+  def flushedTableStates: IntervalStates = {
+    IntervalStates(intervalTables.map(intervalTable =>
+      IntervalTable(intervalTable.interval, intervalTable.table.flushActiveEntries())))
   }
 
   def lengthRangeFilteredTable(minLength: Int, maxLength: Int, topK: Int): LengthWeightTable = {

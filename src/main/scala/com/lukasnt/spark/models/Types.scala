@@ -3,8 +3,8 @@ package com.lukasnt.spark.models
 import com.lukasnt.spark.queries.{ConstState, IntervalStates}
 import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph, VertexId}
 
-import java.time.ZonedDateTime
 import java.time.temporal.Temporal
+import java.time.{ZoneId, ZonedDateTime}
 
 /**
   * Type aliases for the models classes.
@@ -46,6 +46,21 @@ object Types {
 
     def apply(triplet: EdgeTriplet[Properties, Properties]): AttrEdge = {
       new AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)
+    }
+
+  }
+
+  object Interval {
+
+    def apply(): Interval = {
+      Interval(
+        ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(0), ZoneId.systemDefault()),
+        ZonedDateTime.ofInstant(java.time.Instant.ofEpochMilli(0), ZoneId.systemDefault())
+      )
+    }
+
+    def apply(interval: (ZonedDateTime, ZonedDateTime)): Interval = {
+      new Interval(interval._1, interval._2)
     }
 
   }

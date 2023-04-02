@@ -1,13 +1,11 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.models.TemporalInterval
 import com.lukasnt.spark.models.Types._
 import com.lukasnt.spark.queries._
 import com.lukasnt.spark.utils.Loggers
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 
-class ParameterPregel(parameterQuery: ParameterQuery)
-    extends PregelExecutor[PregelVertex, Properties, IntervalMessage] {
+class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[PregelVertex, Properties, IntervalStates] {
 
   // Extract query parameters (because ParameterQuery is a non-serializable class)
   val sourcePredicate: AttrVertex => Boolean             = parameterQuery.sourcePredicate
@@ -25,14 +23,8 @@ class ParameterPregel(parameterQuery: ParameterQuery)
 
   override def activeDirection(): EdgeDirection = EdgeDirection.Out
 
-  override def initMessages(): IntervalMessage = {
-    IntervalMessage(interval = TemporalInterval(),
-                    length = 0,
-                    LengthWeightTable(history = List(),
-                                      actives = List(
-                                        LengthWeightTable.Entry(0, 0, 0)
-                                      ),
-                                      topK = topK))
+  override def initMessages(): IntervalStates = {
+    IntervalStates(List())
   }
 
   override def preprocessGraph(temporalGraph: TemporalGraph): Graph[PregelVertex, Properties] = {
@@ -46,25 +38,14 @@ class ParameterPregel(parameterQuery: ParameterQuery)
             .applyIntermediateTest(_ => true, attr)
             .applyDestinationTest(vertexAttr => destinationPredicate(AttrVertex(id, vertexAttr)), attr)
             .build(),
-          intervalStates = IntervalStates(
-            List(
-              IntervalStates.IntervalTable(
-                interval = TemporalInterval(),
-                table = LengthWeightTable(
-                  history = List(),
-                  actives = List(),
-                  topK = topK
-                )
-              )
-            )
-          )
+          intervalStates = IntervalStates(List())
       )
     )
   }
 
   override def vertexProgram(vertexId: VertexId,
                              currentState: PregelVertex,
-                             mergedMessage: IntervalMessage): PregelVertex = {
+                             mergedMessage: IntervalStates): PregelVertex = {
 
     Loggers.default.debug(
       s"id: $vertexId, " +
@@ -73,87 +54,82 @@ class ParameterPregel(parameterQuery: ParameterQuery)
         s"mergedMessage: $mergedMessage"
     )
 
-    val currentTable = currentState.intervalStates.intervalTables.head.table
-
     val newConstState = ConstState
       .builder()
       .fromState(currentState.constState)
       .incSuperstep()
       .build()
-    val newIntervalsState = currentState.intervalStates
-      .updateWithTable(
-        IntervalStates.IntervalTable(
-          mergedMessage.interval,
-          currentTable
-            .mergeWithTable(mergedMessage.lengthWeightTable, topK)
-            .flushActiveEntries()
-        )
-      )
+    val newStates = currentState.intervalStates.updateWithTables(mergedMessage.flushedTableStates.intervalTables)
 
-    PregelVertex(newConstState, newIntervalsState)
+    PregelVertex(newConstState, newStates)
   }
 
-  override def sendMessage(triplet: EdgeTriplet[PregelVertex, Properties]): Iterator[(VertexId, IntervalMessage)] = {
+  override def sendMessage(triplet: EdgeTriplet[PregelVertex, Properties]): Iterator[(VertexId, IntervalStates)] = {
     val superstep = triplet.srcAttr.constState.superstep
     // Make sure that in the first iteration only the source vertices send messages
     if (superstep <= 1 && !triplet.srcAttr.constState.source) {
       return Iterator.empty
     }
 
+    val currentStates = triplet.srcAttr.intervalStates
+    val messageStates = IntervalStates(
+      if (currentStates.intervalTables.nonEmpty)
+        currentStates
+          .intervalFilteredStates(validEdgeInterval, triplet.attr.interval)
+          .intervalTables
+          .map(intervalTable => messageIntervalTable(intervalTable, triplet, superstep))
+      else List(firstIntervalTable(triplet))
+    )
+
     Loggers.default.debug(
       s"srcId: ${triplet.srcId}, " +
         s"dstId: ${triplet.dstId}, " +
         s"srcSuperstep: ${triplet.srcAttr.constState.superstep}, " +
         s"dstSuperstep: ${triplet.dstAttr.constState.superstep}, " +
-        s"tripletInterval: ${triplet.attr.interval}, ")
+        s"tripletInterval: ${triplet.attr.interval}, " +
+        s"weight: ${triplet.attr.properties("weight")}, " +
+        s"messageStates: $messageStates"
+    )
 
-    val interval = triplet.srcAttr.intervalStates.firstInterval
-    val table    = triplet.srcAttr.intervalStates.firstTable
-    val length   = table.currentLength
+    Iterator((triplet.dstId, messageStates))
+  }
 
-    val messageInterval =
-      if (interval.isNullInterval) initInterval(triplet.attr.interval)
-      else nextInterval(interval, triplet.attr.interval)
-    val messageLength = length + 1
-    val messageTable = LengthWeightTable(
+  private def messageIntervalTable(intervalTable: IntervalStates.IntervalTable,
+                                   triplet: EdgeTriplet[PregelVertex, Properties],
+                                   superstep: Int) = {
+    val newInterval = nextInterval(intervalTable.interval, triplet.attr.interval)
+    val newTable = LengthWeightTable(
       history = List(),
-      actives = table
-        .filterByLength(length, topK)
+      actives = intervalTable.table
+        .filterByLength(superstep - 1, topK)
         .entries
         .map(
           entry =>
-            LengthWeightTable.Entry(messageLength,
+            LengthWeightTable.Entry(entry.length + 1,
                                     entry.weight + weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)),
                                     triplet.srcId)
         ),
       topK = topK
     )
+    IntervalStates.IntervalTable(newInterval, newTable)
+  }
 
-    Loggers.default.debug(
-      s"srcId: ${triplet.srcId}, " +
-        s"dstId: ${triplet.dstId}, " +
-        s"srcSuperstep: ${triplet.srcAttr.constState.superstep}, " +
-        s"dstSuperstep: ${triplet.dstAttr.constState.superstep}, " +
-        s"interval: $messageInterval, " +
-        s"length: $messageLength, " +
-        s"table: $table, " +
-        s"messageTable: $messageTable, " +
-        s"weight: ${triplet.attr.properties("weight")}"
+  private def firstIntervalTable(triplet: EdgeTriplet[PregelVertex, Properties]): IntervalStates.IntervalTable = {
+    IntervalStates.IntervalTable(
+      interval = initInterval(triplet.attr.interval),
+      table = LengthWeightTable(
+        history = List(),
+        actives = List(
+          LengthWeightTable.Entry(1, weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)), triplet.srcId)
+        ),
+        topK = topK
+      )
     )
-
-    if (!messageInterval.isNullInterval)
-      Iterator((triplet.dstId, IntervalMessage(messageInterval, messageLength, messageTable)))
-    else Iterator.empty
   }
 
-  override def mergeMessage(msgA: IntervalMessage, msgB: IntervalMessage): IntervalMessage = {
-    val interval    = msgA.interval.getUnion(msgB.interval)
-    val length      = Math.max(msgA.length, msgB.length)
-    val mergedTable = msgA.lengthWeightTable.mergeWithTable(msgB.lengthWeightTable, topK)
-
-    IntervalMessage(interval, length, mergedTable)
+  override def mergeMessage(msgA: IntervalStates, msgB: IntervalStates): IntervalStates = {
+    msgA.mergeStates(msgB, topK)
   }
-
 }
 
 object ParameterPregel {

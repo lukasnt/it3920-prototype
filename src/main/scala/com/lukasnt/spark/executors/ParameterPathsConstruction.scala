@@ -147,6 +147,7 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
       .flattenEntries(groupCount)
   }
 
+  /*
   private def findNextTable(parentVertex: VertexId,
                             remainingLength: Int,
                             interval: Interval,
@@ -177,7 +178,7 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
       topK = pathTable.entries.length
     )
   }
-
+   */
   /*
   def legacyConstructPaths(pregelGraph: Graph[PregelVertex, Properties]): List[TemporalPath] = {
     val destinationTriplets = pregelGraph.triplets
