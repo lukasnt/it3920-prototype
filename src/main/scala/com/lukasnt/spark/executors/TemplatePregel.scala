@@ -34,13 +34,13 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
           IntervalStates(
             List(
               IntervalStates.IntervalTable(interval = TemporalInterval(),
-                                   table = LengthWeightTable(
-                                     history = List(),
-                                     actives = List(
-                                       LengthWeightTable.Entry(0, Random.nextFloat(), 0)
-                                     ),
-                                     topK = 10
-                                   ))
+                                           table = LengthWeightTable(
+                                             history = List(),
+                                             actives = List(
+                                               LengthWeightTable.Entry(0, Random.nextFloat(), 0)
+                                             ),
+                                             topK = 10
+                                           ))
             )
           )
       )
@@ -52,14 +52,14 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
                              mergedMessage: IntervalMessage): PregelVertex = {
     Loggers.default.debug(
       s"id: $vertexId, superstep: " +
-        s"${currentState.constState.superstep}, firstEntry: " +
+        s"${currentState.constState.currentLength}, firstEntry: " +
         s"${currentState.intervalStates.intervalTables.head}"
     )
 
     val newConstState = ConstState
       .builder()
       .fromState(currentState.constState)
-      .incSuperstep()
+      .setCurrentLength(currentState.constState.currentLength + 1)
       .applyPathCostUpdate(currentState.constState.pathCost - Random.nextFloat())
       .build()
     val newIntervalsState = currentState.intervalStates
@@ -76,14 +76,14 @@ class TemplatePregel extends PregelExecutor[PregelVertex, Properties, IntervalMe
   }
 
   override def sendMessage(triplet: EdgeTriplet[PregelVertex, Properties]): Iterator[(VertexId, IntervalMessage)] = {
-    val length   = triplet.srcAttr.constState.superstep
+    val length   = triplet.srcAttr.constState.currentLength
     val interval = triplet.attr.interval
 
     Loggers.default.debug(
       s"srcId: ${triplet.srcId}, " +
         s"dstId: ${triplet.dstId}, " +
-        s"srcSuperstep: ${triplet.srcAttr.constState.superstep}, " +
-        s"dstSuperstep: ${triplet.dstAttr.constState.superstep}")
+        s"srcSuperstep: ${triplet.srcAttr.constState.currentLength}, " +
+        s"dstSuperstep: ${triplet.dstAttr.constState.currentLength}")
 
     Iterator((triplet.dstId, IntervalMessage(interval, length, LengthWeightTable(List(), List(), 0))))
   }

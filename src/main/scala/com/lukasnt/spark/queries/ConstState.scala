@@ -5,17 +5,17 @@ import org.apache.spark.graphx.EdgeTriplet
 
 class ConstState(val seqNum: Int = 0) extends Serializable {
 
-  var superstep: Int        = 0
+  var iterations: Int       = 0
+  var currentLength: Int    = 0
   var pathCost: Float       = Float.MaxValue
   var nodeCost: Float       = 0.0f
   var source: Boolean       = false
   var intermediate: Boolean = false
   var destination: Boolean  = false
-  var currentLength: Int    = 0
 
   override def toString: String = {
-    s"QueryState(seqNum=$seqNum, superstep=$superstep, pathCost=$pathCost, nodeCost=$nodeCost, " +
-      s"intermediate=$intermediate, source=$source, destination=$destination, currentLength=$currentLength"
+    s"QueryState(seqNum=$seqNum, iterations=$iterations, currentLength=$currentLength, pathCost=$pathCost, " +
+      s"nodeCost=$nodeCost, intermediate=$intermediate, source=$source, destination=$destination"
   }
 
 }
@@ -33,13 +33,13 @@ object ConstState {
     }
 
     def fromState(state: ConstState): ConstStateBuilder = {
-      queryState.superstep = state.superstep
+      queryState.iterations = state.iterations
+      queryState.currentLength = state.currentLength
       queryState.pathCost = state.pathCost
       queryState.nodeCost = state.nodeCost
       queryState.source = state.source
       queryState.intermediate = state.intermediate
       queryState.destination = state.destination
-      queryState.currentLength = state.currentLength
       this
     }
 
@@ -78,13 +78,13 @@ object ConstState {
       this
     }
 
-    def incSuperstep(): ConstStateBuilder = {
-      queryState.superstep += 1
+    def incIterations(): ConstStateBuilder = {
+      queryState.iterations += 1
       this
     }
 
-    def incCurrentLength(): ConstStateBuilder = {
-      queryState.currentLength += 1
+    def setCurrentLength(length: Int): ConstStateBuilder = {
+      queryState.currentLength = length
       this
     }
 

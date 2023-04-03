@@ -35,9 +35,17 @@ class IntervalStates extends Serializable {
     IntervalStates(intervalTables.filter(intervalTable => filterFunction(intervalTable.interval, interval)))
   }
 
+  def nextIntervalFilteredStates(nextIntervalFunction: (Interval, Interval) => Interval, interval: Interval): IntervalStates = {
+    intervalTables.filter(intervalTable => nextIntervalFunction(intervalTable.interval, interval) == interval)
+  }
+
   def lengthFilteredStates(length: Int): IntervalStates = {
-    IntervalStates(intervalTables.map(intervalTable =>
-      IntervalTable(intervalTable.interval, intervalTable.table.filterByLength(length, topK = -1))))
+    IntervalStates(
+      intervalTables
+        .map(intervalTable =>
+          IntervalTable(intervalTable.interval, intervalTable.table.filterByLength(length, topK = -1)))
+        .filter(_.table.entries.nonEmpty)
+    )
   }
 
   def flattenEntries(topK: Int): List[IntervalEntry] = {
@@ -91,8 +99,12 @@ class IntervalStates extends Serializable {
     if (intervalTables.nonEmpty) intervalTables.head.interval else TemporalInterval()
   }
 
+  def currentLength: Int = {
+    if (intervalTables.nonEmpty) intervalTables.map(_.table.currentLength).max else 0
+  }
+
   override def toString: String = {
-    s"[${intervalTables.mkString(", ")}]"
+    s"IntervalStates[\n${intervalTables.mkString("\n")}\n]"
   }
 
 }

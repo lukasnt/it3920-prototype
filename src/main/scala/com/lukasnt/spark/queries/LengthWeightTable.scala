@@ -70,8 +70,10 @@ object LengthWeightTable {
 
   def apply(history: List[Entry], actives: List[Entry], topK: Int): LengthWeightTable = new LengthWeightTable() {
     override val historyEntries: List[Entry] = history
-    override val activeEntries: List[Entry] =
-      if (topK == -1) actives.sortBy(_.weight) else actives.sortBy(_.weight).take(topK)
+    override val activeEntries: List[Entry] = {
+      if (topK == -1) actives.sortBy(_.weight)
+      else actives.sortBy(_.weight).take(topK)
+    }
   }
 
   case class Entry(length: Int, weight: Float, parentId: VertexId) {

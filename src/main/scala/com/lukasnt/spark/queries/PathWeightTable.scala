@@ -1,8 +1,9 @@
 package com.lukasnt.spark.queries
 
 import com.lukasnt.spark.models.TemporalPath
-import com.lukasnt.spark.queries.PathWeightTable.Entry
 import com.lukasnt.spark.models.Types.Interval
+import com.lukasnt.spark.queries.PathWeightTable.Entry
+import org.apache.spark.graphx.VertexId
 
 class PathWeightTable extends Serializable {
 
@@ -23,6 +24,18 @@ class PathWeightTable extends Serializable {
     PathWeightTable(newTableData, topK)
   }
 
+  def parentVertexExists(vertexId: VertexId): Boolean = {
+    entries.exists(_.parentVertex == vertexId)
+  }
+
+  def destinationVertexExists(vertexId: VertexId): Boolean = {
+    entries.exists(_.destinationVertex == vertexId)
+  }
+
+  override def toString: String = {
+    s"PathWeightTable([\n${entries.mkString("\n")}\n])"
+  }
+
 }
 
 object PathWeightTable {
@@ -32,13 +45,20 @@ object PathWeightTable {
   }
 
   def apply(tableEntries: List[Entry], topK: Int): PathWeightTable = new PathWeightTable {
-    override val entries: List[Entry] = tableEntries.sortBy(_.weight).take(topK)
+    override val entries: List[Entry] = {
+      if (topK == -1) tableEntries.sortBy(_.weight)
+      else tableEntries.sortBy(_.weight).take(topK)
+    }
   }
 
   case class Entry(interval: Interval, remainingLength: Int, weight: Float, path: TemporalPath) {
     override def toString: String = {
       s"Entry($interval|$remainingLength|$weight|$path)"
     }
+
+    def parentVertex: VertexId = path.startNode
+
+    def destinationVertex: VertexId = path.endNode
 
   }
 

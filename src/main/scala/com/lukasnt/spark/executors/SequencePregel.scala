@@ -51,7 +51,7 @@ class SequencePregel(sequencedQueries: SequencedQueries)
           ConstState
             .builder()
             .fromState(state)
-            .incSuperstep()
+            .incIterations()
             .applyPathCostUpdate(message.getMinCostBy(state.seqNum - 1))
             .build())
     (node, newStateSequence)

@@ -2,7 +2,7 @@ package com.lukasnt.spark.models
 
 import com.lukasnt.spark.models.Types.{AttrVertex, Interval, Properties, TemporalGraph}
 import org.apache.spark.SparkContext
-import org.apache.spark.graphx.{Edge, Graph}
+import org.apache.spark.graphx.{Edge, Graph, VertexId}
 import org.apache.spark.rdd.RDD
 
 import java.time.ZonedDateTime
@@ -25,16 +25,28 @@ class TemporalPath(val edgeSequence: List[Edge[Properties]]) extends Serializabl
     )
   }
 
+  def vertexSequence: List[VertexId] = {
+    edgeSequence.map(edge => edge.srcId) :+ edgeSequence.last.dstId
+  }
+
   def outerJoinWithEdges(edges: List[Edge[Properties]]): List[TemporalPath] = {
     edges.map(edge => this :+ edge)
+  }
+
+  def :+(edge: Edge[Properties]): TemporalPath = {
+    new TemporalPath(edgeSequence :+ edge)
   }
 
   def innerJoinWithEdges(edges: RDD[Edge[Properties]]): RDD[TemporalPath] = {
     edges.filter(edge => edge.srcId == endNode).map(edge => this :+ edge)
   }
 
-  def :+(edge: Edge[Properties]): TemporalPath = {
-    new TemporalPath(edgeSequence :+ edge)
+  def endNode: Long = {
+    endEdge.dstId
+  }
+
+  def endEdge: Edge[Properties] = {
+    edgeSequence.last
   }
 
   def outerJoinWithPaths(paths: List[TemporalPath]): List[TemporalPath] = {
@@ -49,12 +61,8 @@ class TemporalPath(val edgeSequence: List[Edge[Properties]]) extends Serializabl
     paths.filter(path => path.startNode == endNode).map(path => this + path)
   }
 
-  def endNode: Long = {
-    edgeSequence.last.dstId
-  }
-
   def startNode: Long = {
-    edgeSequence.head.srcId
+    startEdge.srcId
   }
 
   def length: Int = edgeSequence.length
@@ -64,11 +72,22 @@ class TemporalPath(val edgeSequence: List[Edge[Properties]]) extends Serializabl
   }
 
   def startTimestamp: ZonedDateTime = {
-    edgeSequence.head.attr.interval.startTime
+    startEdge.attr.interval.startTime
+  }
+
+  def startEdge: Edge[Properties] = {
+    edgeSequence.head
   }
 
   def endTimestamp: ZonedDateTime = {
-    edgeSequence.last.attr.interval.endTime
+    endEdge.attr.interval.endTime
+  }
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case path: TemporalPath => path.edgeSequence == edgeSequence
+      case _                  => false
+    }
   }
 
   override def toString: String = {

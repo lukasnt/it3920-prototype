@@ -39,34 +39,47 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
                                   topK: Int,
                                   minLength: Int,
                                   maxLength: Int): PathWeightTable = {
-    triplets
+    val pathTable = triplets
       .map(triplet => (triplet.dstId, triplet.dstAttr.intervalStates))
       .aggregate[PathWeightTable](PathWeightTable(List(), topK))(
         seqOp = {
           case (pathTable, (vertex, intervalStates)) =>
             // Skip the table if the destination vertex is already in the path table
-            if (pathTable.entries.exists(_.path.endNode == vertex))
+            if (pathTable.destinationVertexExists(vertex))
               pathTable
             else
-              // Merge the aggregated path-table into all interval-tables merged, resulting in one path-table
-              pathTable.mergeWithTable(
-                // Merge all interval tables into one path-table
-                other = intervalStates.intervalTables
-                  .map(intervalTable => {
-                    createPathTable(intervalTable.table, vertex, topK, minLength, maxLength, intervalTable.interval)
-                  })
-                  .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK)),
-                topK = topK
-              )
+              mergeIntervalStatesToPathTable(pathTable, intervalStates, vertex, topK, minLength, maxLength)
         },
         combOp = {
           case (tableA, tableB) =>
             // Filter out duplicate entries (same destination node)
-            val filteredEntries =
-              tableB.entries.filter(entry => !tableA.entries.exists(_.path.endNode == entry.path.endNode))
-            tableA.mergeWithTable(PathWeightTable(filteredEntries, topK), topK)
+            val distinctEntries =
+              tableB.entries.filter(entry => !tableA.destinationVertexExists(entry.destinationVertex))
+            tableA.mergeWithTable(PathWeightTable(distinctEntries, topK), topK)
         }
       )
+
+    //println(pathTable)
+
+    pathTable
+  }
+
+  private def mergeIntervalStatesToPathTable(pathTable: PathWeightTable,
+                                             intervalStates: IntervalStates,
+                                             vertex: VertexId,
+                                             topK: Int,
+                                             minLength: Int,
+                                             maxLength: Int): PathWeightTable = {
+    // Merge the aggregated path-table into all interval-tables merged, resulting in one path-table
+    pathTable.mergeWithTable(
+      // Merge all interval tables into one path-table
+      other = intervalStates.intervalTables
+        .map(intervalTable => {
+          createPathTable(intervalTable.table, vertex, topK, minLength, maxLength, intervalTable.interval)
+        })
+        .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK)),
+      topK = topK
+    )
   }
 
   private def createPathTable(table: LengthWeightTable,
@@ -100,28 +113,45 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     // Group the paths by their first edge and remaining length
     val groupedEntries =
       pathsTable.entries.groupBy(entry => {
-        val startEdge = entry.path.edgeSequence.head
-        (startEdge.srcId, startEdge.dstId, startEdge.attr.interval, entry.remainingLength)
+        val startEdge = entry.path.startEdge
+        (entry.path.vertexSequence, entry.interval, entry.remainingLength)
       })
 
-    groupedEntries
+    println("Grouped entries: ")
+    println(s"Number of groups: ${groupedEntries.size}, number of entries total: ${groupedEntries.map(_._2.size).sum}")
+    //groupedEntries.foreach(println)
+
+    val result = groupedEntries
       .map {
-        case ((srcId, _, interval, remainingLength), entries) =>
+        case ((pathVertexSequence, interval, remainingLength), entries) =>
           if (remainingLength - 1 > 0) {
+            println(s"Group: ($pathVertexSequence, $interval, $remainingLength), size: ${entries.size}")
+            /*
+            println(s"Group: ($srcId, $dstId, $interval, $remainingLength), size: ${entries.size}")
+            if (entries.size > vertexMap(srcId).intervalStates.intervalTables.size)
+              println(s"entries > intervalsState: $entries")
+
+             */
+
             // Find the next entries for this group and pairwise extend the paths
             pairwiseExtendPaths(
               pathTable = PathWeightTable(entries, entries.length),
-              intervalEntries = findNextEntries(srcId, remainingLength - 1, interval, entries.length, vertexMap)
+              intervalEntries =
+                findNextEntries(pathVertexSequence.head, remainingLength - 1, interval, entries.length, vertexMap)
             )
           } else PathWeightTable(entries, entries.length)
       }
       .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK))
+
+    println(s"Number of entries after extendPaths: ${result.entries.size}")
+
+    result
   }
 
   private def pairwiseExtendPaths(pathTable: PathWeightTable,
                                   intervalEntries: List[IntervalStates.IntervalEntry]): PathWeightTable = {
     PathWeightTable(
-      tableEntries = pathTable.entries.zip(intervalEntries).map {
+      tableEntries = pathTable.entries.sortBy(_.weight).zip(intervalEntries.sortBy(_.entry.weight)).map {
         case (pathEntry, IntervalStates.IntervalEntry(interval, entry)) =>
           PathWeightTable.Entry(
             interval = interval,
@@ -137,14 +167,23 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
   }
 
   private def findNextEntries(parentVertex: VertexId,
-                              remainingLength: Int,
+                              pathLength: Int,
                               interval: Interval,
                               groupCount: Int,
                               vertexMap: Map[VertexId, PregelVertex]): List[IntervalStates.IntervalEntry] = {
-    vertexMap(parentVertex).intervalStates
+    println(s"findNextEntries($parentVertex, $pathLength, $interval, $groupCount, vertexMap)")
+    //println(s"vertexMap($parentVertex) = ${vertexMap(parentVertex)}")
+
+    val result: List[IntervalStates.IntervalEntry] = vertexMap(parentVertex).intervalStates
       .intervalFilteredStates(validEdgeInterval, interval)
-      .lengthFilteredStates(remainingLength)
+      .lengthFilteredStates(pathLength)
       .flattenEntries(groupCount)
+
+    println(s"findNextEntries result: $result")
+    if (result.length < groupCount)
+      println(s"intervalStates: ${vertexMap(parentVertex).intervalStates}")
+
+    result
   }
 
   /*
