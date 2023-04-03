@@ -44,15 +44,6 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
 
   /**
     * @param interval interval to compare with
-    * @return true if this interval is during the given interval, false otherwise
-    */
-  def during(interval: TemporalInterval[T]): Boolean = {
-    this.startTime.until(interval.startTime, ChronoUnit.NANOS) < 0 &&
-    this.endTime.until(interval.endTime, ChronoUnit.NANOS) > 0
-  }
-
-  /**
-    * @param interval interval to compare with
     * @return true if this interval starts the given interval, false otherwise
     */
   def starts(interval: TemporalInterval[T]): Boolean = {
@@ -73,14 +64,36 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
     * @param interval interval to get the intersection with
     * @return the intersected interval
     */
-  def getIntersection(interval: TemporalInterval[T]): TemporalInterval[T] = {
-    if (!this.overlaps(interval)) {
-      TemporalInterval()
-    } else if (this.before(interval)) {
+  def intersection(interval: TemporalInterval[T]): TemporalInterval[T] = {
+    if (this.during(interval)) {
+      this
+    } else if (interval.during(this)) {
+      interval
+    } else if (this.startTime.until(interval.startTime, ChronoUnit.NANOS) > 0) {
       TemporalInterval(interval.startTime, this.endTime)
     } else {
       TemporalInterval(this.startTime, interval.endTime)
     }
+  }
+
+  /**
+    * @param interval interval to compare with
+    * @return true if this interval is during the given interval, false otherwise
+    */
+  def during(interval: TemporalInterval[T]): Boolean = {
+    this.startTime.until(interval.startTime, ChronoUnit.NANOS) < 0 &&
+    this.endTime.until(interval.endTime, ChronoUnit.NANOS) > 0
+  }
+
+  /**
+    * @param interval interval to get the union with
+    * @return the union interval
+    */
+  def union(interval: TemporalInterval[T]): TemporalInterval[T] = {
+    TemporalInterval(
+      if (this.startTime.until(interval.startTime, ChronoUnit.NANOS) > 0) this.startTime else interval.startTime,
+      if (this.endTime.until(interval.endTime, ChronoUnit.NANOS) < 0) this.endTime else interval.endTime
+    )
   }
 
   /**
@@ -98,18 +111,6 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
     */
   def before(interval: TemporalInterval[T]): Boolean = {
     this.endTime.until(interval.startTime, ChronoUnit.NANOS) >= 0
-  }
-
-  /**
-    * @param interval interval to get the union with
-    * @return the union interval
-    */
-  def getUnion(interval: TemporalInterval[T]): TemporalInterval[T] = {
-    if (this.before(interval)) {
-      TemporalInterval(this.startTime, interval.endTime)
-    } else {
-      TemporalInterval(interval.startTime, this.endTime)
-    }
   }
 
   /**

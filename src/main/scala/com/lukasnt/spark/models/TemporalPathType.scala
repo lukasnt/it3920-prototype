@@ -58,7 +58,7 @@ object TemporalPathType {
 
     override def nextInterval(lastInterval: Interval, edgeInterval: Interval): Interval = {
       if (validEdgeInterval(lastInterval, edgeInterval))
-        lastInterval.getIntersection(edgeInterval)
+        lastInterval.intersection(edgeInterval)
       else TemporalInterval()
     }
 

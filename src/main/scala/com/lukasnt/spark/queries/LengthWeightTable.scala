@@ -57,6 +57,13 @@ class LengthWeightTable() extends Serializable {
     historyEntries ++ activeEntries
   }
 
+  override def equals(other: Any): Boolean = other match {
+    case that: LengthWeightTable =>
+        historyEntries == that.historyEntries &&
+        activeEntries == that.activeEntries
+    case _ => false
+  }
+
   override def toString: String = {
     s"(history=[${historyEntries.mkString(", ")}], actives=[${activeEntries.mkString(", ")}])"
   }

@@ -110,6 +110,13 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     val vertexSet = pathsTable.entries.map(entry => entry.path.startNode).toSet
     val vertexMap = pregelGraph.vertices.filter { case (id, _) => vertexSet.contains(id) }.collect().toMap
 
+    val edgeSet = pathsTable.entries.map(entry => entry.path.startEdge).toSet
+    val tripletsMap = pregelGraph.triplets
+      .filter(triplet => edgeSet.exists(e => e.srcId == triplet.srcId && e.dstId == triplet.dstId))
+      .map(triplet => ((triplet.srcId, triplet.dstId), triplet))
+      .collect()
+      .toMap
+
     // Group the paths by their first edge and remaining length
     val groupedEntries =
       pathsTable.entries.groupBy(entry => {
@@ -137,7 +144,10 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
             pairwiseExtendPaths(
               pathTable = PathWeightTable(entries, entries.length),
               intervalEntries =
-                findNextEntries(pathVertexSequence.head, remainingLength - 1, interval, entries.length, vertexMap)
+                findNextEntriesWithTriplets(remainingLength - 1,
+                                            interval,
+                                            entries.length,
+                                            tripletsMap((pathVertexSequence.head, pathVertexSequence(1))))
             )
           } else PathWeightTable(entries, entries.length)
       }
@@ -164,6 +174,23 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
       },
       topK = pathTable.entries.length
     )
+  }
+
+  private def findNextEntriesWithTriplets(
+      pathLength: Int,
+      interval: Interval,
+      groupCount: Int,
+      triplet: EdgeTriplet[PregelVertex, Properties]): List[IntervalStates.IntervalEntry] = {
+    val result: List[IntervalStates.IntervalEntry] = triplet.srcAttr.intervalStates
+      .intervalFilteredStates((a, _) => { nextInterval(a, triplet.attr.interval) == interval }, triplet.attr.interval)
+      .lengthFilteredStates(pathLength)
+      .flattenEntries(groupCount)
+
+    println(s"findNextEntries result with triplet interval ${triplet.attr.interval}: $result")
+    if (result.length < groupCount)
+      println(s"intervalStates: ${triplet.srcAttr.intervalStates}")
+
+    result
   }
 
   private def findNextEntries(parentVertex: VertexId,

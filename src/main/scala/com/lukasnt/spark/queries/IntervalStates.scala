@@ -20,12 +20,16 @@ class IntervalStates extends Serializable {
   }
 
   def mergeStates(otherStates: IntervalStates, topK: Int): IntervalStates = {
+    val newIntervalTables = intervalTables ++ otherStates.intervalTables
     IntervalStates(
-      (this.intervalTables ++ otherStates.intervalTables)
+      (newIntervalTables)
         .groupBy(_.interval)
         .map {
-          case (interval, tables) =>
-            IntervalTable(interval, tables.map(_.table).reduce((a, b) => a.mergeWithTable(b, topK)))
+          case (interval, _) =>
+            IntervalTable(
+              interval,
+              newIntervalTables.filter(_.interval == interval).map(_.table).reduce((a, b) => a.mergeWithTable(b, topK))
+            )
         }
         .toList
     )
@@ -54,11 +58,6 @@ class IntervalStates extends Serializable {
             .take(topK))
       .sortBy(_.entry.weight)
       .take(topK)
-  }
-
-  def flattenEntries: List[IntervalEntry] = {
-    intervalTables.flatMap(intervalTable =>
-      intervalTable.table.entries.map(entry => IntervalEntry(intervalTable.interval, entry)))
   }
 
   def flushedTableStates: IntervalStates = {
@@ -97,6 +96,20 @@ class IntervalStates extends Serializable {
 
   def currentLength: Int = {
     if (intervalTables.nonEmpty) intervalTables.map(_.table.currentLength).max else 0
+  }
+
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherStates: IntervalStates =>
+        this.intervalTables.sortBy(_.interval.startTime.toInstant) ==
+          otherStates.intervalTables.sortBy(_.interval.startTime.toInstant)
+      case _ => false
+    }
+  }
+
+  def flattenEntries: List[IntervalEntry] = {
+    intervalTables.flatMap(intervalTable =>
+      intervalTable.table.entries.map(entry => IntervalEntry(intervalTable.interval, entry)))
   }
 
   override def toString: String = {
