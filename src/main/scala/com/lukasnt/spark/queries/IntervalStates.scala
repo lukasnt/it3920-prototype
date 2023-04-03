@@ -35,10 +35,6 @@ class IntervalStates extends Serializable {
     IntervalStates(intervalTables.filter(intervalTable => filterFunction(intervalTable.interval, interval)))
   }
 
-  def nextIntervalFilteredStates(nextIntervalFunction: (Interval, Interval) => Interval, interval: Interval): IntervalStates = {
-    intervalTables.filter(intervalTable => nextIntervalFunction(intervalTable.interval, interval) == interval)
-  }
-
   def lengthFilteredStates(length: Int): IntervalStates = {
     IntervalStates(
       intervalTables
