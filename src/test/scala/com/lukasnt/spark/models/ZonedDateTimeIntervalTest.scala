@@ -8,6 +8,16 @@ import java.time.ZonedDateTime
 class ZonedDateTimeIntervalTest {
 
   @Test
+  def equals(): Unit = {
+    val interval1 =
+      new TemporalInterval(ZonedDateTime.parse("2019-01-01T00:00:00Z"), ZonedDateTime.parse("2019-01-01T00:01:00Z"))
+    val interval2 =
+      new TemporalInterval(ZonedDateTime.parse("2019-01-01T00:00:00Z"), ZonedDateTime.parse("2019-01-01T00:01:00Z"))
+    assert(interval1.equals(interval2))
+    assert(interval2.equals(interval1))
+  }
+
+  @Test
   def standardIntersection(): Unit = {
     val interval1 =
       new TemporalInterval(ZonedDateTime.parse("2019-01-01T00:00:00Z"), ZonedDateTime.parse("2019-01-01T00:01:00Z"))

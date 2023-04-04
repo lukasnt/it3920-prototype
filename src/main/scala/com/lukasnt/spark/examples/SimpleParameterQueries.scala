@@ -32,7 +32,7 @@ object SimpleParameterQueries {
       .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("gender") == "female")
       .withWeightMap(e => e.attr.interval.getDuration.toFloat)
       .withMinLength(minLength)
-      .withMaxLength(10)
+      .withMaxLength(100)
       .withTopK(topK)
       .build()
   }

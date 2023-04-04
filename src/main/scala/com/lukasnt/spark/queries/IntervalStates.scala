@@ -21,14 +21,15 @@ class IntervalStates extends Serializable {
 
   def mergeStates(otherStates: IntervalStates, topK: Int): IntervalStates = {
     val newIntervalTables = intervalTables ++ otherStates.intervalTables
+
     IntervalStates(
-      (newIntervalTables)
-        .groupBy(_.interval)
+      newIntervalTables
+        .groupBy(intervalTable => intervalTable.interval)
         .map {
-          case (interval, _) =>
+          case (interval, tables) =>
             IntervalTable(
               interval,
-              newIntervalTables.filter(_.interval == interval).map(_.table).reduce((a, b) => a.mergeWithTable(b, topK))
+              tables.map(_.table).reduce((a, b) => a.mergeWithTable(b, topK))
             )
         }
         .toList

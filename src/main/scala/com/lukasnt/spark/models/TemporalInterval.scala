@@ -25,6 +25,14 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
       }
   }
 
+  override def hashCode(): Int = {
+    val prime = 31
+    var result = 1
+    result = prime * result + (if (startTime == null) 0 else startTime.hashCode)
+    result = prime * result + (if (endTime == null) 0 else endTime.hashCode)
+    result
+  }
+
   /**
     * @param interval interval to compare with
     * @return true if this interval is equal the given interval, false otherwise

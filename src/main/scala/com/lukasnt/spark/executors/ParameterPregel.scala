@@ -19,7 +19,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   val maxLength: Int                                     = parameterQuery.maxLength
   val topK: Int                                          = parameterQuery.topK
 
-  override def maxIterations(): Int = 100
+  override def maxIterations(): Int = maxLength + 1
 
   override def activeDirection(): EdgeDirection = EdgeDirection.Out
 
@@ -63,7 +63,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
       .incIterations()
       .setCurrentLength(mergedMessage.currentLength)
       .build()
-    val newStates = currentState.intervalStates.updateWithTables(mergedMessage.flushedTableStates.intervalTables)
+    val newStates = currentState.intervalStates.mergeStates(mergedMessage.flushedTableStates, topK)
 
     PregelVertex(newConstState, newStates)
   }
@@ -135,7 +135,13 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   }
 
   override def mergeMessage(msgA: IntervalStates, msgB: IntervalStates): IntervalStates = {
-    msgA.mergeStates(msgB, topK)
+    val merged = msgA.mergeStates(msgB, topK)
+    Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")
+    val entries = merged.flattenEntries.map(_.entry)
+    if (entries.distinct != entries) {
+      Loggers.default.error(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")
+    }
+    merged
   }
 }
 
