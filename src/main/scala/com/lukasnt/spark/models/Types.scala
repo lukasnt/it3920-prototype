@@ -7,8 +7,8 @@ import java.time.temporal.Temporal
 import java.time.{ZoneId, ZonedDateTime}
 
 /**
-  * Type aliases for the models classes.
-  * ZonedDateTime is used as the default temporal type.
+  * Type aliases and wrappers for some of the models and spark classes.
+  * ZonedDateTime is used as the default temporal type for instance.
   */
 object Types {
 
@@ -19,10 +19,6 @@ object Types {
   type GenericTemporalGraph[T <: Temporal] = Graph[TemporalProperties[T], TemporalProperties[T]]
 
   type TemporalGraph = Graph[Properties, Properties]
-
-  type PregelGraph = Graph[PregelVertex, Properties]
-
-  type SequencedPregelGraph = Graph[(Properties, List[ConstState]), Properties]
 
   case class AttrVertex(id: VertexId, attr: Properties)
 

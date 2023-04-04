@@ -2,7 +2,7 @@ package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.models.Types.Properties
-import com.lukasnt.spark.queries.{ConstState, ConstQueries}
+import com.lukasnt.spark.queries.{ConstQueries, ConstState}
 import org.apache.spark.graphx.Graph
 import org.apache.spark.rdd.RDD
 
@@ -24,8 +24,7 @@ object ConstPathsConstruction {
     new ConstPathsConstruction(sequencedQueries).constructPaths(pregelGraph)
   }
 
-  def joinSequence(sequencedPathQueries: ConstQueries,
-                   pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
+  def joinSequence(sequencedPathQueries: ConstQueries, pathsSequence: List[RDD[TemporalPath]]): RDD[TemporalPath] = {
     pathsSequence.reduceLeft((accumulatedPaths, constPaths) => {
       val joinedPaths = accumulatedPaths
         .groupBy(path => path.endNode)
@@ -40,13 +39,13 @@ object ConstPathsConstruction {
   }
 
   def createConstPaths(
-                        sequencedPathQueries: ConstQueries,
-                        temporalPregelGraph: Graph[(Properties, List[ConstState]), Properties]): List[RDD[TemporalPath]] = {
+      sequencedPathQueries: ConstQueries,
+      temporalPregelGraph: Graph[(Properties, List[ConstState]), Properties]): List[RDD[TemporalPath]] = {
     sequencedPathQueries.sequence.zipWithIndex
       .map(seqPathQuery => {
         val ((_, aggFunc), seqNum) = seqPathQuery
-        val seqLen  = sequencedPathQueries.sequence.length
-        val aggTest = aggFunc.aggTest
+        val seqLen                 = sequencedPathQueries.sequence.length
+        val aggTest                = aggFunc.aggTest
         val temporalPath =
           if (seqNum < seqLen - 1)
             temporalPregelGraph

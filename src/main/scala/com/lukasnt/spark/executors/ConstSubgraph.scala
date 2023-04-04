@@ -6,11 +6,11 @@ import org.apache.spark.graphx.EdgeTriplet
 
 class ConstSubgraph(sequencedQueries: ConstQueries) extends SubgraphExecutor[Properties, Properties] {
 
-  val nodeTests: List[Properties => Boolean] =
+  private val nodeTests: List[Properties => Boolean] =
     sequencedQueries.sequence.map(query => query._1.nodeTest)
-  val aggTests: List[(Properties, Properties, Properties) => Boolean] =
+  private val aggTests: List[(Properties, Properties, Properties) => Boolean] =
     sequencedQueries.sequence.map(query => query._2.aggTest)
-  val aggIntervalTests: List[(Interval, Interval) => Boolean] =
+  private val aggIntervalTests: List[(Interval, Interval) => Boolean] =
     sequencedQueries.sequence.map(query => query._2.aggIntervalTest)
 
   def subgraph(temporalGraph: TemporalGraph): TemporalGraph = {

@@ -8,16 +8,16 @@ import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[PregelVertex, Properties, IntervalStates] {
 
   // Extract query parameters (because ParameterQuery is a non-serializable class)
-  val sourcePredicate: AttrVertex => Boolean             = parameterQuery.sourcePredicate
-  val intermediatePredicate: AttrEdge => Boolean         = parameterQuery.intermediatePredicate
-  val destinationPredicate: AttrVertex => Boolean        = parameterQuery.destinationPredicate
-  val validEdgeInterval: (Interval, Interval) => Boolean = parameterQuery.temporalPathType.validEdgeInterval
-  val nextInterval: (Interval, Interval) => Interval     = parameterQuery.temporalPathType.nextInterval
-  val initInterval: Interval => Interval                 = parameterQuery.temporalPathType.initInterval
-  val weightMap: AttrEdge => Float                       = parameterQuery.weightMap
-  val minLength: Int                                     = parameterQuery.minLength
-  val maxLength: Int                                     = parameterQuery.maxLength
-  val topK: Int                                          = parameterQuery.topK
+  private val sourcePredicate: AttrVertex => Boolean             = parameterQuery.sourcePredicate
+  private val intermediatePredicate: AttrEdge => Boolean         = parameterQuery.intermediatePredicate
+  private val destinationPredicate: AttrVertex => Boolean        = parameterQuery.destinationPredicate
+  private val validEdgeInterval: (Interval, Interval) => Boolean = parameterQuery.temporalPathType.validEdgeInterval
+  private val nextInterval: (Interval, Interval) => Interval     = parameterQuery.temporalPathType.nextInterval
+  private val initInterval: Interval => Interval                 = parameterQuery.temporalPathType.initInterval
+  private val weightMap: AttrEdge => Float                       = parameterQuery.weightMap
+  private val minLength: Int                                     = parameterQuery.minLength
+  private val maxLength: Int                                     = parameterQuery.maxLength
+  private val topK: Int                                          = parameterQuery.topK
 
   override def maxIterations(): Int = maxLength + 1
 

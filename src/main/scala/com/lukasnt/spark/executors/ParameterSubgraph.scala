@@ -6,9 +6,9 @@ import org.apache.spark.graphx.Graph
 
 class ParameterSubgraph(parameterQuery: ParameterQuery) extends SubgraphExecutor[Properties, Properties] {
 
-  val sourcePredicate: AttrVertex => Boolean      = parameterQuery.sourcePredicate
-  val intermediatePredicate: AttrEdge => Boolean  = parameterQuery.intermediatePredicate
-  val destinationPredicate: AttrVertex => Boolean = parameterQuery.destinationPredicate
+  private val sourcePredicate: AttrVertex => Boolean      = parameterQuery.sourcePredicate
+  private val intermediatePredicate: AttrEdge => Boolean  = parameterQuery.intermediatePredicate
+  private val destinationPredicate: AttrVertex => Boolean = parameterQuery.destinationPredicate
 
   /**
     * The subgraph function that filters the graph to keep only the vertices and edges that are source or destination or pass the intermediate predicate.

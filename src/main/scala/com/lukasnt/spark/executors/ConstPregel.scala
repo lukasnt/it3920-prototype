@@ -8,10 +8,10 @@ class ConstPregel(sequencedQueries: ConstQueries)
     extends PregelExecutor[(Properties, List[ConstState]), Properties, ConstStateMessages] {
 
   // Create the init states beforehand as TemporaryPathQuery is not serializable
-  val initStates: List[ConstState] = sequencedQueries.createInitStates()
+  private val initStates: List[ConstState] = sequencedQueries.createInitStates()
 
   // Extract the test functions from the queries
-  val nodeTests: List[Properties => Boolean] = sequencedQueries.sequence.map(s => s._1.nodeTest)
+  private val nodeTests: List[Properties => Boolean] = sequencedQueries.sequence.map(s => s._1.nodeTest)
 
   override def maxIterations(): Int = 100
 

@@ -4,7 +4,7 @@ import com.lukasnt.spark.queries.ParameterQuery
 
 class ParameterWeightMap(parameterQuery: ParameterQuery) extends WeightMapExecutor {
 
-  val weightMapFunction: AttrEdge => Float = parameterQuery.weightMap
+  private val weightMapFunction: AttrEdge => Float = parameterQuery.weightMap
 
   override def weightMap(temporalGraph: TemporalGraph): TemporalGraph = {
     temporalGraph.mapEdges(

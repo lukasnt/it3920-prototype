@@ -14,11 +14,6 @@ class PathWeightTable extends Serializable {
     PathWeightTable(newTableData, topK)
   }
 
-  def updateWithEntries(entries: List[Entry], topK: Int): PathWeightTable = {
-    val newTableData = entries ++ entries
-    PathWeightTable(newTableData, topK)
-  }
-
   def mergeWithTable(other: PathWeightTable, topK: Int): PathWeightTable = {
     val newTableData = entries ++ other.entries
     PathWeightTable(newTableData, topK)

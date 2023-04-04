@@ -1,7 +1,7 @@
 package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.TemporalPath
-import com.lukasnt.spark.models.Types.{AttrEdge, Interval, PregelVertex, Properties}
+import com.lukasnt.spark.models.Types.{Interval, PregelVertex, Properties}
 import com.lukasnt.spark.queries.{IntervalStates, LengthWeightTable, ParameterQuery, PathWeightTable}
 import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph, VertexId}
 import org.apache.spark.rdd.RDD
@@ -9,12 +9,10 @@ import org.apache.spark.rdd.RDD
 class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     extends PathsConstructionExecutor[PregelVertex, Properties] {
 
-  val minLength: Int                                     = parameterQuery.minLength
-  val maxLength: Int                                     = parameterQuery.maxLength
-  val topK: Int                                          = parameterQuery.topK
-  val weightMap: AttrEdge => Float                       = parameterQuery.weightMap
-  val validEdgeInterval: (Interval, Interval) => Boolean = parameterQuery.temporalPathType.validEdgeInterval
-  val nextInterval: (Interval, Interval) => Interval     = parameterQuery.temporalPathType.nextInterval
+  private val minLength: Int                                 = parameterQuery.minLength
+  private val maxLength: Int                                 = parameterQuery.maxLength
+  private val topK: Int                                      = parameterQuery.topK
+  private val nextInterval: (Interval, Interval) => Interval = parameterQuery.temporalPathType.nextInterval
 
   override def constructPaths(pregelGraph: Graph[PregelVertex, Properties]): List[TemporalPath] = {
     var pathTable = createInitPathTable(findDestinationTriplets(pregelGraph), topK, minLength, maxLength)
