@@ -2,7 +2,8 @@ package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.models.Types.Properties
-import com.lukasnt.spark.queries.{ConstQueries, ConstState}
+import com.lukasnt.spark.queries.ConstQueries
+import com.lukasnt.spark.util.ConstState
 import org.apache.spark.graphx.Graph
 import org.apache.spark.rdd.RDD
 

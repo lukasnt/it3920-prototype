@@ -1,4 +1,4 @@
-package com.lukasnt.spark.queries
+package com.lukasnt.spark.util
 
 import com.lukasnt.spark.models.Types.Properties
 

@@ -1,7 +1,6 @@
 package com.lukasnt.spark.models
 
-import com.lukasnt.spark.queries.ConstState
-import com.lukasnt.spark.util.IntervalStates
+import com.lukasnt.spark.util.{ConstState, IntervalStates}
 import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph, VertexId}
 
 import java.time.temporal.Temporal

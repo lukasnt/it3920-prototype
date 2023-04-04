@@ -3,7 +3,8 @@ package com.lukasnt.spark.examples
 import com.lukasnt.spark.executors.ConstPregel
 import com.lukasnt.spark.models.Types.Properties
 import com.lukasnt.spark.queries.ConstQuery.AggFunc
-import com.lukasnt.spark.queries.{ConstQueries, ConstQuery, ConstState}
+import com.lukasnt.spark.queries.{ConstQueries, ConstQuery}
+import com.lukasnt.spark.util.ConstState
 import org.apache.spark.graphx.Graph
 
 object SimpleConstQueries {
