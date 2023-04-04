@@ -1,10 +1,10 @@
 package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.{Interval, Properties, TemporalGraph}
-import com.lukasnt.spark.queries.SequencedQueries
+import com.lukasnt.spark.queries.ConstQueries
 import org.apache.spark.graphx.EdgeTriplet
 
-class SequenceSubgraph(sequencedQueries: SequencedQueries) extends SubgraphExecutor[Properties, Properties] {
+class ConstSubgraph(sequencedQueries: ConstQueries) extends SubgraphExecutor[Properties, Properties] {
 
   val nodeTests: List[Properties => Boolean] =
     sequencedQueries.sequence.map(query => query._1.nodeTest)
@@ -39,45 +39,11 @@ class SequenceSubgraph(sequencedQueries: SequencedQueries) extends SubgraphExecu
     nodeTests.map(func => func(node)).reduceLeft((a, b) => a || b)
   }
 
-  /*
-  private def graphFromTriplets[VD: ClassTag, ED: ClassTag](triplets: RDD[EdgeTriplet[VD, ED]]): Graph[VD, ED] = {
-    val vertices = triplets
-      .flatMap(triplet => List((triplet.srcId, triplet.srcAttr), (triplet.dstId, triplet.dstAttr)))
-      .distinct() // This might also not be working because of triplets uniqueness
-    val edges = triplets.map(triplet => Edge(triplet.srcId, triplet.dstId, triplet.attr))
-    Graph.apply(vertices, edges)
-  }
-
-
-    def executeSubgraphFilter(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): TemporalGraph = {
-
-      val accumulatedTriplets = sequencedQueries.sequence.zipWithIndex
-        .map(indexedQuery => {
-          val ((genericQuery, aggFunc), seqNum) = indexedQuery
-
-          val constQuery      = extractConstQuery(genericQuery)
-          val testFunc        = constQuery.testFunc
-          val aggTest         = aggFunc.aggTest
-          val aggIntervalTest = aggFunc.aggIntervalTest
-
-          val triplets = temporalGraph.triplets.filter(t => {
-            aggTest(t.srcAttr, t.dstAttr, t.attr) &&
-            aggIntervalTest(t.srcAttr.interval, t.dstAttr.interval, t.attr.interval) &&
-            testFunc(t.srcAttr)
-          })
-          triplets
-        })
-
-      val result: TemporalGraph = graphFromTriplets[Properties, Properties](accumulatedTriplets)
-      result
-    }
- */
-
 }
 
-object SequenceSubgraph {
+object ConstSubgraph {
 
-  def apply(temporalGraph: TemporalGraph, sequencedQueries: SequencedQueries): TemporalGraph =
-    new SequenceSubgraph(sequencedQueries).subgraph(temporalGraph)
+  def apply(temporalGraph: TemporalGraph, sequencedQueries: ConstQueries): TemporalGraph =
+    new ConstSubgraph(sequencedQueries).subgraph(temporalGraph)
 
 }

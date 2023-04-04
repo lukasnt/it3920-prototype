@@ -295,18 +295,6 @@ class IntervalStatesTest {
       )
     )
 
-    /*
-    // Group by not working?
-    val concat  = states1.intervalTables ++ states2.intervalTables
-    val groupBy = concat.groupBy(g => g.interval)
-    val filter  = concat.filter(g => g.interval == groupBy.head._1)
-    println(concat)
-    println(groupBy)
-    println(filter)
-
-    println(List((1, 2), (1, 2), (1, 3)).groupBy(_._1))
-     */
-
     assertTrue(states1.mergeStates(states2, topK) == resultStates)
   }
 }

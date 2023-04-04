@@ -1,21 +1,29 @@
 package com.lukasnt.spark.queries
 
-import com.lukasnt.spark.models.Types.{Interval, Properties}
-import org.apache.spark.graphx.EdgeTriplet
+import com.lukasnt.spark.models.Types.Properties
 
 class ConstState(val seqNum: Int = 0) extends Serializable {
 
-  var iterations: Int       = 0
-  var currentLength: Int    = 0
-  var pathCost: Float       = Float.MaxValue
-  var nodeCost: Float       = 0.0f
-  var source: Boolean       = false
-  var intermediate: Boolean = false
-  var destination: Boolean  = false
+  private var _iterations: Int       = 0
+  private var _currentLength: Int    = 0
+  private var _source: Boolean       = false
+  private var _intermediate: Boolean = false
+  private var _destination: Boolean  = false
+
+  def iterations: Int = _iterations
+
+  def currentLength: Int = _currentLength
+
+  def source: Boolean = _source
+
+  def intermediate: Boolean = _intermediate
+
+  def destination: Boolean = _destination
+
 
   override def toString: String = {
-    s"QueryState(seqNum=$seqNum, iterations=$iterations, currentLength=$currentLength, pathCost=$pathCost, " +
-      s"nodeCost=$nodeCost, intermediate=$intermediate, source=$source, destination=$destination"
+    s"QueryState(seqNum=$seqNum, iterations=${_iterations}, currentLength=${_currentLength}, " +
+      s"intermediate=${_intermediate}, source=${_source}, destination=${_destination}"
   }
 
 }
@@ -26,90 +34,43 @@ object ConstState {
 
   class ConstStateBuilder {
 
-    var queryState: ConstState = new ConstState()
+    private val queryState: ConstState = new ConstState()
 
     def build(): ConstState = {
       queryState
     }
 
     def fromState(state: ConstState): ConstStateBuilder = {
-      queryState.iterations = state.iterations
-      queryState.currentLength = state.currentLength
-      queryState.pathCost = state.pathCost
-      queryState.nodeCost = state.nodeCost
-      queryState.source = state.source
-      queryState.intermediate = state.intermediate
-      queryState.destination = state.destination
-      this
-    }
-
-    def withSeqNum(seqNum: Int): ConstStateBuilder = {
-      queryState = new ConstState(seqNum)
-      this
-    }
-
-    def withInitPathCost(pathCost: Float): ConstStateBuilder = {
-      queryState.pathCost = pathCost
+      queryState._iterations = state._iterations
+      queryState._currentLength = state._currentLength
+      queryState._source = state._source
+      queryState._intermediate = state._intermediate
+      queryState._destination = state._destination
       this
     }
 
     def applySourceTest(testFunc: Properties => Boolean, nodeProperties: Properties): ConstStateBuilder = {
-      queryState.source = testFunc(nodeProperties)
+      queryState._source = testFunc(nodeProperties)
       this
     }
 
     def applyIntermediateTest(testFunc: Properties => Boolean, edgeProperties: Properties): ConstStateBuilder = {
-      queryState.intermediate = testFunc(edgeProperties)
+      queryState._intermediate = testFunc(edgeProperties)
       this
     }
 
     def applyDestinationTest(testFunc: Properties => Boolean, nodeProperties: Properties): ConstStateBuilder = {
-      queryState.destination = testFunc(nodeProperties)
-      this
-    }
-
-    def applyNodeCost(costFunc: Properties => Float, nodeProperties: Properties): ConstStateBuilder = {
-      queryState.nodeCost = costFunc(nodeProperties)
-      this
-    }
-
-    def applyPathCostUpdate(pathCost: Float): ConstStateBuilder = {
-      queryState.pathCost = Math.min(queryState.pathCost, pathCost)
+      queryState._destination = testFunc(nodeProperties)
       this
     }
 
     def incIterations(): ConstStateBuilder = {
-      queryState.iterations += 1
+      queryState._iterations += 1
       this
     }
 
     def setCurrentLength(length: Int): ConstStateBuilder = {
-      queryState.currentLength = length
-      this
-    }
-
-    def applyWeightedPregelTriplet(edgeTriplet: EdgeTriplet[(Properties, List[ConstState]), Properties],
-                                   aggTest: (Properties, Properties, Properties) => Boolean,
-                                   aggIntervalTest: (Interval, Interval) => Boolean,
-                                   aggCost: (Float, Properties) => Float): ConstStateBuilder = {
-
-      // Extract all the properties and functions from the edge triplet
-      val (srcNode, srcState)   = edgeTriplet.srcAttr
-      val (dstNode, dstState)   = edgeTriplet.dstAttr
-      val edgeProperties        = edgeTriplet.attr
-      val aggTestResult         = aggTest(srcNode, dstNode, edgeProperties)
-      val aggIntervalTestResult = aggIntervalTest(srcNode.interval, edgeProperties.interval)
-
-      if (aggTestResult && aggIntervalTestResult) {
-        val aggCostResult = aggCost(queryState.pathCost, edgeProperties)
-        queryState.pathCost = aggCostResult
-        queryState.intermediate = true
-        //queryState.currentLength = srcState(queryState.seqNum).currentLength + 1
-      } else {
-        queryState.intermediate = false
-      }
-
-      //queryState.pathCost = 1005.0f
+      queryState._currentLength = length
       this
     }
 

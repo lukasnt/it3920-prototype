@@ -1,10 +1,10 @@
 package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.{Properties, TemporalGraph}
-import com.lukasnt.spark.queries.{ConstState, ConstStateMessages, SequencedQueries}
+import com.lukasnt.spark.queries.{ConstState, ConstStateMessages, ConstQueries}
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph}
 
-class ConstPregel(sequencedQueries: SequencedQueries)
+class ConstPregel(sequencedQueries: ConstQueries)
     extends PregelExecutor[(Properties, List[ConstState]), Properties, ConstStateMessages] {
 
   // Create the init states beforehand as TemporaryPathQuery is not serializable
@@ -51,7 +51,7 @@ class ConstPregel(sequencedQueries: SequencedQueries)
 object ConstPregel {
 
   def apply(temporalGraph: TemporalGraph,
-            sequencedQueries: SequencedQueries): Graph[(Properties, List[ConstState]), Properties] = {
+            sequencedQueries: ConstQueries): Graph[(Properties, List[ConstState]), Properties] = {
     new ConstPregel(sequencedQueries).run(temporalGraph)
   }
 

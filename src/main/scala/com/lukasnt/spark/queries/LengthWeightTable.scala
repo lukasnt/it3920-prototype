@@ -87,4 +87,5 @@ object LengthWeightTable {
       s"Entry($length|$weight|$parentId)"
     }
   }
+  
 }

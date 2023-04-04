@@ -49,7 +49,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
 
     Loggers.default.debug(
       s"VERTEX_PROGRAM -- " +
-      s"id: $vertexId, " +
+        s"id: $vertexId, " +
         s"iterations: ${currentState.constState.iterations}, " +
         s"currentLength: ${currentState.constState.currentLength}, " +
         s"incomingLength: ${mergedMessage.currentLength}, " +
@@ -137,10 +137,6 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   override def mergeMessage(msgA: IntervalStates, msgB: IntervalStates): IntervalStates = {
     val merged = msgA.mergeStates(msgB, topK)
     Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")
-    val entries = merged.flattenEntries.map(_.entry)
-    if (entries.distinct != entries) {
-      Loggers.default.error(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")
-    }
     merged
   }
 }

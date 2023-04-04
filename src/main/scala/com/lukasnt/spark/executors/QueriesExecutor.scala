@@ -1,14 +1,14 @@
 package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.TemporalGraph
-import com.lukasnt.spark.queries.{ParameterQuery, QueryResult, SequencedQueries}
+import com.lukasnt.spark.queries.{ConstQueries, ParameterQuery, QueryResult}
 
 object QueriesExecutor {
 
-  def execute(sequencedQueries: SequencedQueries, temporalGraph: TemporalGraph): QueryResult = {
-    val subgraph    = SequenceSubgraph(temporalGraph, sequencedQueries)
-    val pregelGraph = ConstPregel(subgraph, sequencedQueries)
-    val paths       = ConstPathsConstruction(pregelGraph, sequencedQueries)
+  def execute(constQueries: ConstQueries, temporalGraph: TemporalGraph): QueryResult = {
+    val subgraph    = ConstSubgraph(temporalGraph, constQueries)
+    val pregelGraph = ConstPregel(subgraph, constQueries)
+    val paths       = ConstPathsConstruction(pregelGraph, constQueries)
     new QueryResult(temporalGraph, paths)
   }
 
@@ -16,7 +16,8 @@ object QueriesExecutor {
     val subgraph      = ParameterSubgraph(temporalGraph, parameterQuery)
     val weightedGraph = ParameterWeightMap(subgraph, parameterQuery)
     val pregelGraph   = ParameterPregel(weightedGraph, parameterQuery)
-    new QueryResult(temporalGraph, List())
+    val paths         = ParameterPathsConstruction(pregelGraph, parameterQuery)
+    new QueryResult(temporalGraph, paths)
   }
 
 }
