@@ -1,4 +1,4 @@
-package com.lukasnt.spark.utils
+package com.lukasnt.spark.io
 
 import org.apache.log4j.{Level, LogManager, Logger}
 

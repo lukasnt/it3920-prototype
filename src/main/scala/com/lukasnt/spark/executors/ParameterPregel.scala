@@ -1,8 +1,9 @@
 package com.lukasnt.spark.executors
 
+import com.lukasnt.spark.io.Loggers
 import com.lukasnt.spark.models.Types._
 import com.lukasnt.spark.queries._
-import com.lukasnt.spark.utils.Loggers
+import com.lukasnt.spark.util.{IntervalStates, LengthWeightTable}
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 
 class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[PregelVertex, Properties, IntervalStates] {

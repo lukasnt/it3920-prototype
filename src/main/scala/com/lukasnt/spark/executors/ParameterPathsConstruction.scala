@@ -2,7 +2,9 @@ package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.models.Types.{Interval, PregelVertex, Properties}
-import com.lukasnt.spark.queries.{IntervalStates, LengthWeightTable, ParameterQuery, PathWeightTable}
+import com.lukasnt.spark.queries.ParameterQuery
+import com.lukasnt.spark.util
+import com.lukasnt.spark.util.{IntervalStates, LengthWeightTable, PathWeightTable}
 import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph, VertexId}
 import org.apache.spark.rdd.RDD
 
@@ -48,7 +50,7 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
             // Filter out duplicate entries (same destination node)
             val distinctEntries =
               tableB.entries.filter(entry => !tableA.destinationVertexExists(entry.destinationVertex))
-            tableA.mergeWithTable(PathWeightTable(distinctEntries, topK), topK)
+            tableA.mergeWithTable(util.PathWeightTable(distinctEntries, topK), topK)
         }
       )
 
@@ -118,13 +120,13 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
         case ((pathVertexSequence, interval, remainingLength), entries) =>
           if (remainingLength - 1 > 0) {
             pairwiseExtendPaths(
-              pathTable = PathWeightTable(entries, entries.length),
+              pathTable = util.PathWeightTable(entries, entries.length),
               intervalEntries = findNextEntries(remainingLength - 1,
                                                 interval,
                                                 entries.length,
                                                 tripletsMap((pathVertexSequence.head, pathVertexSequence(1))))
             )
-          } else PathWeightTable(entries, entries.length)
+          } else util.PathWeightTable(entries, entries.length)
       }
       .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK))
 

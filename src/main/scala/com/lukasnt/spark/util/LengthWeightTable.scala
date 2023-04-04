@@ -1,6 +1,6 @@
-package com.lukasnt.spark.queries
+package com.lukasnt.spark.util
 
-import com.lukasnt.spark.queries.LengthWeightTable.Entry
+import com.lukasnt.spark.util.LengthWeightTable.Entry
 import org.apache.spark.graphx.VertexId
 
 class LengthWeightTable() extends Serializable {

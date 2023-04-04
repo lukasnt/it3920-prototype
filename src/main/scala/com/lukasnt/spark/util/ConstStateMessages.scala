@@ -1,4 +1,6 @@
-package com.lukasnt.spark.queries
+package com.lukasnt.spark.util
+
+import com.lukasnt.spark.queries.ConstState
 
 class ConstStateMessages(val queryStates: List[ConstState]) extends Serializable {
 

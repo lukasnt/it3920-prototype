@@ -1,5 +1,6 @@
 package com.lukasnt.spark.queries
 
+import com.lukasnt.spark.util.LengthWeightTable
 import org.junit.Assert.assertTrue
 import org.junit.Test
 

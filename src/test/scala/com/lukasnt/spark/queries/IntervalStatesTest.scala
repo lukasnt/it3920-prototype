@@ -1,6 +1,7 @@
 package com.lukasnt.spark.queries
 
 import com.lukasnt.spark.models.TemporalInterval
+import com.lukasnt.spark.util.{IntervalStates, LengthWeightTable}
 import org.junit.Assert.assertTrue
 import org.junit.Test
 

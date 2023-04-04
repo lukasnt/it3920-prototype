@@ -1,7 +1,8 @@
 package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.{Properties, TemporalGraph}
-import com.lukasnt.spark.queries.{ConstState, ConstStateMessages, ConstQueries}
+import com.lukasnt.spark.queries.{ConstState, ConstQueries}
+import com.lukasnt.spark.util.ConstStateMessages
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph}
 
 class ConstPregel(sequencedQueries: ConstQueries)

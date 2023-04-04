@@ -1,8 +1,8 @@
-package com.lukasnt.spark.queries
+package com.lukasnt.spark.util
 
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.models.Types.Interval
-import com.lukasnt.spark.queries.PathWeightTable.Entry
+import com.lukasnt.spark.util.PathWeightTable.Entry
 import org.apache.spark.graphx.VertexId
 
 class PathWeightTable extends Serializable {

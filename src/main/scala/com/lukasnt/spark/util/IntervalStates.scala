@@ -1,8 +1,8 @@
-package com.lukasnt.spark.queries
+package com.lukasnt.spark.util
 
 import com.lukasnt.spark.models.TemporalInterval
 import com.lukasnt.spark.models.Types.Interval
-import com.lukasnt.spark.queries.IntervalStates.{IntervalEntry, IntervalTable}
+import com.lukasnt.spark.util.IntervalStates.{IntervalEntry, IntervalTable}
 
 class IntervalStates extends Serializable {
 
@@ -113,5 +113,5 @@ object IntervalStates {
       s"IntervalEntry($interval, $entry)"
     }
   }
-  
+
 }
