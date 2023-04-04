@@ -10,6 +10,29 @@ import java.time.temporal.{ChronoUnit, Temporal}
   */
 class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends Serializable {
 
+  override def equals(obj: Any): Boolean = {
+    if (this.startTime == null && this.endTime == null) {
+      if (obj == null) true
+      else
+        obj match {
+          case interval: TemporalInterval[T] => interval.startTime == null && interval.endTime == null
+          case _                             => false
+        }
+    } else
+      obj match {
+        case interval: TemporalInterval[T] => this.equals(interval)
+        case _                             => false
+      }
+  }
+
+  override def hashCode(): Int = {
+    val prime = 31
+    var result = 1
+    result = prime * result + (if (startTime == null) 0 else startTime.hashCode)
+    result = prime * result + (if (endTime == null) 0 else endTime.hashCode)
+    result
+  }
+
   /**
     * @param interval interval to compare with
     * @return true if this interval is equal the given interval, false otherwise
@@ -25,31 +48,6 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
     */
   def meets(interval: TemporalInterval[T]): Boolean = {
     this.endTime.equals(interval.startTime)
-  }
-
-  /**
-    * @param interval interval to compare with
-    * @return true if this interval overlaps the given interval, false otherwise
-    */
-  def overlaps(interval: TemporalInterval[T]): Boolean = {
-    !this.before(interval) && !interval.before(this)
-  }
-
-  /**
-    * @param interval interval to compare with
-    * @return true if this interval is before the given interval, false otherwise
-    */
-  def before(interval: TemporalInterval[T]): Boolean = {
-    this.endTime.until(interval.startTime, ChronoUnit.NANOS) > 0
-  }
-
-  /**
-    * @param interval interval to compare with
-    * @return true if this interval is during the given interval, false otherwise
-    */
-  def during(interval: TemporalInterval[T]): Boolean = {
-    this.startTime.until(interval.startTime, ChronoUnit.NANOS) < 0 &&
-    this.endTime.until(interval.endTime, ChronoUnit.NANOS) > 0
   }
 
   /**
@@ -70,7 +68,84 @@ class TemporalInterval[T <: Temporal](val startTime: T, val endTime: T) extends 
     this.endTime.equals(interval.endTime)
   }
 
-  override def toString: String = {
-    s"TemporalInterval($startTime, $endTime)"
+  /**
+    * @param interval interval to get the intersection with
+    * @return the intersected interval
+    */
+  def intersection(interval: TemporalInterval[T]): TemporalInterval[T] = {
+    if (this.during(interval)) {
+      this
+    } else if (interval.during(this)) {
+      interval
+    } else if (this.startTime.until(interval.startTime, ChronoUnit.NANOS) > 0) {
+      TemporalInterval(interval.startTime, this.endTime)
+    } else {
+      TemporalInterval(this.startTime, interval.endTime)
+    }
   }
+
+  /**
+    * @param interval interval to compare with
+    * @return true if this interval is during the given interval, false otherwise
+    */
+  def during(interval: TemporalInterval[T]): Boolean = {
+    this.startTime.until(interval.startTime, ChronoUnit.NANOS) < 0 &&
+    this.endTime.until(interval.endTime, ChronoUnit.NANOS) > 0
+  }
+
+  /**
+    * @param interval interval to get the union with
+    * @return the union interval
+    */
+  def union(interval: TemporalInterval[T]): TemporalInterval[T] = {
+    TemporalInterval(
+      if (this.startTime.until(interval.startTime, ChronoUnit.NANOS) > 0) this.startTime else interval.startTime,
+      if (this.endTime.until(interval.endTime, ChronoUnit.NANOS) < 0) this.endTime else interval.endTime
+    )
+  }
+
+  /**
+    * @param interval interval to compare with
+    * @return true if this interval overlaps the given interval, false otherwise
+    */
+  def overlaps(interval: TemporalInterval[T]): Boolean = {
+    this.startTime.until(interval.endTime, ChronoUnit.NANOS) > 0 &&
+    this.endTime.until(interval.startTime, ChronoUnit.NANOS) < 0
+  }
+
+  /**
+    * @param interval interval to compare with
+    * @return true if this interval is before the given interval, false otherwise
+    */
+  def before(interval: TemporalInterval[T]): Boolean = {
+    this.endTime.until(interval.startTime, ChronoUnit.NANOS) >= 0
+  }
+
+  /**
+    * @return the duration of the interval in ChronoUnit.NANOS
+    */
+  def getDuration: Long = {
+    this.startTime.until(this.endTime, ChronoUnit.NANOS)
+  }
+
+  def isNullInterval: Boolean = {
+    this == TemporalInterval()
+  }
+
+  override def toString: String = {
+    s"Interval($startTime, $endTime)"
+  }
+
+}
+
+object TemporalInterval {
+
+  def apply[T <: Temporal](startTime: T, endTime: T): TemporalInterval[T] = {
+    new TemporalInterval[T](startTime, endTime)
+  }
+
+  def apply[T <: Temporal](): TemporalInterval[T] = {
+    new TemporalInterval[T](null.asInstanceOf[T], null.asInstanceOf[T])
+  }
+
 }

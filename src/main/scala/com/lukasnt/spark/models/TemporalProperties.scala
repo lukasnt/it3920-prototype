@@ -15,28 +15,6 @@ class TemporalProperties[T <: Temporal](val interval: TemporalInterval[T],
                                         val properties: Map[String, String])
     extends Serializable {
 
-  /**
-    * @return interval of the properties
-    */
-  def getInterval: TemporalInterval[T] = {
-    this.interval
-  }
-
-  /**
-    * @return type-label of the properties
-    */
-  def getTypeLabel: String = {
-    this.typeLabel
-  }
-
-  /**
-    * @param key key of the property
-    * @return value of the property with the given key
-    */
-  def getPropertyValue(key: String): Serializable = {
-    this.properties.get(key)
-  }
-
   override def toString: String = {
     s"TemporalProperty(interval=$interval, typeLabel=$typeLabel, properties=$properties)"
   }

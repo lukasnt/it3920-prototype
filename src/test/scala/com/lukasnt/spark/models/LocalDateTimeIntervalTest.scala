@@ -33,5 +33,6 @@ class LocalDateTimeIntervalTest {
     val interval2 = new TemporalInterval(LocalDateTime.of(2, 2, 2, 2, 2),
                                          LocalDateTime.of(3, 3, 3, 3, 3))
     assertTrue(interval1.overlaps(interval2))
+    assertTrue(interval2.overlaps(interval1))
   }
 }
