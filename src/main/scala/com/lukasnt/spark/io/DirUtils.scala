@@ -1,7 +1,6 @@
 package com.lukasnt.spark.io
 
 import java.nio.file.{FileSystem, FileSystems, Files, Paths}
-import scala.jdk.CollectionConverters.iterableAsScalaIterableConverter
 
 object DirUtils {
 
@@ -9,7 +8,9 @@ object DirUtils {
     val jarLocation            = getClass.getProtectionDomain.getCodeSource.getLocation
     val jarFile                = Paths.get(jarLocation.toString.substring("file:".length))
     val fileSystem: FileSystem = FileSystems.newFileSystem(jarFile, getClass.getClassLoader)
-    val result                 = Files.newDirectoryStream(fileSystem.getPath(dirPath)).asScala.toList.map(_.toString)
+    val dictIterator           = Files.newDirectoryStream(fileSystem.getPath(dirPath)).iterator()
+    var result: List[String]   = List()
+    while (dictIterator.hasNext) result = result :+ dictIterator.next().toString
     result
   }
 
