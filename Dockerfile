@@ -15,10 +15,24 @@ RUN wget https://dlcdn.apache.org/zeppelin/zeppelin-0.10.1/zeppelin-0.10.1-bin-a
     mv zeppelin-0.10.1-bin-all /opt/zeppelin && \
     rm zeppelin-0.10.1-bin-all.tgz
 
+FROM base AS hadoop-download
+RUN wget https://archive.apache.org/dist/hadoop/core/hadoop-3.0.0/hadoop-3.0.0.tar.gz && \
+    tar -xvf hadoop-3.0.0.tar.gz && \
+    mv hadoop-3.0.0 /opt/hadoop && \
+    rm hadoop-3.0.0.tar.gz
+
 FROM base AS openjdk
 RUN apt-get install -y openjdk-8-jdk
 RUN find /usr/lib/jvm -name "java-8-openjdk-*" | xargs -I {} mv {} /usr/lib/jvm/java-8-openjdk
 ENV JAVA_HOME=/usr/lib/jvm/java-8-openjdk
+ENV PATH=$JAVA_HOME/bin:$PATH
+
+FROM openjdk AS hadoop
+COPY --from=hadoop-download /opt/hadoop /opt/hadoop
+COPY hdfs-site.xml /opt/hadoop/etc/hadoop/hdfs-site.xml
+ENV HADOOP_HOME=/opt/hadoop
+ENV PATH=$HADOOP_HOME/bin:$PATH
+RUN hdfs namenode -format
 
 FROM openjdk AS mvn-install
 COPY pom.xml /usr/home/spark-graphx-scala/pom.xml

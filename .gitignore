@@ -5,6 +5,7 @@
 /spark-3.2.3-bin-hadoop3.2
 /spark-2.4.0
 /spark-2.4.0-bin-hadoop2.6
+/hadoop-3.0.0
 /zeppelin
 /ldbc_snb_datagen_spark
 *.crc
