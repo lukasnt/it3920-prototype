@@ -32,8 +32,6 @@ object SimpleGraphX {
     val defaultUser = ("John Doe", "Missing")
     val graph       = Graph(users, relationships, defaultUser)
 
-    users.saveAsTextFile()
-
     // Print the vertices
     graph.vertices
       .collect()
