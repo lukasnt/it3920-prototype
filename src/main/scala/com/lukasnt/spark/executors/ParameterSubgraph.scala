@@ -4,7 +4,7 @@ import com.lukasnt.spark.models.Types.{AttrEdge, AttrVertex, Properties, Tempora
 import com.lukasnt.spark.queries.ParameterQuery
 import org.apache.spark.graphx.Graph
 
-class ParameterSubgraph(parameterQuery: ParameterQuery) extends SubgraphExecutor[Properties, Properties] {
+class ParameterSubgraph(parameterQuery: ParameterQuery) extends SubgraphExecutor {
 
   private val sourcePredicate: AttrVertex => Boolean      = parameterQuery.sourcePredicate
   private val intermediatePredicate: AttrEdge => Boolean  = parameterQuery.intermediatePredicate
@@ -16,7 +16,7 @@ class ParameterSubgraph(parameterQuery: ParameterQuery) extends SubgraphExecutor
     * @param temporalGraph The graph to filter
     * @return The filtered graph
     */
-  override def subgraph(temporalGraph: TemporalGraph): Graph[Properties, Properties] = {
+  override def subgraph(temporalGraph: TemporalGraph): TemporalGraph = {
     // Map the graph first to add source and destination properties such that the Pregel phase can use them
     // Then filter the graph to keep only the vertices that are source or destination or pass the intermediate predicate
     temporalGraph
@@ -39,7 +39,7 @@ class ParameterSubgraph(parameterQuery: ParameterQuery) extends SubgraphExecutor
 
 object ParameterSubgraph {
 
-  def apply(temporalGraph: TemporalGraph, parameterQuery: ParameterQuery): Graph[Properties, Properties] =
+  def apply(temporalGraph: TemporalGraph, parameterQuery: ParameterQuery): TemporalGraph =
     new ParameterSubgraph(parameterQuery).subgraph(temporalGraph)
 
 }

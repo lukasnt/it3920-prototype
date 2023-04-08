@@ -8,16 +8,16 @@ object QueriesExecutor {
   def execute(constQueries: ConstQueries, temporalGraph: TemporalGraph): QueryResult = {
     val subgraph    = ConstSubgraph(temporalGraph, constQueries)
     val pregelGraph = ConstPregel(subgraph, constQueries)
-    val paths       = ConstPathsConstruction(pregelGraph, constQueries)
-    new QueryResult(temporalGraph, paths)
+    val pathTable   = ConstPathsConstruction(pregelGraph, constQueries)
+    new QueryResult(temporalGraph, pathTable)
   }
 
   def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult = {
     val subgraph      = ParameterSubgraph(temporalGraph, parameterQuery)
     val weightedGraph = ParameterWeightMap(subgraph, parameterQuery)
     val pregelGraph   = ParameterPregel(weightedGraph, parameterQuery)
-    val paths         = ParameterPathsConstruction(pregelGraph, parameterQuery)
-    new QueryResult(temporalGraph, paths)
+    val pathTable     = ParameterPathsConstruction(pregelGraph, parameterQuery)
+    new QueryResult(temporalGraph, pathTable)
   }
 
 }

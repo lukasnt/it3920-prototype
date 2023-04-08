@@ -58,20 +58,21 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         s"mergedMessage: $mergedMessage"
     )
 
-    val newConstState = ConstState
-      .builder()
-      .fromState(currentState.constState)
-      .incIterations()
-      .setCurrentLength(mergedMessage.currentLength)
-      .build()
-    val newStates = currentState.intervalStates.mergeStates(mergedMessage.flushedTableStates, topK)
-
-    PregelVertex(newConstState, newStates)
+    PregelVertex(
+      constState = ConstState
+        .builder()
+        .fromState(currentState.constState)
+        .incIterations()
+        .setCurrentLength(mergedMessage.currentLength)
+        .build(),
+      intervalStates = currentState.intervalStates
+        .mergeStates(mergedMessage.flushedTableStates, topK)
+    )
   }
 
   override def sendMessage(triplet: EdgeTriplet[PregelVertex, Properties]): Iterator[(VertexId, IntervalStates)] = {
-    val iterations = triplet.srcAttr.constState.iterations
     // Make sure that in the first iteration only the source vertices send messages
+    val iterations = triplet.srcAttr.constState.iterations
     if (iterations <= 1 && !triplet.srcAttr.constState.source) {
       return Iterator.empty
     }

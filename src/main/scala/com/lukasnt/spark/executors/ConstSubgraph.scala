@@ -4,7 +4,7 @@ import com.lukasnt.spark.models.Types.{Interval, Properties, TemporalGraph}
 import com.lukasnt.spark.queries.ConstQueries
 import org.apache.spark.graphx.EdgeTriplet
 
-class ConstSubgraph(sequencedQueries: ConstQueries) extends SubgraphExecutor[Properties, Properties] {
+class ConstSubgraph(sequencedQueries: ConstQueries) extends SubgraphExecutor {
 
   private val nodeTests: List[Properties => Boolean] =
     sequencedQueries.sequence.map(query => query._1.nodeTest)

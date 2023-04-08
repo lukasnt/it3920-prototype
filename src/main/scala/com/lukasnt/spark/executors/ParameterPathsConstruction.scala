@@ -16,12 +16,12 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
   private val topK: Int                                      = parameterQuery.topK
   private val nextInterval: (Interval, Interval) => Interval = parameterQuery.temporalPathType.nextInterval
 
-  override def constructPaths(pregelGraph: Graph[PregelVertex, Properties]): List[TemporalPath] = {
+  override def constructPaths(pregelGraph: Graph[PregelVertex, Properties]): PathWeightTable = {
     var pathTable = createInitPathTable(findDestinationTriplets(pregelGraph), topK, minLength, maxLength)
     while (pathTable.entries.exists(entry => entry.remainingLength > 1)) {
       pathTable = extendPaths(pathTable, topK, pregelGraph)
     }
-    pathTable.entries.map(entry => entry.path)
+    pathTable
   }
 
   private def findDestinationTriplets(
@@ -167,7 +167,7 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
 
 object ParameterPathsConstruction {
 
-  def apply(pregelGraph: Graph[PregelVertex, Properties], parameterQuery: ParameterQuery): List[TemporalPath] = {
+  def apply(pregelGraph: Graph[PregelVertex, Properties], parameterQuery: ParameterQuery): PathWeightTable = {
     new ParameterPathsConstruction(parameterQuery).constructPaths(pregelGraph)
   }
 

@@ -3,17 +3,19 @@ package com.lukasnt.spark.executors
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.models.Types.Properties
 import com.lukasnt.spark.queries.ConstQueries
-import com.lukasnt.spark.util.ConstState
+import com.lukasnt.spark.util.{ConstState, PathWeightTable}
 import org.apache.spark.graphx.Graph
 import org.apache.spark.rdd.RDD
 
 class ConstPathsConstruction(sequencedQueries: ConstQueries)
     extends PathsConstructionExecutor[(Properties, List[ConstState]), Properties] {
 
-  override def constructPaths(pregelGraph: Graph[(Properties, List[ConstState]), Properties]): List[TemporalPath] = {
-    val constPathSequence = ConstPathsConstruction.createConstPaths(sequencedQueries, pregelGraph)
-    val pathsResult       = ConstPathsConstruction.joinSequence(sequencedQueries, constPathSequence)
-    pathsResult.collect().toList
+  override def constructPaths(pregelGraph: Graph[(Properties, List[ConstState]), Properties]): PathWeightTable = {
+    val constPathSequence              = ConstPathsConstruction.createConstPaths(sequencedQueries, pregelGraph)
+    val pathsResult                    = ConstPathsConstruction.joinSequence(sequencedQueries, constPathSequence)
+    val resultList: List[TemporalPath] = pathsResult.collect().toList
+    PathWeightTable(tableEntries = resultList.map(path => PathWeightTable.Entry(path.interval, 0, 1.0f, path)),
+                    topK = resultList.length)
   }
 
 }
@@ -21,7 +23,7 @@ class ConstPathsConstruction(sequencedQueries: ConstQueries)
 object ConstPathsConstruction {
 
   def apply(pregelGraph: Graph[(Properties, List[ConstState]), Properties],
-            sequencedQueries: ConstQueries): List[TemporalPath] = {
+            sequencedQueries: ConstQueries): PathWeightTable = {
     new ConstPathsConstruction(sequencedQueries).constructPaths(pregelGraph)
   }
 

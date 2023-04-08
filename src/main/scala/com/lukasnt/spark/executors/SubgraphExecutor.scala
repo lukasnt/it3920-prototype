@@ -3,8 +3,8 @@ package com.lukasnt.spark.executors
 import com.lukasnt.spark.models.Types.TemporalGraph
 import org.apache.spark.graphx.Graph
 
-abstract class SubgraphExecutor[VD, ED] extends Serializable {
+abstract class SubgraphExecutor extends Serializable {
 
-  def subgraph(temporalGraph: TemporalGraph): Graph[VD, ED]
+  def subgraph(temporalGraph: TemporalGraph): TemporalGraph
 
 }
