@@ -27,7 +27,7 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
   private def findDestinationTriplets(
       pregelGraph: Graph[PregelVertex, Properties]): RDD[EdgeTriplet[PregelVertex, Properties]] = {
     pregelGraph.triplets
-      .filter(triplet => triplet.dstAttr.constState.destination)
+      .filter(triplet => triplet.dstAttr.queryState.destination)
   }
 
   private def createInitPathTable(triplets: RDD[EdgeTriplet[PregelVertex, Properties]],

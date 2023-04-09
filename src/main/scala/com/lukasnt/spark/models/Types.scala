@@ -1,6 +1,6 @@
 package com.lukasnt.spark.models
 
-import com.lukasnt.spark.util.{ConstState, IntervalStates}
+import com.lukasnt.spark.util.{QueryState, IntervalStates}
 import org.apache.spark.graphx.{Edge, EdgeTriplet, Graph, VertexId}
 
 import java.time.temporal.Temporal
@@ -24,7 +24,7 @@ object Types {
 
   case class AttrEdge(srcId: VertexId, dstId: VertexId, attr: Properties)
 
-  case class PregelVertex(constState: ConstState, intervalStates: IntervalStates)
+  case class PregelVertex(queryState: QueryState, intervalStates: IntervalStates)
 
   object AttrVertex {
 
