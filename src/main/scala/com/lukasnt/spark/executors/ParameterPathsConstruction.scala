@@ -113,8 +113,6 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     val groupedEntries =
       pathsTable.entries.groupBy(entry => (entry.path.vertexSequence, entry.interval, entry.remainingLength))
 
-    println(s"Number of groups: ${groupedEntries.size}, number of entries total: ${groupedEntries.map(_._2.size).sum}")
-
     val result = groupedEntries
       .map {
         case ((pathVertexSequence, interval, remainingLength), entries) =>
@@ -129,8 +127,6 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
           } else util.PathWeightTable(entries, entries.length)
       }
       .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK))
-
-    println(s"Number of entries after extendPaths: ${result.entries.size}")
 
     result
   }
