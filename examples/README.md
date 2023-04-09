@@ -18,13 +18,13 @@ The weight is defined as the duration of the interval of the edge, meaning how l
 
 ### Table Result
 
-This shows the result of the query as a table, where the columns are the path and the weight of the path.
+This shows the result of the query as a table. The columns are the weight of the path, the source-id of the path, the destination-id of the path, the start-time of the continuous interval, the end-time of the continuous interval and the path as sequence of ids.
 
 ![Person nodes and Knows-relationships Graph](https://gitlab.stud.idi.ntnu.no/lukasnt/it3920-lukasnt/-/raw/experiment-config-setup/examples/test_query_table.png)
 
 ### Graph Visualization
 
-Given the person graph from above, this shows the result of the query as a graph visualization, where the nodes are the persons and the edges are the Knows-relationships.
+Given the person graph from above, this shows the result of the query as a graph visualization, where the nodes are the persons with their names and the edges are the Knows-relationships.
 
 ![Person nodes and Knows-relationships Graph](https://gitlab.stud.idi.ntnu.no/lukasnt/it3920-lukasnt/-/raw/experiment-config-setup/examples/test_query_visualization.png)
 
