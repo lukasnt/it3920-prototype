@@ -3,7 +3,7 @@ package com.lukasnt.spark.executors
 import com.lukasnt.spark.io.Loggers
 import com.lukasnt.spark.models.Types._
 import com.lukasnt.spark.queries._
-import com.lukasnt.spark.util.{ConstState, IntervalStates, LengthWeightTable}
+import com.lukasnt.spark.util.{QueryState, IntervalStates, LengthWeightTable}
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 
 class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[PregelVertex, Properties, IntervalStates] {
@@ -33,7 +33,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
     temporalGraph.mapVertices(
       (id, attr) =>
         PregelVertex(
-          constState = ConstState
+          queryState = QueryState
             .builder()
             .applySourceTest(vertexAttr => sourcePredicate(AttrVertex(id, vertexAttr)), attr)
             .applyIntermediateTest(_ => true, attr)
@@ -51,32 +51,33 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
     Loggers.default.debug(
       s"VERTEX_PROGRAM -- " +
         s"id: $vertexId, " +
-        s"iterations: ${currentState.constState.iterations}, " +
-        s"currentLength: ${currentState.constState.currentLength}, " +
+        s"iterations: ${currentState.queryState.iterations}, " +
+        s"currentLength: ${currentState.queryState.currentLength}, " +
         s"incomingLength: ${mergedMessage.currentLength}, " +
         s"intervalStates: ${currentState.intervalStates}, " +
         s"mergedMessage: $mergedMessage"
     )
 
-    val newConstState = ConstState
-      .builder()
-      .fromState(currentState.constState)
-      .incIterations()
-      .setCurrentLength(mergedMessage.currentLength)
-      .build()
-    val newStates = currentState.intervalStates.mergeStates(mergedMessage.flushedTableStates, topK)
-
-    PregelVertex(newConstState, newStates)
+    PregelVertex(
+      queryState = QueryState
+        .builder()
+        .fromState(currentState.queryState)
+        .incIterations()
+        .setCurrentLength(mergedMessage.currentLength)
+        .build(),
+      intervalStates = currentState.intervalStates
+        .mergeStates(mergedMessage.flushedTableStates, topK)
+    )
   }
 
   override def sendMessage(triplet: EdgeTriplet[PregelVertex, Properties]): Iterator[(VertexId, IntervalStates)] = {
-    val iterations = triplet.srcAttr.constState.iterations
     // Make sure that in the first iteration only the source vertices send messages
-    if (iterations <= 1 && !triplet.srcAttr.constState.source) {
+    val iterations = triplet.srcAttr.queryState.iterations
+    if (iterations <= 1 && !triplet.srcAttr.queryState.source) {
       return Iterator.empty
     }
 
-    val currentLength = triplet.srcAttr.constState.currentLength
+    val currentLength = triplet.srcAttr.queryState.currentLength
     val currentStates = triplet.srcAttr.intervalStates
     val messageStates = IntervalStates(
       if (currentStates.intervalTables.nonEmpty)
@@ -92,8 +93,8 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
       s"SEND_MESSAGE -- " +
         s"srcId: ${triplet.srcId}, " +
         s"dstId: ${triplet.dstId}, " +
-        s"srcIterations: ${triplet.srcAttr.constState.iterations}, " +
-        s"dstIterations: ${triplet.dstAttr.constState.iterations}, " +
+        s"srcIterations: ${triplet.srcAttr.queryState.iterations}, " +
+        s"dstIterations: ${triplet.dstAttr.queryState.iterations}, " +
         s"tripletInterval: ${triplet.attr.interval}, " +
         s"weight: ${triplet.attr.properties("weight")}, " +
         s"messageStates: $messageStates"

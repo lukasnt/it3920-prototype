@@ -16,18 +16,18 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
   private val topK: Int                                      = parameterQuery.topK
   private val nextInterval: (Interval, Interval) => Interval = parameterQuery.temporalPathType.nextInterval
 
-  override def constructPaths(pregelGraph: Graph[PregelVertex, Properties]): List[TemporalPath] = {
+  override def constructPaths(pregelGraph: Graph[PregelVertex, Properties]): PathWeightTable = {
     var pathTable = createInitPathTable(findDestinationTriplets(pregelGraph), topK, minLength, maxLength)
     while (pathTable.entries.exists(entry => entry.remainingLength > 1)) {
       pathTable = extendPaths(pathTable, topK, pregelGraph)
     }
-    pathTable.entries.map(entry => entry.path)
+    pathTable
   }
 
   private def findDestinationTriplets(
       pregelGraph: Graph[PregelVertex, Properties]): RDD[EdgeTriplet[PregelVertex, Properties]] = {
     pregelGraph.triplets
-      .filter(triplet => triplet.dstAttr.constState.destination)
+      .filter(triplet => triplet.dstAttr.queryState.destination)
   }
 
   private def createInitPathTable(triplets: RDD[EdgeTriplet[PregelVertex, Properties]],
@@ -113,8 +113,6 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     val groupedEntries =
       pathsTable.entries.groupBy(entry => (entry.path.vertexSequence, entry.interval, entry.remainingLength))
 
-    println(s"Number of groups: ${groupedEntries.size}, number of entries total: ${groupedEntries.map(_._2.size).sum}")
-
     val result = groupedEntries
       .map {
         case ((pathVertexSequence, interval, remainingLength), entries) =>
@@ -129,8 +127,6 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
           } else util.PathWeightTable(entries, entries.length)
       }
       .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK))
-
-    println(s"Number of entries after extendPaths: ${result.entries.size}")
 
     result
   }
@@ -167,7 +163,7 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
 
 object ParameterPathsConstruction {
 
-  def apply(pregelGraph: Graph[PregelVertex, Properties], parameterQuery: ParameterQuery): List[TemporalPath] = {
+  def apply(pregelGraph: Graph[PregelVertex, Properties], parameterQuery: ParameterQuery): PathWeightTable = {
     new ParameterPathsConstruction(parameterQuery).constructPaths(pregelGraph)
   }
 

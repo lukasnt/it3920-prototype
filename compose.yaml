@@ -1,4 +1,3 @@
-
 services:
   zeppelin:
     build:
@@ -6,6 +5,8 @@ services:
     ports:
       - "8080:8080"
       - "4040:4040"
+    profiles:
+      - debug
     volumes:
       - type: bind
         source: ./zeppelin-notebooks
@@ -34,6 +35,8 @@ services:
     build:
       context: .
       target: mvn-package
+    profiles:
+      - debug
     ports:
       - "8081:8081"
     volumes:
@@ -44,7 +47,7 @@ services:
       - ./src:/usr/home/spark-graphx-scala/src
       - ./pom.xml:/usr/home/spark-graphx-scala/pom.xml
     working_dir: /usr/home/spark-graphx-scala
-    command: > 
+    command: >
       bash -c "
       mvn package
       && curl -X PUT http://zeppelin:8080/api/interpreter/setting/restart/spark
@@ -54,7 +57,9 @@ services:
   spark-history-server:
     build:
       context: .
-      target: spark
+      target: spark-v2_4_0
+    profiles:
+      - debug
     ports:
       - "18080:18080"
     environment:
@@ -68,4 +73,75 @@ services:
       bash -c "
       /opt/spark/sbin/start-history-server.sh 
       && tail -F anything
+      "
+
+  hdfs-namenode-reformat:
+    build:
+      context: .
+      target: hadoop
+    profiles:
+      - hdfs-reformat
+    volumes:
+      - type: bind
+        source: ./hdfs/namenode
+        target: /opt/hdfs/namenode
+        read_only: false
+      - ./hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+    command: >
+      bash -c "
+      /opt/hadoop/sbin/stop-dfs.sh
+      && yes | hdfs namenode -format
+      "
+
+  hdfs-namenode-master:
+    build:
+      context: .
+      target: hadoop
+    ports:
+      - "50070:50070"
+      - "9870:9870"
+    profiles:
+      - hdfs
+    environment:
+      - HDFS_NAMENODE_USER=root
+      - HDFS_DATANODE_USER=root
+      - HDFS_SECONDARYNAMENODE_USER=root
+      - JAVA_HOME=/usr/lib/jvm/java-8-openjdk
+    volumes:
+      - type: bind
+        source: ./hdfs/namenode
+        target: /opt/hdfs/namenode
+        read_only: false
+      - ./hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+    command: >
+      bash -c "
+      /opt/hadoop/sbin/stop-dfs.sh
+      && hdfs namenode
+      "
+
+  hdfs-datanode:
+    depends_on:
+      - hdfs-namenode-master
+    build:
+      context: .
+      target: hadoop
+    ports:
+      - "50010:50010"
+      - "9864:9864"
+    profiles:
+      - hdfs
+    environment:
+      - HDFS_NAMENODE_USER=root
+      - HDFS_DATANODE_USER=root
+      - HDFS_SECONDARYNAMENODE_USER=root
+    volumes:
+      - type: bind
+        source: ./hdfs/datanode
+        target: /opt/hdfs/datanode
+        read_only: false
+      - ./hdfs-site.xml:/opt/hadoop/etc/hadoop/hdfs-site.xml
+    command: >
+      bash -c "
+      /opt/hadoop/sbin/stop-dfs.sh
+      && hdfs datanode
       "

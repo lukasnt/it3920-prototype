@@ -2,7 +2,7 @@ package com.lukasnt.spark.util
 
 import com.lukasnt.spark.models.Types.Properties
 
-class ConstState(val seqNum: Int = 0) extends Serializable {
+class QueryState(val seqNum: Int = 0) extends Serializable {
 
   private var _iterations: Int       = 0
   private var _currentLength: Int    = 0
@@ -28,19 +28,19 @@ class ConstState(val seqNum: Int = 0) extends Serializable {
 
 }
 
-object ConstState {
+object QueryState {
 
-  def builder() = new ConstStateBuilder()
+  def builder() = new QueryStateBuilder()
 
-  class ConstStateBuilder {
+  class QueryStateBuilder {
 
-    private val queryState: ConstState = new ConstState()
+    private val queryState: QueryState = new QueryState()
 
-    def build(): ConstState = {
+    def build(): QueryState = {
       queryState
     }
 
-    def fromState(state: ConstState): ConstStateBuilder = {
+    def fromState(state: QueryState): QueryStateBuilder = {
       queryState._iterations = state._iterations
       queryState._currentLength = state._currentLength
       queryState._source = state._source
@@ -49,27 +49,27 @@ object ConstState {
       this
     }
 
-    def applySourceTest(testFunc: Properties => Boolean, nodeProperties: Properties): ConstStateBuilder = {
+    def applySourceTest(testFunc: Properties => Boolean, nodeProperties: Properties): QueryStateBuilder = {
       queryState._source = testFunc(nodeProperties)
       this
     }
 
-    def applyIntermediateTest(testFunc: Properties => Boolean, edgeProperties: Properties): ConstStateBuilder = {
+    def applyIntermediateTest(testFunc: Properties => Boolean, edgeProperties: Properties): QueryStateBuilder = {
       queryState._intermediate = testFunc(edgeProperties)
       this
     }
 
-    def applyDestinationTest(testFunc: Properties => Boolean, nodeProperties: Properties): ConstStateBuilder = {
+    def applyDestinationTest(testFunc: Properties => Boolean, nodeProperties: Properties): QueryStateBuilder = {
       queryState._destination = testFunc(nodeProperties)
       this
     }
 
-    def incIterations(): ConstStateBuilder = {
+    def incIterations(): QueryStateBuilder = {
       queryState._iterations += 1
       this
     }
 
-    def setCurrentLength(length: Int): ConstStateBuilder = {
+    def setCurrentLength(length: Int): QueryStateBuilder = {
       queryState._currentLength = length
       this
     }

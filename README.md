@@ -12,8 +12,7 @@ git submodule update --init --recursive
 Run docker compose setup with the following commands:
 
 ```
-docker compose up
-
+docker compose --profile debug up
 ```
 
 
@@ -41,4 +40,4 @@ Currently we are using the synthetic graph generator by the LDBC (Linked Data Be
 ### Example
 Below is a graph of the Person nodes and Knows-relationships between them from the smallest possible generated dataset. Time intervals from the creationDate- and deletionDate-properties are not shown in the visulization.
 
-![Person nodes and Knows-relationships Graph](https://gitlab.stud.idi.ntnu.no/lukasnt/it3920-lukasnt/-/raw/main/docs/snb_person_graph_example.png)
+![Person nodes and Knows-relationships Graph](https://gitlab.stud.idi.ntnu.no/lukasnt/it3920-lukasnt/-/raw/main/examples/snb_person_graph_example.png)
