@@ -99,6 +99,7 @@ services:
       target: hadoop
     ports:
       - "50070:50070"
+      - "9870:9870"
     profiles:
       - hdfs
     environment:
@@ -126,6 +127,7 @@ services:
       target: hadoop
     ports:
       - "50010:50010"
+      - "9864:9864"
     profiles:
       - hdfs
     environment:
