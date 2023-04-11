@@ -48,7 +48,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
                              currentState: PregelVertex,
                              mergedMessage: IntervalStates): PregelVertex = {
 
-    Loggers.default.debug(
+    /*Loggers.default.debug(
       s"VERTEX_PROGRAM -- " +
         s"id: $vertexId, " +
         s"iterations: ${currentState.queryState.iterations}, " +
@@ -56,7 +56,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         s"incomingLength: ${mergedMessage.currentLength}, " +
         s"intervalStates: ${currentState.intervalStates}, " +
         s"mergedMessage: $mergedMessage"
-    )
+    )*/
 
     PregelVertex(
       queryState = QueryState
@@ -89,7 +89,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
       else List(firstIntervalTable(triplet))
     )
 
-    Loggers.default.debug(
+    /*Loggers.default.debug(
       s"SEND_MESSAGE -- " +
         s"srcId: ${triplet.srcId}, " +
         s"dstId: ${triplet.dstId}, " +
@@ -98,7 +98,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         s"tripletInterval: ${triplet.attr.interval}, " +
         s"weight: ${triplet.attr.properties("weight")}, " +
         s"messageStates: $messageStates"
-    )
+    )*/
 
     Iterator((triplet.dstId, messageStates))
   }
@@ -138,7 +138,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
 
   override def mergeMessage(msgA: IntervalStates, msgB: IntervalStates): IntervalStates = {
     val merged = msgA.mergeStates(msgB, topK)
-    Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")
+    /*Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")*/
     merged
   }
 }

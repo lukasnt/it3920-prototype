@@ -1,26 +1,29 @@
 package com.lukasnt.spark.examples
 
-import com.lukasnt.spark.io.{LocalCSVLoader, SNBLoader, TemporalParser}
+import com.lukasnt.spark.io.CSVUtils.SnbCSVProperties
+import com.lukasnt.spark.io.{PartitionedLocalCSV, SNBLoader, SingleLocalCSV, SparkCSV}
 import com.lukasnt.spark.models.Types.TemporalGraph
 import org.apache.spark.sql.SparkSession
 
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
-
 object SimpleSNBLoader {
+
+  def loadLocal(): TemporalGraph = {
+    val spark = SparkSession.builder.appName("Temporal Graph CSV Loader").getOrCreate()
+    val sc    = spark.sparkContext
+
+    val partitionedFileReader = new PartitionedLocalCSV(new SingleLocalCSV(SnbCSVProperties))
+    val snbLoader             = new SNBLoader("/sf0.003_raw", partitionedFileReader)
+    snbLoader.load(sc)
+  }
 
   def load(): TemporalGraph = {
     val spark = SparkSession.builder.appName("Temporal Graph CSV Loader").getOrCreate()
     val sc    = spark.sparkContext
 
-    val temporalParser = new TemporalParser[ZonedDateTime] {
-      override def parse(temporal: String): ZonedDateTime =
-        ZonedDateTime.parse(temporal, DateTimeFormatter.ISO_OFFSET_DATE_TIME)
-    }
+    val hdfsRootDir: String = System.getenv("HDFS_ROOT_DIR")
 
-    val propertiesLoader = new LocalCSVLoader(temporalParser)
-    val snbLoader        = new SNBLoader("/sf0.003_raw", propertiesLoader)
-
+    val sparkCSVReader = new SparkCSV(spark.sqlContext, SnbCSVProperties)
+    val snbLoader      = new SNBLoader(s"$hdfsRootDir/sf1-raw", sparkCSVReader)
     snbLoader.load(sc)
   }
 

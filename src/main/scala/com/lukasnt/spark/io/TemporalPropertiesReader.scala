@@ -7,7 +7,7 @@ import org.apache.spark.rdd.RDD
 
 import java.time.temporal.Temporal
 
-trait TemporalPropertiesLoader[T <: Temporal] {
+trait TemporalPropertiesReader[T <: Temporal] {
 
   def readVerticesFile(sc: SparkContext, path: String, label: String): RDD[(VertexId, TemporalProperties[T])]
 

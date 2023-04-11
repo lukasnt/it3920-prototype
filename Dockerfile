@@ -1,7 +1,10 @@
-FROM apache/spark:latest AS spark-latest
+FROM apache/spark:v3.2.2 AS spark-latest
+
+FROM ldbc/datagen-jar:latest AS ldbc-snb-datagen-jar
 
 FROM ubuntu:20.04 AS base
-RUN apt-get update && apt-get install -y wget curl maven
+ENV DEBIAN_FRONTEND noninteractive
+RUN apt-get update && apt-get install -y git-all wget curl maven python3 python3-pip
 
 FROM base AS spark-v2_4_0
 RUN wget https://archive.apache.org/dist/spark/spark-2.4.0/spark-2.4.0-bin-hadoop2.7.tgz && \
@@ -41,6 +44,24 @@ RUN cd /usr/home/spark-graphx-scala && mvn install
 FROM mvn-install AS mvn-package
 COPY /src /usr/home/spark-graphx-scala/src
 RUN cd /usr/home/spark-graphx-scala && mvn clean package
+
+FROM base AS ldbc-snb-datagen-env
+RUN git clone https://github.com/ldbc/ldbc_snb_datagen_spark.git && \
+    cd ldbc_snb_datagen_spark && \
+    pip install -U pip && \
+    pip install ./tools
+
+FROM ldbc-snb-datagen-env AS ldbc-snb-datagen
+COPY --from=spark-latest /opt/spark /opt/spark
+COPY --from=openjdk /usr/lib/jvm/java-8-openjdk /lib/jvm/java-8-openjdk
+COPY --from=ldbc-snb-datagen-jar /jar /ldbc-datagen.jar
+ENV SPARK_HOME=/opt/spark
+ENV PATH=$SPARK_HOME/bin:$PATH
+ENV JAVA_HOME=/lib/jvm/java-8-openjdk
+ENV PATH=$JAVA_HOME/bin:$PATH
+ENV PLATFORM_VERSION=3.2.2
+ENV DATAGEN_VERSION=0.5.1
+ENV LDBC_SNB_DATAGEN_JAR=/ldbc-datagen.jar
 
 FROM base
 COPY --from=zeppelin /opt/zeppelin /opt/zeppelin

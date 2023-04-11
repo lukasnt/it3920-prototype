@@ -21,11 +21,8 @@ services:
         target: /opt/zeppelin/logs
         read_only: false
       - ./log4j.properties:/opt/zeppelin/spark/conf/log4j.properties
-    environment:
-      - ZEPPELIN_NOTEBOOK_DIR=/opt/zeppelin/notebook
-      - ZEPPELIN_ADDR=0.0.0.0
-      - ZEPPELIN_PORT=8080
-      - ZEPPELIN_MEM=-Xmx16384m
+    env_file:
+      - .env
     command: /opt/zeppelin/bin/zeppelin-daemon.sh upstart
     tty: true
 
@@ -62,8 +59,8 @@ services:
       - debug
     ports:
       - "18080:18080"
-    environment:
-      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=file:/opt/spark/logs -Dspark.history.ui.port=18080
+    env_file:
+      - .env
     volumes:
       - type: bind
         source: ./logs/spark-events
@@ -102,11 +99,8 @@ services:
       - "9870:9870"
     profiles:
       - hdfs
-    environment:
-      - HDFS_NAMENODE_USER=root
-      - HDFS_DATANODE_USER=root
-      - HDFS_SECONDARYNAMENODE_USER=root
-      - JAVA_HOME=/usr/lib/jvm/java-8-openjdk
+    env_file:
+      - .env
     volumes:
       - type: bind
         source: ./hdfs/namenode
@@ -130,10 +124,8 @@ services:
       - "9864:9864"
     profiles:
       - hdfs
-    environment:
-      - HDFS_NAMENODE_USER=root
-      - HDFS_DATANODE_USER=root
-      - HDFS_SECONDARYNAMENODE_USER=root
+    env_file:
+      - .env
     volumes:
       - type: bind
         source: ./hdfs/datanode
@@ -144,4 +136,23 @@ services:
       bash -c "
       /opt/hadoop/sbin/stop-dfs.sh
       && hdfs datanode
+      "
+
+  ldbc-datagen:
+    build:
+      context: .
+      target: ldbc-snb-datagen
+    profiles:
+      - ldbc-datagen
+    env_file:
+      - .env
+    volumes:
+      - type: bind
+        source: ./datasets
+        target: /opt/ldbc-snb-data
+        read_only: false
+    command: >
+      bash -c "
+      mkdir -p OUTPUT_DIR
+      && /ldbc_snb_datagen_spark/tools/run.py --parallelism 8 --memory 12g -- --format csv --scale-factor $SCALE_FACTOR --mode raw --output-dir $OUTPUT_DIR
       "
