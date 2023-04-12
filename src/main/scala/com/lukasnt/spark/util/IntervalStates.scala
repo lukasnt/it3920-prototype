@@ -62,9 +62,9 @@ class IntervalStates extends Serializable {
       intervalTable.table.entries.map(entry => IntervalEntry(intervalTable.interval, entry)))
   }
 
-  def flushedTableStates: IntervalStates = {
+  def flushedTableStates(topK: Int): IntervalStates = {
     IntervalStates(intervalTables.map(intervalTable =>
-      IntervalTable(intervalTable.interval, intervalTable.table.flushActiveEntries())))
+      IntervalTable(intervalTable.interval, intervalTable.table.flushActiveEntries(topK))))
   }
 
   def firstTable: LengthWeightTable = {

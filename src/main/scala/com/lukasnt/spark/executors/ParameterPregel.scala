@@ -1,9 +1,8 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.io.Loggers
 import com.lukasnt.spark.models.Types._
 import com.lukasnt.spark.queries._
-import com.lukasnt.spark.util.{QueryState, IntervalStates, LengthWeightTable}
+import com.lukasnt.spark.util.{IntervalStates, LengthWeightTable, QueryState}
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 
 class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[PregelVertex, Properties, IntervalStates] {
@@ -66,7 +65,8 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         .setCurrentLength(mergedMessage.currentLength)
         .build(),
       intervalStates = currentState.intervalStates
-        .mergeStates(mergedMessage.flushedTableStates, topK)
+        .mergeStates(mergedMessage, topK)
+        .flushedTableStates(topK)
     )
   }
 

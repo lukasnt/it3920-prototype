@@ -14,14 +14,13 @@ class LengthWeightTable() extends Serializable {
   }
 
   def mergeWithTable(other: LengthWeightTable, topK: Int): LengthWeightTable = {
-    val newActiveEntries  = activeEntries ++ other.activeEntries
-    val newHistoryEntries = historyEntries ++ other.historyEntries
-    LengthWeightTable(newHistoryEntries, newActiveEntries, topK)
+    val newActiveEntries = activeEntries ++ other.activeEntries
+    LengthWeightTable(this, newActiveEntries, topK)
   }
 
-  def flushActiveEntries(): LengthWeightTable = {
+  def flushActiveEntries(topK: Int): LengthWeightTable = {
     val newHistory = historyEntries ++ activeEntries
-    LengthWeightTable(newHistory, List(), 10)
+    LengthWeightTable(newHistory, List(), topK)
   }
 
   def filterByLengthRange(minLength: Int, maxLength: Int, topK: Int): LengthWeightTable = {
@@ -68,8 +67,14 @@ class LengthWeightTable() extends Serializable {
 
 object LengthWeightTable {
 
-  def apply(existingTable: LengthWeightTable, activeEntries: List[Entry], topK: Int): LengthWeightTable =
-    LengthWeightTable(existingTable.historyEntries, activeEntries, topK)
+  def apply(existingTable: LengthWeightTable, newActiveEntries: List[Entry], topK: Int): LengthWeightTable =
+    new LengthWeightTable() {
+      override val historyEntries: List[Entry] = existingTable.historyEntries
+      override val activeEntries: List[Entry] = {
+        if (topK == -1) newActiveEntries.sortBy(_.weight)
+        else newActiveEntries.sortBy(_.weight).take(topK)
+      }
+    }
 
   def apply(history: List[Entry], actives: List[Entry], topK: Int): LengthWeightTable = new LengthWeightTable() {
     override val historyEntries: List[Entry] = {
@@ -87,5 +92,5 @@ object LengthWeightTable {
       s"Entry($length|$weight|$parentId)"
     }
   }
-  
+
 }
