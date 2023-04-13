@@ -103,3 +103,10 @@ class SingleLocalCSV[T <: Temporal](val csvProperties: CSVProperties[T]) extends
   }
 
 }
+
+object SingleLocalCSV {
+
+  def apply[T <: Temporal](csvProperties: CSVProperties[T]): SingleLocalCSV[T] =
+    new SingleLocalCSV[T](csvProperties)
+
+}

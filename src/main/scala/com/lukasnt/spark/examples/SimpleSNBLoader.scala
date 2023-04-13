@@ -11,8 +11,8 @@ object SimpleSNBLoader {
     val spark = SparkSession.builder.appName("Temporal Graph CSV Loader").getOrCreate()
     val sc    = spark.sparkContext
 
-    val partitionedFileReader = new PartitionedLocalCSV(new SingleLocalCSV(SnbCSVProperties))
-    val snbLoader             = new SNBLoader("/sf0.003_raw", partitionedFileReader)
+    val partitionedFileReader = PartitionedLocalCSV(SingleLocalCSV(SnbCSVProperties))
+    val snbLoader             = SNBLoader("/sf0_003-raw", partitionedFileReader)
     snbLoader.load(sc)
   }
 
@@ -22,8 +22,8 @@ object SimpleSNBLoader {
 
     val hdfsRootDir: String = System.getenv("HDFS_ROOT_DIR")
 
-    val sparkCSVReader = new SparkCSV(spark.sqlContext, SnbCSVProperties)
-    val snbLoader      = new SNBLoader(s"$hdfsRootDir/sf1-raw", sparkCSVReader)
+    val sparkCSVReader = SparkCSV(spark.sqlContext, SnbCSVProperties)
+    val snbLoader      = SNBLoader(s"$hdfsRootDir/sf1-raw", sparkCSVReader)
     snbLoader.load(sc)
   }
 

@@ -1,16 +1,17 @@
 package com.lukasnt.spark.io
 
+import com.lukasnt.spark.io.CSVUtils.SnbCSVProperties
 import com.lukasnt.spark.models.Types.TemporalGraph
 import com.lukasnt.spark.models.{TemporalInterval, TemporalProperties}
 import org.apache.spark.SparkContext
 import org.apache.spark.graphx.{Edge, Graph, VertexId}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SQLContext
 
 import java.time.ZonedDateTime
 import java.time.temporal.Temporal
 
-class SNBLoader(val datasetRoot: String,
-                propertiesLoader: TemporalPropertiesReader[ZonedDateTime])
+class SNBLoader(val datasetRoot: String, propertiesLoader: TemporalPropertiesReader[ZonedDateTime])
     extends TemporalGraphLoader[ZonedDateTime] {
 
   private val DATA_GEN_ROOT = s"$datasetRoot/graphs/csv/raw/composite-merged-fk/dynamic"
@@ -71,5 +72,20 @@ class SNBLoader(val datasetRoot: String,
 
     new TemporalInterval[T](minInterval.startTime, maxInterval.endTime)
   }
+
+}
+
+object SNBLoader {
+
+  def localSf0_003: SNBLoader = SNBLoader("/sf0_003-raw", PartitionedLocalCSV(SingleLocalCSV(SnbCSVProperties)))
+
+  def apply(datasetRoot: String, propertiesLoader: TemporalPropertiesReader[ZonedDateTime]): SNBLoader =
+    new SNBLoader(datasetRoot, propertiesLoader)
+
+  def sf0_003(sqlContext: SQLContext, hdfsRootDir: String): SNBLoader =
+    SNBLoader(s"$hdfsRootDir/sf0.003-raw", SparkCSV(sqlContext, SnbCSVProperties))
+
+  def sf1(sqlContext: SQLContext, hdfsRootDir: String): SNBLoader =
+    SNBLoader(s"$hdfsRootDir/sf1-raw", SparkCSV(sqlContext, SnbCSVProperties))
 
 }

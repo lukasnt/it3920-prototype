@@ -78,4 +78,12 @@ class SparkCSV[T <: Temporal](val sqlContext: SQLContext, csvProperties: CSVProp
         Edge(srcId, dstId, temporalProperties)
       })
   }
+
+}
+
+object SparkCSV {
+
+  def apply[T <: Temporal](sqlContext: SQLContext, csvProperties: CSVProperties[T]): SparkCSV[T] =
+    new SparkCSV[T](sqlContext, csvProperties)
+
 }

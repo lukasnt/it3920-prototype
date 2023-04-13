@@ -17,13 +17,6 @@ class PartitionedLocalCSV[T <: Temporal](val singleLocalCSV: SingleLocalCSV[T]) 
       .reduce(_ union _)
   }
 
-  private def findFilePaths(rootPath: String) = {
-    DirUtils
-      .listFilesInsideJar(s"$rootPath")
-      .map(_.substring(rootPath.length))
-      .filter(name => name.startsWith("part-") && name.endsWith(".csv"))
-  }
-
   override def readEdgesFile(sc: SparkContext,
                              path: String,
                              label: String,
@@ -33,5 +26,19 @@ class PartitionedLocalCSV[T <: Temporal](val singleLocalCSV: SingleLocalCSV[T]) 
       .map(file => singleLocalCSV.readEdgesFile(sc, s"$path$file", label, srcLabel, dstLabel))
       .reduce((a, b) => a.union(b))
   }
+
+  private def findFilePaths(rootPath: String) = {
+    DirUtils
+      .listFilesInsideJar(s"$rootPath")
+      .map(_.substring(rootPath.length))
+      .filter(name => name.startsWith("part-") && name.endsWith(".csv"))
+  }
+
+}
+
+object PartitionedLocalCSV {
+
+  def apply[T <: Temporal](singleLocalCSV: SingleLocalCSV[T]): PartitionedLocalCSV[T] =
+    new PartitionedLocalCSV[T](singleLocalCSV)
 
 }
