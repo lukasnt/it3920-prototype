@@ -27,7 +27,7 @@ class ParameterQuery() {
     s"ParameterQuery(" +
       s"minLength: ${this._minLength}, " +
       s"maxLength: ${this._maxLength}, " +
-      s"topK: ${this._topK}" +
+      s"topK: ${this._topK}, " +
       s"temporalPathType: ${this._temporalPathType.getClass.getSimpleName}, " +
       s"sourcePredicate: ${this._sourcePredicate}, " +
       s"intermediatePredicate: ${this._intermediatePredicate}, " +

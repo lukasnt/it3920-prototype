@@ -1,55 +1,65 @@
 package com.lukasnt.spark.experiments
 
-import com.lukasnt.spark.executors.{ParameterQueryExecutor, SparkQueryExecutor}
-import com.lukasnt.spark.io.CSVUtils.SnbCSVProperties
-import com.lukasnt.spark.io.{SNBLoader, SingleLocalCSV, TemporalGraphLoader}
 import com.lukasnt.spark.models.Types.TemporalGraph
-import com.lukasnt.spark.queries.ParameterQuery
-import org.apache.spark.SparkContext
-
-import java.time.ZonedDateTime
+import com.lukasnt.spark.queries.QueryResult
+import org.apache.spark.sql.SparkSession
 
 class Experiment {
 
   private var _name: String    = "Experiment"
-  private var _runsPerVariable = 10
   private var _variableSet     = new VariableSet()
   private var _variableOrder   = Experiment.VariableOrder.Ascending
+  private var _runsPerVariable = 10
   private var _maxVariables    = 5
 
-  private var _sparkContext: SparkContext       = SparkContext.getOrCreate()
-  private var _executor: ParameterQueryExecutor = SparkQueryExecutor()
-  private var _graphLoader: TemporalGraphLoader[ZonedDateTime] =
-    new SNBLoader("/", new SingleLocalCSV(SnbCSVProperties))
+  private var _sparkSession: SparkSession = SparkSession.builder().getOrCreate()
 
-  def name: String                                    = this._name
-  def runsPerVariable: Int                            = this._runsPerVariable
-  def variableSet: VariableSet                        = this._variableSet
-  def variableOrder: Experiment.VariableOrder.Value   = this._variableOrder
-  def maxVariables: Int                               = this._maxVariables
-  def sparkContext: SparkContext                      = this._sparkContext
-  def executor: ParameterQueryExecutor                = this._executor
-  def graphLoader: TemporalGraphLoader[ZonedDateTime] = this._graphLoader
+  def name: String                                  = this._name
+  def runsPerVariable: Int                          = this._runsPerVariable
+  def variableSet: VariableSet                      = this._variableSet
+  def variableOrder: Experiment.VariableOrder.Value = this._variableOrder
+  def maxVariables: Int                             = this._maxVariables
+  def sparkSession: SparkSession                    = this._sparkSession
 
   def run(runsPerVariable: Int = _runsPerVariable,
           variableOrder: Experiment.VariableOrder.Value = _variableOrder,
           maxVariables: Int = _maxVariables): Unit = {
-    val queries: List[ParameterQuery] = variableOrder match {
+
+    val queries: List[VariableSet.QueryExecutionSet] = variableOrder match {
       case Experiment.VariableOrder.Ascending  => _variableSet.ascendingQueries
       case Experiment.VariableOrder.Descending => _variableSet.descendingQueries
       case Experiment.VariableOrder.Shuffled   => _variableSet.shuffledQueries
       case _                                   => _variableSet.ascendingQueries
     }
 
-    val temporalGraph: TemporalGraph = _graphLoader.load(_sparkContext)
-
-    val queriesToRun: List[ParameterQuery] = queries.take(maxVariables)
-    queriesToRun.foreach(query => {
-      for (i <- 1 to runsPerVariable) {
-        println(s"Running query: $query")
-        _executor.execute(query, temporalGraph)
-      }
-    })
+    val queriesToRun: List[VariableSet.QueryExecutionSet] = queries.take(maxVariables)
+    queriesToRun.foreach {
+      case VariableSet.QueryExecutionSet(query, graphLoader, executor) =>
+        (1 to runsPerVariable).foreach { _ =>
+          println()
+          println("=====================================")
+          println(s"Graph Loader: ${graphLoader.getClass.getSimpleName}")
+          println("-------------------------------------")
+          println(s"Executor: ${executor.getClass.getSimpleName}")
+          println("-------------------------------------")
+          println("Query:")
+          println(query)
+          println("-------------------------------------")
+          println("Loading graph...")
+          val temporalGraph: TemporalGraph = graphLoader.load(_sparkSession.sparkContext)
+          println("-------------------------------------")
+          println("Starting query execution...")
+          val queryResult: QueryResult = executor.execute(query, temporalGraph)
+          println("-------------------------------------")
+          println("Table results:")
+          queryResult.asDataFrame(_sparkSession.sqlContext).show(100, truncate = false)
+          println("-------------------------------------")
+          println("Raw results:")
+          println(queryResult)
+          println("=====================================")
+          println()
+        }
+    }
 
   }
 
@@ -92,18 +102,8 @@ object Experiment {
       this
     }
 
-    def withSparkContext(sparkContext: SparkContext): ExperimentBuilder = {
-      experiment._sparkContext = sparkContext
-      this
-    }
-
-    def withExecutor(executor: ParameterQueryExecutor): ExperimentBuilder = {
-      experiment._executor = executor
-      this
-    }
-
-    def withGraphLoader(graphLoader: TemporalGraphLoader[ZonedDateTime]): ExperimentBuilder = {
-      experiment._graphLoader = graphLoader
+    def withSparkSession(sparkSession: SparkSession): ExperimentBuilder = {
+      experiment._sparkSession = sparkSession
       this
     }
 

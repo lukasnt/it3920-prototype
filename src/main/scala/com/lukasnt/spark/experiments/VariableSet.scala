@@ -42,8 +42,16 @@ class VariableSet {
       _executorVariables.length
   }
 
-  def shuffledQueries: List[ParameterQuery] = {
-    val queries = for {
+  def shuffledQueries: List[VariableSet.QueryExecutionSet] = {
+    scala.util.Random.shuffle(ascendingQueries)
+  }
+
+  def descendingQueries: List[VariableSet.QueryExecutionSet] = {
+    ascendingQueries.reverse
+  }
+
+  def ascendingQueries: List[VariableSet.QueryExecutionSet] = {
+    for {
       lengthRange           <- _lengthRangeVariables
       topK                  <- _topKVariables
       temporalPathType      <- _temporalPathTypeVariables
@@ -54,55 +62,33 @@ class VariableSet {
       graphLoader           <- _graphLoaderVariables
       executor              <- _executorVariables
     } yield {
-      ParameterQuery
-        .builder()
-        .withMinLength(lengthRange._1)
-        .withMaxLength(lengthRange._2)
-        .withTopK(topK)
-        .withPathType(temporalPathType)
-        .withSourcePredicate(sourcePredicate)
-        .withIntermediatePredicate(intermediatePredicate)
-        .withDestinationPredicate(destinationPredicate)
-        .withWeightMap(weightMap)
-        .build()
+      VariableSet.QueryExecutionSet(
+        query = ParameterQuery
+          .builder()
+          .withMinLength(lengthRange._1)
+          .withMaxLength(lengthRange._2)
+          .withTopK(topK)
+          .withPathType(temporalPathType)
+          .withSourcePredicate(sourcePredicate)
+          .withIntermediatePredicate(intermediatePredicate)
+          .withDestinationPredicate(destinationPredicate)
+          .withWeightMap(weightMap)
+          .build(),
+        graphLoader = graphLoader,
+        executor = executor
+      )
     }
-    scala.util.Random.shuffle(queries)
-  }
-
-  def descendingQueries: List[ParameterQuery] = {
-    ascendingQueries.reverse
-  }
-
-  def ascendingQueries: List[ParameterQuery] = {
-    val queries = for {
-      lengthRange           <- _lengthRangeVariables
-      topK                  <- _topKVariables
-      temporalPathType      <- _temporalPathTypeVariables
-      sourcePredicate       <- _sourcePredicateVariables
-      intermediatePredicate <- _intermediatePredicateVariables
-      destinationPredicate  <- _destinationPredicateVariables
-      weightMap             <- _weightMapVariables
-    } yield {
-      ParameterQuery
-        .builder()
-        .withMinLength(lengthRange._1)
-        .withMaxLength(lengthRange._2)
-        .withTopK(topK)
-        .withPathType(temporalPathType)
-        .withSourcePredicate(sourcePredicate)
-        .withIntermediatePredicate(intermediatePredicate)
-        .withDestinationPredicate(destinationPredicate)
-        .withWeightMap(weightMap)
-        .build()
-    }
-    queries
   }
 
 }
 
 object VariableSet {
 
-  class VariableSetBuilder {
+  case class QueryExecutionSet(query: ParameterQuery,
+                               graphLoader: TemporalGraphLoader[ZonedDateTime],
+                               executor: ParameterQueryExecutor)
+
+  class Builder {
 
     private val variableSet = new VariableSet()
 
@@ -121,47 +107,47 @@ object VariableSet {
       variableSet
     }
 
-    def withLengthRangeVariables(variables: List[(Int, Int)]): VariableSetBuilder = {
+    def withLengthRangeVariables(variables: List[(Int, Int)]): Builder = {
       variableSet._lengthRangeVariables = variables
       this
     }
 
-    def withTopKVariables(variables: List[Int]): VariableSetBuilder = {
+    def withTopKVariables(variables: List[Int]): Builder = {
       variableSet._topKVariables = variables
       this
     }
 
-    def withTemporalPathTypeVariables(variables: List[TemporalPathType]): VariableSetBuilder = {
+    def withTemporalPathTypeVariables(variables: List[TemporalPathType]): Builder = {
       variableSet._temporalPathTypeVariables = variables
       this
     }
 
-    def withSourcePredicateVariables(variables: List[AttrVertex => Boolean]): VariableSetBuilder = {
+    def withSourcePredicateVariables(variables: List[AttrVertex => Boolean]): Builder = {
       variableSet._sourcePredicateVariables = variables
       this
     }
 
-    def withIntermediatePredicateVariables(variables: List[AttrEdge => Boolean]): VariableSetBuilder = {
+    def withIntermediatePredicateVariables(variables: List[AttrEdge => Boolean]): Builder = {
       variableSet._intermediatePredicateVariables = variables
       this
     }
 
-    def withDestinationPredicateVariables(variables: List[AttrVertex => Boolean]): VariableSetBuilder = {
+    def withDestinationPredicateVariables(variables: List[AttrVertex => Boolean]): Builder = {
       variableSet._destinationPredicateVariables = variables
       this
     }
 
-    def withWeightMapVariables(variables: List[AttrEdge => Float]): VariableSetBuilder = {
+    def withWeightMapVariables(variables: List[AttrEdge => Float]): Builder = {
       variableSet._weightMapVariables = variables
       this
     }
 
-    def withGraphLoaderVariables(variables: List[TemporalGraphLoader[ZonedDateTime]]): VariableSetBuilder = {
+    def withGraphLoaderVariables(variables: List[TemporalGraphLoader[ZonedDateTime]]): Builder = {
       variableSet._graphLoaderVariables = variables
       this
     }
 
-    def withExecutorVariables(variables: List[ParameterQueryExecutor]): VariableSetBuilder = {
+    def withExecutorVariables(variables: List[ParameterQueryExecutor]): Builder = {
       variableSet._executorVariables = variables
       this
     }
