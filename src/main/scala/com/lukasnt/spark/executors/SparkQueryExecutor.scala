@@ -3,7 +3,7 @@ package com.lukasnt.spark.executors
 import com.lukasnt.spark.models.Types.TemporalGraph
 import com.lukasnt.spark.queries.{ParameterQuery, QueryResult}
 
-object QueriesExecutor {
+class SparkQueryExecutor extends ParameterQueryExecutor {
 
   def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult = {
     val subgraph      = ParameterSubgraph(temporalGraph, parameterQuery)
@@ -13,4 +13,8 @@ object QueriesExecutor {
     new QueryResult(temporalGraph, pathTable)
   }
 
+}
+
+object SparkQueryExecutor {
+  def apply(): SparkQueryExecutor = new SparkQueryExecutor()
 }
