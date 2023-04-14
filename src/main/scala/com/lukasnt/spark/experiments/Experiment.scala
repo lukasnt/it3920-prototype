@@ -67,9 +67,9 @@ class Experiment {
 
 object Experiment {
 
-  def builder() = new ExperimentBuilder()
+  def builder() = new Builder()
 
-  class ExperimentBuilder {
+  class Builder {
 
     private val experiment = new Experiment()
 
@@ -77,32 +77,32 @@ object Experiment {
       experiment
     }
 
-    def withName(name: String): ExperimentBuilder = {
+    def withName(name: String): Builder = {
       experiment._name = name
       this
     }
 
-    def withRunsPerVariable(runsPerVariable: Int): ExperimentBuilder = {
+    def withRunsPerVariable(runsPerVariable: Int): Builder = {
       experiment._runsPerVariable = runsPerVariable
       this
     }
 
-    def withVariableSet(variableSet: VariableSet): ExperimentBuilder = {
+    def withVariableSet(variableSet: VariableSet): Builder = {
       experiment._variableSet = variableSet
       this
     }
 
-    def withVariableOrder(variableOrder: Experiment.VariableOrder.Value): ExperimentBuilder = {
+    def withVariableOrder(variableOrder: Experiment.VariableOrder.Value): Builder = {
       experiment._variableOrder = variableOrder
       this
     }
 
-    def withMaxVariables(maxVariables: Int): ExperimentBuilder = {
+    def withMaxVariables(maxVariables: Int): Builder = {
       experiment._maxVariables = maxVariables
       this
     }
 
-    def withSparkSession(sparkSession: SparkSession): ExperimentBuilder = {
+    def withSparkSession(sparkSession: SparkSession): Builder = {
       experiment._sparkSession = sparkSession
       this
     }

@@ -46,10 +46,6 @@ class VariableSet {
     scala.util.Random.shuffle(ascendingQueries)
   }
 
-  def descendingQueries: List[VariableSet.QueryExecutionSet] = {
-    ascendingQueries.reverse
-  }
-
   def ascendingQueries: List[VariableSet.QueryExecutionSet] = {
     for {
       lengthRange           <- _lengthRangeVariables
@@ -80,9 +76,15 @@ class VariableSet {
     }
   }
 
+  def descendingQueries: List[VariableSet.QueryExecutionSet] = {
+    ascendingQueries.reverse
+  }
+
 }
 
 object VariableSet {
+
+  def builder(): Builder = new Builder()
 
   case class QueryExecutionSet(query: ParameterQuery,
                                graphLoader: TemporalGraphLoader[ZonedDateTime],
@@ -96,7 +98,7 @@ object VariableSet {
       variableSet
     }
 
-    def fromParameterQuery(parameterQuery: ParameterQuery): VariableSet = {
+    def fromParameterQuery(parameterQuery: ParameterQuery): Builder = {
       variableSet._lengthRangeVariables = List((parameterQuery.minLength, parameterQuery.maxLength))
       variableSet._topKVariables = List(parameterQuery.topK)
       variableSet._temporalPathTypeVariables = List(parameterQuery.temporalPathType)
@@ -104,7 +106,7 @@ object VariableSet {
       variableSet._intermediatePredicateVariables = List(parameterQuery.intermediatePredicate)
       variableSet._destinationPredicateVariables = List(parameterQuery.destinationPredicate)
       variableSet._weightMapVariables = List(parameterQuery.weightMap)
-      variableSet
+      this
     }
 
     def withLengthRangeVariables(variables: List[(Int, Int)]): Builder = {

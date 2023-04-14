@@ -19,8 +19,8 @@ object SimpleParameterQueries {
       .build()
   }
 
-  def interactionPaths(city1: String = "840",
-                       city2: String = "1224",
+  def interactionPaths(city1: String = "573",
+                       city2: String = "737",
                        minLength: Int = 2,
                        topK: Int = 10,
                        pathType: TemporalPathType = TemporalPathType.Continuous): ParameterQuery = {

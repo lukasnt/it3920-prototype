@@ -55,6 +55,23 @@ services:
       && curl -X POST http://zeppelin:8080/api/notebook/job/2HSV6W3AT
       "
 
+  spark-submit:
+    env_file:
+      - .env
+    build:
+      context: .
+      target: spark-v2_4_0
+    profiles:
+      - spark-submit
+    volumes:
+      - type: bind
+        source: ./target
+        target: /opt/spark/target
+        read_only: false
+      - ./log4j.properties:/opt/spark/conf/log4j.properties
+    entrypoint: /opt/spark/bin/spark-submit --class com.lukasnt.spark.App --deploy-mode client --master local --driver-memory 12g --executor-memory 12g --executor-cores 8 --conf spark.executor.instances=2 --conf spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/opt/spark/conf/log4j.properties --conf spark.executor.extraJavaOptions=-Dlog4j.configuration=file:/opt/spark/conf/log4j.properties /opt/spark/target/spark-graphx-scala-1.0-SNAPSHOT-jar-with-dependencies.jar
+
+
   spark-history-server:
     build:
       context: .
