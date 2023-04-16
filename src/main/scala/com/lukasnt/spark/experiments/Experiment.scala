@@ -36,31 +36,69 @@ class Experiment {
     queriesToRun.foreach {
       case VariableSet.QueryExecutionSet(query, graphLoader, executor) =>
         (1 to runsPerVariable).foreach { _ =>
+          clearSparkResources()
           println()
           println("=====================================")
+
+          // Print experiment info
           println(s"Graph Loader: ${graphLoader.getClass.getSimpleName}")
-          println("-------------------------------------")
           println(s"Executor: ${executor.getClass.getSimpleName}")
-          println("-------------------------------------")
           println("Query:")
           println(query)
+          printSparkStats()
+
+          // Load graph
           println("-------------------------------------")
+          val loadingStartTime = System.currentTimeMillis()
           println("Loading graph...")
           val temporalGraph: TemporalGraph = graphLoader.load(_sparkSession.sparkContext)
+          println(s"Graph loaded in ${System.currentTimeMillis() - loadingStartTime} ms")
+          printSparkStats()
+
+          // Execute query
           println("-------------------------------------")
+          val queryStartTime = System.currentTimeMillis()
           println("Starting query execution...")
           val queryResult: QueryResult = executor.execute(query, temporalGraph)
+          println(s"Query executed in ${System.currentTimeMillis() - queryStartTime} ms")
+          printSparkStats()
+
+          // Print results
           println("-------------------------------------")
           println("Table results:")
           queryResult.asDataFrame(_sparkSession.sqlContext).show(100, truncate = false)
           println("-------------------------------------")
           println("Raw results:")
           println(queryResult)
+
+          clearSparkResources()
           println("=====================================")
           println()
         }
     }
 
+  }
+
+  private def printSparkStats(): Unit = {
+    println(s"Spark Memory Status: ${_sparkSession.sparkContext.getExecutorMemoryStatus}")
+    println(s"Spark RDD Storage Info:")
+    println(_sparkSession.sparkContext.getRDDStorageInfo.mkString("\n"))
+  }
+
+  private def clearSparkResources(): Unit = {
+    // Remove all RDDs from memory and disk
+    _sparkSession.sparkContext.getPersistentRDDs.foreach {
+      case (_, rdd) => rdd.unpersist()
+    }
+
+    // Clear Spark Cache
+    _sparkSession.sharedState.cacheManager.clearCache()
+    _sparkSession.sqlContext.clearCache()
+
+    // Clear Spark session and context state
+    _sparkSession.sessionState.catalog.reset()
+    _sparkSession.sparkContext.clearJobGroup()
+    _sparkSession.sparkContext.clearCallSite()
   }
 
 }
