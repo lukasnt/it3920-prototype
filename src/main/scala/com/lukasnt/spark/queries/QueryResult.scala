@@ -47,12 +47,21 @@ class QueryResult(val queriedGraph: TemporalGraph,
     pathTable.entries.map(entry => entry.path.asTemporalGraph(queriedGraph))
   }
 
-
+  def printDiff(other: QueryResult): Unit = {
+    val thisPaths  = pathTable.entries.map(_.path.vertexSequence)
+    val otherPaths = other.pathTable.entries.map(_.path.vertexSequence)
+    thisPaths.zip(otherPaths).foreach {
+      case (thisPath, otherPath) =>
+        if (thisPath != otherPath) {
+          println(s"Path mismatch: $thisPath != $otherPath")
+        }
+    }
+  }
 
   override def equals(obj: Any): Boolean = {
     obj match {
       case other: QueryResult =>
-          other.pathTable.entries.map(_.path.vertexSequence) == pathTable.entries.map(_.path.vertexSequence) &&
+        other.pathTable.entries.map(_.path.vertexSequence) == pathTable.entries.map(_.path.vertexSequence) &&
           other.pathTable.entries.map(_.path.interval) == pathTable.entries.map(_.path.interval)
       case _ => false
     }

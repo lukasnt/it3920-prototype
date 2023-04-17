@@ -8,3 +8,13 @@ trait ParameterQueryExecutor {
   def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult
 
 }
+
+object ParameterQueryExecutor {
+
+  def getByName(name: String): ParameterQueryExecutor = name match {
+    case "serial" => SerialQueryExecutor()
+    case "spark"  => SparkQueryExecutor()
+    case _        => SparkQueryExecutor()
+  }
+
+}

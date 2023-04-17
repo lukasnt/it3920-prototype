@@ -1,17 +1,23 @@
 package com.lukasnt.spark.experiments
 
+import com.lukasnt.spark.executors.ParameterQueryExecutor
+import com.lukasnt.spark.io.TemporalGraphLoader
 import com.lukasnt.spark.models.Types.TemporalGraph
-import com.lukasnt.spark.queries.QueryResult
+import com.lukasnt.spark.queries.{ParameterQuery, QueryResult}
 import org.apache.spark.sql.SparkSession
+
+import java.time.ZonedDateTime
 
 class Experiment {
 
-  private var _name: String    = "Experiment"
-  private var _variableSet     = new VariableSet()
-  private var _variableOrder   = Experiment.VariableOrder.Ascending
-  private var _runsPerVariable = 10
-  private var _maxVariables    = 5
-
+  var results: List[QueryExecutionResult] = List()
+  private var _name: String               = "Experiment"
+  private var _variableSet                = new VariableSet()
+  private var _variableOrder              = Experiment.VariableOrder.Ascending
+  private var _runsPerVariable            = 10
+  private var _maxVariables               = 5
+  private var _saveResults                = true
+  private var _printEnabled               = true
   private var _sparkSession: SparkSession = SparkSession.builder().getOrCreate()
 
   def name: String                                  = this._name
@@ -36,44 +42,56 @@ class Experiment {
     queriesToRun.foreach {
       case VariableSet.QueryExecutionSet(query, graphLoader, executor) =>
         (1 to runsPerVariable).foreach { _ =>
-          clearSparkResources()
-          println()
-          println("=====================================")
+          if (_printEnabled) {
+            // Print experiment info
+            clearSparkResources()
+            printBorder()
+            printExperimentInfo(graphLoader, executor, query)
 
-          // Print experiment info
-          println(s"Graph Loader: ${graphLoader.getClass.getSimpleName}")
-          println(s"Executor: ${executor.getClass.getSimpleName}")
-          println("Query:")
-          println(query)
-          printSparkStats()
+            // Load Graph init print
+            println("-------------------------------------")
+            println("Loading graph...")
+          }
 
           // Load graph
-          println("-------------------------------------")
-          val loadingStartTime = System.currentTimeMillis()
-          println("Loading graph...")
+          val loadingStartTime             = System.currentTimeMillis()
           val temporalGraph: TemporalGraph = graphLoader.load(_sparkSession.sparkContext)
-          println(s"Graph loaded in ${System.currentTimeMillis() - loadingStartTime} ms")
-          printSparkStats()
+
+          if (_printEnabled) {
+            // Print loading time
+            println(s"Graph loaded in ${System.currentTimeMillis() - loadingStartTime} ms")
+            printSparkStats()
+
+            // Query Execution init print
+            println("-------------------------------------")
+            println("Starting query execution...")
+          }
 
           // Execute query
-          println("-------------------------------------")
-          val queryStartTime = System.currentTimeMillis()
-          println("Starting query execution...")
+          val queryStartTime           = System.currentTimeMillis()
           val queryResult: QueryResult = executor.execute(query, temporalGraph)
-          println(s"Query executed in ${System.currentTimeMillis() - queryStartTime} ms")
-          printSparkStats()
+          val queryExecutionTime       = System.currentTimeMillis() - queryStartTime
 
-          // Print results
-          println("-------------------------------------")
-          println("Table results:")
-          queryResult.asDataFrame(_sparkSession.sqlContext).show(100, truncate = false)
-          println("-------------------------------------")
-          println("Raw results:")
-          println(queryResult)
+          if (_printEnabled) {
+            // Print execution time
+            println(s"Query executed in $queryExecutionTime ms")
+            printSparkStats()
 
-          clearSparkResources()
-          println("=====================================")
-          println()
+            // Print results
+            printResult(queryResult)
+            clearSparkResources()
+            printBorder()
+          }
+
+          if (_saveResults) {
+            this.results = this.results :+ QueryExecutionResult(
+              query = query,
+              graphName = graphLoader.getClass.getSimpleName,
+              executorName = executor.getClass.getSimpleName,
+              queryResult = queryResult,
+              executionTime = queryExecutionTime
+            )
+          }
         }
     }
 
@@ -99,6 +117,30 @@ class Experiment {
     _sparkSession.sessionState.catalog.reset()
     _sparkSession.sparkContext.clearJobGroup()
     _sparkSession.sparkContext.clearCallSite()
+  }
+
+  private def printExperimentInfo(graphLoader: TemporalGraphLoader[ZonedDateTime],
+                                  executor: ParameterQueryExecutor,
+                                  query: ParameterQuery): Unit = {
+    println(s"Graph Loader: ${graphLoader.getClass.getSimpleName}")
+    println(s"Executor: ${executor.getClass.getSimpleName}")
+    println("Query:")
+    println(query)
+    printSparkStats()
+  }
+
+  private def printBorder(): Unit = {
+    println()
+    println("=====================================")
+  }
+
+  private def printResult(queryResult: QueryResult): Unit = {
+    println("-------------------------------------")
+    println("Table results:")
+    queryResult.asDataFrame(_sparkSession.sqlContext).show(100, truncate = false)
+    println("-------------------------------------")
+    println("Raw results:")
+    println(queryResult)
   }
 
 }
@@ -142,6 +184,16 @@ object Experiment {
 
     def withSparkSession(sparkSession: SparkSession): Builder = {
       experiment._sparkSession = sparkSession
+      this
+    }
+
+    def withSaveResults(saveResults: Boolean): Builder = {
+      experiment._saveResults = saveResults
+      this
+    }
+
+    def withPrintEnabled(printResults: Boolean): Builder = {
+      experiment._printEnabled = printResults
       this
     }
 

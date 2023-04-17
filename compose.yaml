@@ -69,6 +69,8 @@ services:
         target: /opt/spark/target
         read_only: false
       - ./log4j.properties:/opt/spark/conf/log4j.properties
+    mem_reservation: 12000M
+    cpu_count: 8
     entrypoint: /opt/spark/bin/spark-submit --class com.lukasnt.spark.App --deploy-mode client --master local --driver-memory 12g --driver-cores 16 --executor-memory 12g --executor-cores 16 --conf spark.executor.instances=2 --conf spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/opt/spark/conf/log4j.properties --conf spark.executor.extraJavaOptions=-Dlog4j.configuration=file:/opt/spark/conf/log4j.properties /opt/spark/target/spark-graphx-scala-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 

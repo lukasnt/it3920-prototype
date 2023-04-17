@@ -77,13 +77,20 @@ class SNBLoader(val datasetRoot: String, propertiesLoader: TemporalPropertiesRea
 
 object SNBLoader {
 
-  def localSf0_003: SNBLoader = SNBLoader("/sf0_003-raw", PartitionedLocalCSV(SingleLocalCSV(SnbCSVProperties)))
+  def getByName(name: String, sqlContext: SQLContext, hdfsRootDir: String = "/user/root"): SNBLoader = name match {
+    case "local-sf0_003" => localSf0_003
+    case "sf0_003"       => sf0_003(sqlContext, hdfsRootDir)
+    case "sf1"           => sf1(sqlContext, hdfsRootDir)
+    case _               => sf0_003(sqlContext, hdfsRootDir)
+  }
 
-  def apply(datasetRoot: String, propertiesLoader: TemporalPropertiesReader[ZonedDateTime]): SNBLoader =
-    new SNBLoader(datasetRoot, propertiesLoader)
+  def localSf0_003: SNBLoader = SNBLoader("/sf0_003-raw", PartitionedLocalCSV(SingleLocalCSV(SnbCSVProperties)))
 
   def sf0_003(sqlContext: SQLContext, hdfsRootDir: String): SNBLoader =
     SNBLoader(s"$hdfsRootDir/sf0.003-raw", SparkCSV(sqlContext, SnbCSVProperties))
+
+  def apply(datasetRoot: String, propertiesLoader: TemporalPropertiesReader[ZonedDateTime]): SNBLoader =
+    new SNBLoader(datasetRoot, propertiesLoader)
 
   def sf1(sqlContext: SQLContext, hdfsRootDir: String): SNBLoader =
     SNBLoader(s"$hdfsRootDir/sf1-raw", SparkCSV(sqlContext, SnbCSVProperties))
