@@ -5,6 +5,8 @@ import com.lukasnt.spark.queries._
 import com.lukasnt.spark.util.{IntervalStates, LengthWeightTable, QueryState}
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 
+import scala.collection.mutable.ListBuffer
+
 class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[PregelVertex, Properties, IntervalStates] {
 
   // Extract query parameters (because ParameterQuery is a non-serializable class)
@@ -19,7 +21,9 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   private val maxLength: Int                                     = parameterQuery.maxLength
   private val topK: Int                                          = parameterQuery.topK
 
-  override def maxIterations(): Int = maxLength + 1
+  //private var historyBuffers: ListBuffer[(VertexId, List[IntervalStates.IntervalTable])] = ListBuffer()
+
+  override def maxIterations(): Int = maxLength
 
   override def activeDirection(): EdgeDirection = EdgeDirection.Out
 
@@ -57,6 +61,8 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         s"mergedMessage: $mergedMessage"
     )*/
 
+    //historyBuffers += ((vertexId, currentState.intervalStates.intervalTables))
+
     PregelVertex(
       queryState = QueryState
         .builder()
@@ -65,7 +71,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         .setCurrentLength(mergedMessage.currentLength)
         .build(),
       intervalStates = currentState.intervalStates
-        .mergeStates(mergedMessage, topK)
+        .mergedStates(mergedMessage, topK)
         .flushedTableStates(topK)
     )
   }
@@ -110,7 +116,6 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
     val newTable = LengthWeightTable(
       history = List(),
       actives = intervalTable.table
-        .filterByLength(currentLength, topK)
         .entries
         .map(
           entry =>
@@ -137,7 +142,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   }
 
   override def mergeMessage(msgA: IntervalStates, msgB: IntervalStates): IntervalStates = {
-    val merged = msgA.mergeStates(msgB, topK)
+    val merged = msgA.mergedStates(msgB, topK)
     /*Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")*/
     merged
   }

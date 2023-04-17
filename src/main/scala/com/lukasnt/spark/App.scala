@@ -25,7 +25,7 @@ class App extends Callable[Int] {
 
   @Command
   def experiment(
-      @Option(names = Array("-n", "--name"), description = Array("Experiment name"), defaultValue = "Experiment")
+      @Option(names = Array("-n", "--name"), description = Array("Name of the experiment"), defaultValue = "Experiment")
       name: String,
       @Option(names = Array("-m", "--max-variables"),
               description = Array("Maximum number of variables run"),
@@ -147,9 +147,9 @@ class App extends Callable[Int] {
       .withVariableSet(
         VariableSet
           .builder()
-          .fromParameterQuery(SimpleParameterQueries.genderDurationPaths())
-          .withTopKVariables(List(25))
-          .withLengthRangeVariables(List((2, 2)))
+          .fromParameterQuery(SimpleParameterQueries.interactionPaths())
+          .withTopKVariables(List(10))
+          .withLengthRangeVariables(List((2, 3)))
           .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
           .withGraphLoaderVariables(List(SNBLoader.getByName("sf1", spark.sqlContext, hdfsRootDir)))
           .build())

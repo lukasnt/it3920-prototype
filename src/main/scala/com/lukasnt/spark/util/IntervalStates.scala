@@ -10,13 +10,17 @@ class IntervalStates extends Serializable {
 
   def updateWithTable(intervalTable: IntervalTable, topK: Int): IntervalStates = {
     if (intervalTables.exists(_.interval == intervalTable.interval)) {
-      this.mergeStates(IntervalStates(List(intervalTable)), topK)
+      this.mergedStates(IntervalStates(List(intervalTable)), topK)
     } else {
       IntervalStates(intervalTables :+ intervalTable)
     }
   }
 
-  def mergeStates(otherStates: IntervalStates, topK: Int): IntervalStates = {
+  def appendedStates(otherStates: IntervalStates): IntervalStates = {
+    IntervalStates(intervalTables ++ otherStates.intervalTables)
+  }
+
+  def mergedStates(otherStates: IntervalStates, topK: Int): IntervalStates = {
     val newIntervalTables = intervalTables ++ otherStates.intervalTables
     IntervalStates(
       newIntervalTables

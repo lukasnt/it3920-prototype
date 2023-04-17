@@ -296,6 +296,6 @@ class IntervalStatesTest {
       )
     )
 
-    assertTrue(states1.mergeStates(states2, topK) == resultStates)
+    assertTrue(states1.mergedStates(states2, topK) == resultStates)
   }
 }
