@@ -28,7 +28,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   override def activeDirection(): EdgeDirection = EdgeDirection.Out
 
   override def initMessages(): IntervalStates = {
-    IntervalStates(List())
+    IntervalStates(ListBuffer())
   }
 
   override def preprocessGraph(temporalGraph: TemporalGraph): Graph[PregelVertex, Properties] = {
@@ -42,7 +42,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
             .applyIntermediateTest(_ => true, attr)
             .applyDestinationTest(vertexAttr => destinationPredicate(AttrVertex(id, vertexAttr)), attr)
             .build(),
-          intervalStates = IntervalStates(List())
+          intervalStates = IntervalStates(ListBuffer())
       )
     )
   }
@@ -68,11 +68,10 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         .builder()
         .fromState(currentState.queryState)
         .incIterations()
-        .setCurrentLength(mergedMessage.currentLength)
         .build(),
       intervalStates = currentState.intervalStates
-        .mergedStates(mergedMessage, topK)
         .flushedTableStates(topK)
+        .mergedStates(mergedMessage, topK)
     )
   }
 
@@ -83,16 +82,14 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
       return Iterator.empty
     }
 
-    val currentLength = triplet.srcAttr.queryState.currentLength
     val currentStates = triplet.srcAttr.intervalStates
     val messageStates = IntervalStates(
       if (currentStates.intervalTables.nonEmpty)
         currentStates
           .intervalFilteredStates(validEdgeInterval, triplet.attr.interval)
-          .lengthFilteredStates(currentLength)
           .intervalTables
-          .map(intervalTable => messageIntervalTable(intervalTable, triplet, currentLength))
-      else List(firstIntervalTable(triplet))
+          .map(intervalTable => messageIntervalTable(intervalTable, triplet))
+      else ListBuffer(firstIntervalTable(triplet))
     )
 
     /*Loggers.default.debug(
@@ -110,20 +107,19 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   }
 
   private def messageIntervalTable(intervalTable: IntervalStates.IntervalTable,
-                                   triplet: EdgeTriplet[PregelVertex, Properties],
-                                   currentLength: Int) = {
+                                   triplet: EdgeTriplet[PregelVertex, Properties]) = {
     val newInterval = nextInterval(intervalTable.interval, triplet.attr.interval)
     val newTable = LengthWeightTable(
-      history = List(),
+      history = ListBuffer(),
       actives = intervalTable.table
-        .entries
+        .activeEntries
         .map(
           entry =>
             LengthWeightTable.Entry(entry.length + 1,
                                     entry.weight + weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)),
                                     triplet.srcId)
         ),
-      topK = topK
+      topK = -1
     )
     IntervalStates.IntervalTable(newInterval, newTable)
   }
@@ -132,17 +128,17 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
     IntervalStates.IntervalTable(
       interval = initInterval(triplet.attr.interval),
       table = LengthWeightTable(
-        history = List(),
-        actives = List(
+        history = ListBuffer(),
+        actives = ListBuffer(
           LengthWeightTable.Entry(1, weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)), triplet.srcId)
         ),
-        topK = topK
+        topK = -1
       )
     )
   }
 
   override def mergeMessage(msgA: IntervalStates, msgB: IntervalStates): IntervalStates = {
-    val merged = msgA.mergedStates(msgB, topK)
+    val merged = msgA.appendedStates(msgB)
     /*Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")*/
     merged
   }

@@ -4,26 +4,24 @@ import com.lukasnt.spark.models.TemporalInterval
 import com.lukasnt.spark.models.Types.Interval
 import com.lukasnt.spark.util.IntervalStates.{IntervalEntry, IntervalTable}
 
+import scala.collection.mutable.ListBuffer
+
 class IntervalStates extends Serializable {
 
-  val intervalTables: List[IntervalTable] = List()
+  val intervalTables: ListBuffer[IntervalTable] = ListBuffer()
 
   def updateWithTable(intervalTable: IntervalTable, topK: Int): IntervalStates = {
     if (intervalTables.exists(_.interval == intervalTable.interval)) {
-      this.mergedStates(IntervalStates(List(intervalTable)), topK)
+      this.mergedStates(IntervalStates(ListBuffer(intervalTable)), topK)
     } else {
       IntervalStates(intervalTables :+ intervalTable)
     }
   }
 
-  def appendedStates(otherStates: IntervalStates): IntervalStates = {
-    IntervalStates(intervalTables ++ otherStates.intervalTables)
-  }
-
   def mergedStates(otherStates: IntervalStates, topK: Int): IntervalStates = {
-    val newIntervalTables = intervalTables ++ otherStates.intervalTables
+    intervalTables ++= otherStates.intervalTables
     IntervalStates(
-      newIntervalTables
+      intervalTables
         .groupBy(intervalTable => intervalTable.interval)
         .map {
           case (interval, tables) =>
@@ -32,8 +30,13 @@ class IntervalStates extends Serializable {
               tables.map(_.table).reduce((a, b) => a.mergeWithTable(b, topK))
             )
         }
-        .toList
+        .to[ListBuffer]
     )
+  }
+
+  def appendedStates(otherStates: IntervalStates): IntervalStates = {
+    intervalTables ++= otherStates.intervalTables
+    this
   }
 
   def intervalFilteredStates(filterFunction: (Interval, Interval) => Boolean, interval: Interval): IntervalStates = {
@@ -59,20 +62,18 @@ class IntervalStates extends Serializable {
             .take(topK))
       .sortBy(_.entry.weight)
       .take(topK)
+      .toList
   }
 
   def flattenEntries: List[IntervalEntry] = {
-    intervalTables.flatMap(intervalTable =>
-      intervalTable.table.entries.map(entry => IntervalEntry(intervalTable.interval, entry)))
+    intervalTables
+      .flatMap(intervalTable => intervalTable.table.entries.map(entry => IntervalEntry(intervalTable.interval, entry)))
+      .toList
   }
 
   def flushedTableStates(topK: Int): IntervalStates = {
     IntervalStates(intervalTables.map(intervalTable =>
       IntervalTable(intervalTable.interval, intervalTable.table.flushActiveEntries(topK))))
-  }
-
-  def firstTable: LengthWeightTable = {
-    if (intervalTables.nonEmpty) intervalTables.head.table else LengthWeightTable(List(), List(), 0)
   }
 
   def firstInterval: Interval = {
@@ -100,8 +101,8 @@ class IntervalStates extends Serializable {
 
 object IntervalStates {
 
-  def apply(data: List[IntervalTable]): IntervalStates = new IntervalStates {
-    override val intervalTables: List[IntervalTable] = data
+  def apply(data: ListBuffer[IntervalTable]): IntervalStates = new IntervalStates {
+    override val intervalTables: ListBuffer[IntervalTable] = data
   }
 
   def apply(): IntervalStates = new IntervalStates
