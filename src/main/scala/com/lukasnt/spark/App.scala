@@ -4,6 +4,8 @@ import com.lukasnt.spark.examples.SimpleParameterQueries
 import com.lukasnt.spark.executors.ParameterQueryExecutor
 import com.lukasnt.spark.experiments.{Experiment, IntPairConverter, VariableOrderConverter, VariableSet}
 import com.lukasnt.spark.io.SNBLoader
+import com.lukasnt.spark.models.TemporalPathType
+import com.lukasnt.spark.queries.ParameterQuery
 import org.apache.spark.sql.SparkSession
 import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}
@@ -52,6 +54,10 @@ class App extends Callable[Int] {
               description = Array("Enable logging of results and info"),
               defaultValue = "true")
       logEnabled: Boolean,
+      @Option(names = Array("-qp", "--query-preset"),
+              description = Array("Query preset"),
+              defaultValue = "city-interaction-duration")
+      queryPreset: String = "city-interaction-duration",
       @Option(names = Array("-ev", "--executor-variables"),
               description = Array("Executor variables"),
               defaultValue = "spark")
@@ -60,6 +66,10 @@ class App extends Callable[Int] {
               description = Array("Graph dataset variables"),
               defaultValue = "sf1")
       graphVariables: Array[String] = Array("sf1"),
+      @Option(names = Array("-tpv", "--temporal-path-variables"),
+              description = Array("Temporal path variables"),
+              defaultValue = "continuous")
+      temporalPathVariables: Array[String] = Array(""),
       @Option(
         names = Array("-lrv", "--length-range-variables"),
         description = Array("Length range variables"),
@@ -67,7 +77,7 @@ class App extends Callable[Int] {
         defaultValue = "1,2"
       )
       lengthRangeVariables: Array[(Int, Int)] = Array((1, 2), (3, 4)),
-      @Option(names = Array("-kv", "--top-k-variables"),
+      @Option(names = Array("-tkv", "--top-k-variables"),
               description = Array("number of top k results"),
               defaultValue = "3")
       topKVariables: Array[Int] = Array(3)
@@ -95,7 +105,8 @@ class App extends Callable[Int] {
       .withVariableSet(
         VariableSet
           .builder()
-          .fromParameterQuery(SimpleParameterQueries.interactionPaths())
+          .fromParameterQuery(ParameterQuery.getByName(queryPreset))
+          .withTemporalPathTypeVariables(temporalPathVariables.map(TemporalPathType.getByName).toList)
           .withTopKVariables(topKVariables.toList)
           .withLengthRangeVariables(lengthRangeVariables.toList)
           .withExecutorVariables(executorVariables.map(ParameterQueryExecutor.getByName).toList)

@@ -51,6 +51,14 @@ trait TemporalPathType extends Serializable {
 
 object TemporalPathType {
 
+  def getByName(name: String): TemporalPathType = name match {
+    case "continuous"          => Continuous
+    case "pairwise-continuous" => PairwiseContinuous
+    case "consecutive"         => Consecutive
+    case "non-temporal"        => NonTemporal
+    case _                     => Continuous
+  }
+
   def Continuous: TemporalPathType = new TemporalPathType {
     override def validEdgeInterval(lastInterval: Interval, edgeInterval: Interval): Boolean = {
       lastInterval.overlaps(edgeInterval)
