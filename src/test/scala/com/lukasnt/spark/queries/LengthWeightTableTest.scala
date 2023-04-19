@@ -4,7 +4,7 @@ import com.lukasnt.spark.util.LengthWeightTable
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.ArrayBuffer
 
 @Test
 class LengthWeightTableTest {
@@ -13,24 +13,24 @@ class LengthWeightTableTest {
   def mergeTables(): Unit = {
     val topK = 3
     val table1 = LengthWeightTable(
-      history = ListBuffer(),
-      actives = ListBuffer(
+      history = ArrayBuffer(),
+      actives = ArrayBuffer(
         LengthWeightTable.Entry(1, 0.23423f, 25123L),
         LengthWeightTable.Entry(1, 1.23423f, 25123L)
       ),
       topK
     )
     val table2 = LengthWeightTable(
-      history = ListBuffer(),
-      actives = ListBuffer(
+      history = ArrayBuffer(),
+      actives = ArrayBuffer(
         LengthWeightTable.Entry(1, 0.23423f, 25123L),
         LengthWeightTable.Entry(1, 1.23423f, 25123L)
       ),
       topK
     )
     val result = LengthWeightTable(
-      history = ListBuffer(),
-      actives = ListBuffer(
+      history = ArrayBuffer(),
+      actives = ArrayBuffer(
         LengthWeightTable.Entry(1, 0.23423f, 25123L),
         LengthWeightTable.Entry(1, 0.23423f, 25123L),
         LengthWeightTable.Entry(1, 1.23423f, 25123L)
@@ -48,24 +48,24 @@ class LengthWeightTableTest {
     val topK = 3
     val tableList = List(
       LengthWeightTable(
-        history = ListBuffer(),
-        actives = ListBuffer(
+        history = ArrayBuffer(),
+        actives = ArrayBuffer(
           LengthWeightTable.Entry(1, 0.23423f, 25123L),
           LengthWeightTable.Entry(1, 1.23423f, 25123L)
         ),
         topK
       ),
       LengthWeightTable(
-        history = ListBuffer(),
-        actives = ListBuffer(
+        history = ArrayBuffer(),
+        actives = ArrayBuffer(
           LengthWeightTable.Entry(1, 0.23423f, 25123L),
           LengthWeightTable.Entry(1, 1.23423f, 25123L)
         ),
         topK
       ),
       LengthWeightTable(
-        history = ListBuffer(),
-        actives = ListBuffer(
+        history = ArrayBuffer(),
+        actives = ArrayBuffer(
           LengthWeightTable.Entry(1, 0.23423f, 25123L),
           LengthWeightTable.Entry(1, 0.23423f, 25123L),
           LengthWeightTable.Entry(1, 1.23423f, 25123L)
@@ -75,8 +75,8 @@ class LengthWeightTableTest {
     )
 
     val result = LengthWeightTable(
-      history = ListBuffer(),
-      actives = ListBuffer(
+      history = ArrayBuffer(),
+      actives = ArrayBuffer(
         LengthWeightTable.Entry(1, 0.23423f, 25123L),
         LengthWeightTable.Entry(1, 0.23423f, 25123L),
         LengthWeightTable.Entry(1, 0.23423f, 25123L)
@@ -86,7 +86,6 @@ class LengthWeightTableTest {
 
     val reducedTable = tableList.reduce((a, b) => a.mergeWithTable(b, topK))
     assertTrue(reducedTable == result)
-    assertTrue(reducedTable.activeEntries.length == 3
-    )
+    assertTrue(reducedTable.activeEntries.length == 3)
   }
 }

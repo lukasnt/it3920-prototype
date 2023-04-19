@@ -2,16 +2,21 @@ package com.lukasnt.spark.util
 
 import com.lukasnt.spark.models.TemporalInterval
 import com.lukasnt.spark.models.Types.Interval
-import com.lukasnt.spark.util.IntervalStates.{IntervalEntry, IntervalTable}
+import com.lukasnt.spark.util.IntervalStates.IntervalEntry
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.immutable.HashMap
 
 class IntervalStates extends Serializable {
 
-  val intervalTables: ListBuffer[IntervalTable] = ListBuffer()
+  val intervalTables: HashMap[Interval, LengthWeightTable] = HashMap()
 
   def mergedStates(otherStates: IntervalStates, topK: Int): IntervalStates = {
-    intervalTables ++= otherStates.intervalTables
+    IntervalStates(intervalTables.merged(otherStates.intervalTables) {
+      case ((interval, thisTable), (_, otherTable)) =>
+        (interval, thisTable.mergeWithTable(otherTable, topK))
+    })
+
+    /*intervalTables ++= otherStates.intervalTables
     IntervalStates(
       intervalTables
         .groupBy(intervalTable => intervalTable.interval)
@@ -23,64 +28,72 @@ class IntervalStates extends Serializable {
             )
         }
         .to[ListBuffer]
-    )
+    )*/
   }
 
-  def appendedStates(otherStates: IntervalStates): IntervalStates = {
+  /*def appendedStates(otherStates: IntervalStates): IntervalStates = {
     intervalTables ++= otherStates.intervalTables
     this
-  }
+  }*/
 
   def intervalFilteredStates(filterFunction: (Interval, Interval) => Boolean, interval: Interval): IntervalStates = {
-    IntervalStates(intervalTables.filter(intervalTable => filterFunction(intervalTable.interval, interval)))
+    IntervalStates(intervalTables.filter {
+      case (tableInterval, _) => filterFunction(tableInterval, interval)
+    })
   }
 
   def lengthFilteredStates(length: Int): IntervalStates = {
     IntervalStates(
       intervalTables
-        .map(intervalTable =>
-          IntervalTable(intervalTable.interval, intervalTable.table.filterByLength(length, topK = -1)))
-        .filter(_.table.entries.nonEmpty)
+        .map {
+          case (tableInterval, table) => (tableInterval, table.filterByLength(length, topK = -1))
+        }
+        .filter {
+          case (_, table) => table.entries.nonEmpty
+        }
     )
   }
 
   def flattenEntries(topK: Int): List[IntervalEntry] = {
     intervalTables
-      .flatMap(
-        intervalTable =>
-          intervalTable.table.entries
-            .map(entry => IntervalEntry(intervalTable.interval, entry))
+      .flatMap {
+        case (tableInterval, table) =>
+          table.entries
+            .map(entry => IntervalEntry(tableInterval, entry))
             .sortBy(_.entry.weight)
-            .take(topK))
+            .take(topK)
+      }
+      .toList
       .sortBy(_.entry.weight)
       .take(topK)
-      .toList
   }
 
   def flattenEntries: List[IntervalEntry] = {
-    intervalTables
-      .flatMap(intervalTable => intervalTable.table.entries.map(entry => IntervalEntry(intervalTable.interval, entry)))
-      .toList
+    intervalTables.flatMap {
+      case (tableInterval, table) => table.entries.map(entry => IntervalEntry(tableInterval, entry))
+    }.toList
   }
 
   def flushedTableStates(topK: Int): IntervalStates = {
-    IntervalStates(intervalTables.map(intervalTable =>
-      IntervalTable(intervalTable.interval, intervalTable.table.flushActiveEntries(topK))))
+    IntervalStates(
+      intervalTables.map {
+        case (tableInterval, table) => (tableInterval, table.flushActiveEntries(topK))
+      }
+    )
   }
 
   def firstInterval: Interval = {
-    if (intervalTables.nonEmpty) intervalTables.head.interval else TemporalInterval()
+    if (intervalTables.nonEmpty) intervalTables.head._1 else TemporalInterval()
   }
 
   def currentLength: Int = {
-    if (intervalTables.nonEmpty) intervalTables.map(_.table.currentLength).max else 0
+    if (intervalTables.nonEmpty) intervalTables.map { case (_, table) => table.currentLength }.max else 0
   }
 
   override def equals(other: Any): Boolean = {
     other match {
       case otherStates: IntervalStates =>
-        this.intervalTables.sortBy(_.interval.startTime.toInstant) ==
-          otherStates.intervalTables.sortBy(_.interval.startTime.toInstant)
+        this.intervalTables.keysIterator.sameElements(otherStates.intervalTables.keysIterator)
       case _ => false
     }
   }
@@ -93,8 +106,8 @@ class IntervalStates extends Serializable {
 
 object IntervalStates {
 
-  def apply(data: ListBuffer[IntervalTable]): IntervalStates = new IntervalStates {
-    override val intervalTables: ListBuffer[IntervalTable] = data
+  def apply(data: HashMap[Interval, LengthWeightTable]): IntervalStates = new IntervalStates {
+    override val intervalTables: HashMap[Interval, LengthWeightTable] = data
   }
 
   def apply(): IntervalStates = new IntervalStates

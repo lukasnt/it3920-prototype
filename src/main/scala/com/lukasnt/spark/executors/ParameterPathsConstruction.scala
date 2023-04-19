@@ -69,9 +69,10 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     pathTable.mergeWithTable(
       // Merge all interval tables into one path-table
       other = intervalStates.intervalTables
-        .map(intervalTable => {
-          createPathTable(intervalTable.table, vertex, topK, minLength, maxLength, intervalTable.interval)
-        })
+        .map {
+          case (tableInterval, table) =>
+            createPathTable(table, vertex, topK, minLength, maxLength, tableInterval)
+        }
         .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK)),
       topK = topK
     )

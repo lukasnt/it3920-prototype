@@ -5,7 +5,8 @@ import com.lukasnt.spark.queries._
 import com.lukasnt.spark.util.{IntervalStates, LengthWeightTable, QueryState}
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.immutable.HashMap
+import scala.collection.mutable.ArrayBuffer
 
 class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[PregelVertex, Properties, IntervalStates] {
 
@@ -28,7 +29,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   override def activeDirection(): EdgeDirection = EdgeDirection.Out
 
   override def initMessages(): IntervalStates = {
-    IntervalStates(ListBuffer())
+    IntervalStates(HashMap())
   }
 
   override def preprocessGraph(temporalGraph: TemporalGraph): Graph[PregelVertex, Properties] = {
@@ -42,7 +43,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
             .applyIntermediateTest(_ => true, attr)
             .applyDestinationTest(vertexAttr => destinationPredicate(AttrVertex(id, vertexAttr)), attr)
             .build(),
-          intervalStates = IntervalStates(ListBuffer())
+          intervalStates = IntervalStates(HashMap())
       )
     )
   }
@@ -88,8 +89,8 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         currentStates
           .intervalFilteredStates(validEdgeInterval, triplet.attr.interval)
           .intervalTables
-          .map(intervalTable => messageIntervalTable(intervalTable, triplet))
-      else ListBuffer(firstIntervalTable(triplet))
+          .map(entry => messageIntervalTable(entry, triplet))
+      else HashMap(firstIntervalTable(triplet))
     )
 
     /*Loggers.default.debug(
@@ -106,13 +107,13 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
     Iterator((triplet.dstId, messageStates))
   }
 
-  private def messageIntervalTable(intervalTable: IntervalStates.IntervalTable,
-                                   triplet: EdgeTriplet[PregelVertex, Properties]) = {
-    val newInterval = nextInterval(intervalTable.interval, triplet.attr.interval)
+  private def messageIntervalTable(intervalTableEntry: (Interval, LengthWeightTable),
+                                   triplet: EdgeTriplet[PregelVertex, Properties]): (Interval, LengthWeightTable) = {
+    val (interval: Interval, table: LengthWeightTable) = intervalTableEntry
+    val newInterval                                    = nextInterval(interval, triplet.attr.interval)
     val newTable = LengthWeightTable(
-      history = ListBuffer(),
-      actives = intervalTable.table
-        .activeEntries
+      history = ArrayBuffer(),
+      actives = table.activeEntries
         .map(
           entry =>
             LengthWeightTable.Entry(entry.length + 1,
@@ -121,24 +122,22 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         ),
       topK = -1
     )
-    IntervalStates.IntervalTable(newInterval, newTable)
+    (newInterval, newTable)
   }
 
-  private def firstIntervalTable(triplet: EdgeTriplet[PregelVertex, Properties]): IntervalStates.IntervalTable = {
-    IntervalStates.IntervalTable(
-      interval = initInterval(triplet.attr.interval),
-      table = LengthWeightTable(
-        history = ListBuffer(),
-        actives = ListBuffer(
-          LengthWeightTable.Entry(1, weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)), triplet.srcId)
-        ),
-        topK = -1
-      )
-    )
+  private def firstIntervalTable(triplet: EdgeTriplet[PregelVertex, Properties]): (Interval, LengthWeightTable) = {
+    (initInterval(triplet.attr.interval),
+     LengthWeightTable(
+       history = ArrayBuffer(),
+       actives = ArrayBuffer(
+         LengthWeightTable.Entry(1, weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)), triplet.srcId)
+       ),
+       topK = -1
+     ))
   }
 
   override def mergeMessage(msgA: IntervalStates, msgB: IntervalStates): IntervalStates = {
-    val merged = msgA.appendedStates(msgB)
+    val merged = msgA.mergedStates(msgB, topK)
     /*Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")*/
     merged
   }

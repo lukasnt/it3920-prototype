@@ -3,12 +3,12 @@ package com.lukasnt.spark.util
 import com.lukasnt.spark.util.LengthWeightTable.Entry
 import org.apache.spark.graphx.VertexId
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.ArrayBuffer
 
 class LengthWeightTable() extends Serializable {
 
-  val historyEntries: ListBuffer[Entry] = ListBuffer()
-  val activeEntries: ListBuffer[Entry]  = ListBuffer()
+  val historyEntries: ArrayBuffer[Entry] = ArrayBuffer()
+  val activeEntries: ArrayBuffer[Entry]  = ArrayBuffer()
 
   def updateWithEntry(entry: Entry, topK: Int): LengthWeightTable = {
     activeEntries += entry
@@ -16,13 +16,11 @@ class LengthWeightTable() extends Serializable {
   }
 
   def mergeWithTable(other: LengthWeightTable, topK: Int): LengthWeightTable = {
-    activeEntries ++= other.activeEntries
-    LengthWeightTable(historyEntries, activeEntries, topK)
+    LengthWeightTable(historyEntries, activeEntries ++ other.activeEntries, topK)
   }
 
   def flushActiveEntries(topK: Int): LengthWeightTable = {
-    historyEntries ++= activeEntries
-    LengthWeightTable(historyEntries, ListBuffer(), topK)
+    LengthWeightTable(historyEntries ++ activeEntries, ArrayBuffer(), topK)
   }
 
   def filterByLengthRange(minLength: Int, maxLength: Int, topK: Int): LengthWeightTable = {
@@ -69,17 +67,16 @@ class LengthWeightTable() extends Serializable {
 
 object LengthWeightTable {
 
-
-  def apply(history: ListBuffer[Entry], actives: ListBuffer[Entry], topK: Int): LengthWeightTable = new LengthWeightTable() {
-    override val historyEntries: ListBuffer[Entry] = {
-      if (topK == -1) history
-      else history.sortBy(_.weight).take(topK)
+  def apply(history: ArrayBuffer[Entry], actives: ArrayBuffer[Entry], topK: Int): LengthWeightTable =
+    new LengthWeightTable() {
+      override val historyEntries: ArrayBuffer[Entry] = {
+        history
+      }
+      override val activeEntries: ArrayBuffer[Entry] = {
+        if (topK == -1) actives.sortBy(_.weight)
+        else actives.sortBy(_.weight).take(topK)
+      }
     }
-    override val activeEntries: ListBuffer[Entry] = {
-      if (topK == -1) actives
-      else actives.sortBy(_.weight).take(topK)
-    }
-  }
 
   case class Entry(length: Int, weight: Float, parentId: VertexId) {
     override def toString: String = {
