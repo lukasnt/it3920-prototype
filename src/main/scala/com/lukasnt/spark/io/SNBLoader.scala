@@ -11,36 +11,40 @@ import org.apache.spark.sql.SQLContext
 import java.time.ZonedDateTime
 import java.time.temporal.Temporal
 
-class SNBLoader(val datasetRoot: String, propertiesLoader: TemporalPropertiesReader[ZonedDateTime])
+class SNBLoader(val datasetRoot: String,
+                propertiesLoader: TemporalPropertiesReader[ZonedDateTime],
+                val personGraph: Boolean = true)
     extends TemporalGraphLoader[ZonedDateTime] {
 
   private val DATA_GEN_ROOT = s"$datasetRoot/graphs/csv/raw/composite-merged-fk/dynamic"
   private val VERTEX_LABELS = List(
-    "Person"
-    //"Forum",
-    //"Comment"
+    "Person",
+    "Forum",
+    "Comment"
   )
   private val EDGE_LABELS = List(
-    /*("Comment_hasTag_Tag", "Comment", "Tag"),
+    ("Comment_hasTag_Tag", "Comment", "Tag"),
     ("Forum_hasMember_Person", "Forum", "Person"),
     ("Forum_hasTag_Tag", "Forum", "Tag"),
-    ("Person_hasInterest_Tag", "Person", "Tag"),*/
-    ("Person_knows_Person", "Person1", "Person2")
-    /*("Person_likes_Comment", "Person", "Comment"),
+    ("Person_hasInterest_Tag", "Person", "Tag"),
+    ("Person_knows_Person", "Person1", "Person2"),
+    ("Person_likes_Comment", "Person", "Comment"),
     ("Person_likes_Post", "Person", "Post"),
     ("Person_studyAt_University", "Person", "University"),
     ("Person_workAt_Company", "Person", "Company"),
-    ("Post_hasTag_Tag", "Post", "Tag")*/
+    ("Post_hasTag_Tag", "Post", "Tag")
   )
 
   override def load(sc: SparkContext): TemporalGraph = {
     // Load edges
     val edges: RDD[Edge[TemporalProperties[ZonedDateTime]]] = EDGE_LABELS
+      .filter(label => !personGraph || label._1 == "Person_knows_Person")
       .map(label => propertiesLoader.readEdgesFile(sc, s"$DATA_GEN_ROOT/${label._1}/", label._1, label._2, label._3))
       .reduce(_ union _)
 
     // Load vertices
     val vertices: RDD[(VertexId, TemporalProperties[ZonedDateTime])] = VERTEX_LABELS
+      .filter(label => !personGraph || label == "Person")
       .map(label => propertiesLoader.readVerticesFile(sc, s"$DATA_GEN_ROOT/$label/", label))
       .reduce(_ union _)
 

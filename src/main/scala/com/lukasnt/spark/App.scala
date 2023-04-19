@@ -66,33 +66,35 @@ class App extends Callable[Int] {
               description = Array("Graph dataset variables"),
               defaultValue = "sf1")
       graphVariables: Array[String] = Array("sf1"),
-      @Option(names = Array("-tpv", "--temporal-path-variables"),
-              description = Array("Temporal path variables"),
-              defaultValue = "continuous")
-      temporalPathVariables: Array[String] = Array(""),
+      @Option(names = Array("-tpv", "--temporal-path-variables"), description = Array("Temporal path variables"))
+      temporalPathVariables: Array[String] = Array(),
       @Option(
         names = Array("-lrv", "--length-range-variables"),
         description = Array("Length range variables"),
-        converter = Array(classOf[IntPairConverter]),
-        defaultValue = "1,2"
+        converter = Array(classOf[IntPairConverter])
       )
-      lengthRangeVariables: Array[(Int, Int)] = Array((1, 2), (3, 4)),
-      @Option(names = Array("-tkv", "--top-k-variables"),
-              description = Array("number of top k results"),
-              defaultValue = "3")
-      topKVariables: Array[Int] = Array(3)
+      lengthRangeVariables: Array[(Int, Int)] = Array(),
+      @Option(names = Array("-tkv", "--top-k-variables"), description = Array("number of top k results"))
+      topKVariables: Array[Int] = Array()
   ): Unit = {
-
     println(
-      s"Experiment: $name, " +
-        s"maxVariables: $maxVariables, " +
-        s"runsPerVariable: $runsPerVariable, " +
-        s"variableOrder: $variableOrder, " +
-        s"lengthRangeVariables: ${lengthRangeVariables.mkString(", ")}, " +
-        s"topKVariables: ${topKVariables.mkString(", ")}"
+      s"Experiment: $name\n" +
+        s"maxVariables: $maxVariables\n" +
+        s"runsPerVariable: $runsPerVariable\n" +
+        s"variableOrder: $variableOrder\n" +
+        s"saveResults: $saveResults\n" +
+        s"printEnabled: $printEnabled\n" +
+        s"logEnabled: $logEnabled\n" +
+        s"queryPreset: $queryPreset\n" +
+        s"executorVariables: ${if (executorVariables != null) executorVariables.mkString(", ")}\n" +
+        s"graphVariables: ${if (graphVariables != null) graphVariables.mkString(", ")}\n" +
+        s"temporalPathVariables: ${if (temporalPathVariables != null) temporalPathVariables.mkString(", ")}\n" +
+        s"lengthRangeVariables: ${if (lengthRangeVariables != null) lengthRangeVariables.mkString(", ")}\n" +
+        s"topKVariables: ${if (topKVariables != null) topKVariables.mkString(", ")}"
     )
 
-    val spark = SparkSession.builder().getOrCreate()
+    val spark                                = SparkSession.builder().getOrCreate()
+    val parameterQueryPreset: ParameterQuery = ParameterQuery.getByName(queryPreset)
     Experiment
       .builder()
       .withName(name)
@@ -105,12 +107,21 @@ class App extends Callable[Int] {
       .withVariableSet(
         VariableSet
           .builder()
-          .fromParameterQuery(ParameterQuery.getByName(queryPreset))
-          .withTemporalPathTypeVariables(temporalPathVariables.map(TemporalPathType.getByName).toList)
-          .withTopKVariables(topKVariables.toList)
-          .withLengthRangeVariables(lengthRangeVariables.toList)
           .withExecutorVariables(executorVariables.map(ParameterQueryExecutor.getByName).toList)
           .withGraphLoaderVariables(graphVariables.map(SNBLoader.getByName(_, spark.sqlContext, hdfsRootDir)).toList)
+          .fromParameterQuery(parameterQueryPreset)
+          .withTemporalPathTypeVariables(
+            if (temporalPathVariables != null) temporalPathVariables.map(TemporalPathType.getByName).toList
+            else List(parameterQueryPreset.temporalPathType)
+          )
+          .withTopKVariables(
+            if (topKVariables != null) topKVariables.toList
+            else List(parameterQueryPreset.topK)
+          )
+          .withLengthRangeVariables(
+            if (lengthRangeVariables != null) lengthRangeVariables.toList
+            else List((parameterQueryPreset.minLength, parameterQueryPreset.maxLength))
+          )
           .build())
       .build()
       .run()
@@ -121,13 +132,13 @@ class App extends Callable[Int] {
     val spark = SparkSession.builder().getOrCreate()
     val genderDurationSf0_003 = Experiment
       .builder()
-      .withName("GenderDurationSf0_003")
+      .withName("gender-interaction-duration-sf0_003")
       .withSparkSession(spark)
       .withMaxVariables(8)
       .withRunsPerVariable(1)
       .withVariableOrder(Experiment.VariableOrder.Ascending)
       .withSaveResults(true)
-      .withPrintEnabled(false)
+      .withPrintEnabled(true)
       .withVariableSet(
         VariableSet
           .builder()
@@ -148,7 +159,7 @@ class App extends Callable[Int] {
 
     val interactionDurationSf1 = Experiment
       .builder()
-      .withName("InteractionDurationSf1")
+      .withName("city-interaction-duration-sf1")
       .withSparkSession(spark)
       .withMaxVariables(2)
       .withRunsPerVariable(1)
@@ -184,7 +195,7 @@ object App {
 
   def main(args: Array[String]): Unit = {
     println("Hello World!")
-    System.exit(new CommandLine(new App()).execute(args: _*))
+    new CommandLine(new App()).execute(args: _*)
   }
 
 }
