@@ -25,14 +25,10 @@ services:
         target: /opt/zeppelin/logs
         read_only: false
       - ./log4j.properties:/opt/zeppelin/spark/conf/log4j.properties
-    mem_reservation: 12000M
-    cpu_count: 8
     command: /opt/zeppelin/bin/zeppelin-daemon.sh upstart
     tty: true
 
   package-restart:
-    depends_on:
-      - zeppelin
     build:
       context: .
       target: mvn-package
