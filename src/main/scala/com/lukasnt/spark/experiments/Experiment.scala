@@ -4,32 +4,42 @@ import com.lukasnt.spark.executors.ParameterQueryExecutor
 import com.lukasnt.spark.io.TemporalGraphLoader
 import com.lukasnt.spark.models.Types.TemporalGraph
 import com.lukasnt.spark.queries.{ParameterQuery, QueryResult}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{Row, SQLContext, SparkSession}
 
-import java.time.ZonedDateTime
+import java.time.{LocalDateTime, ZoneOffset, ZonedDateTime}
 
 class Experiment {
 
   var results: List[QueryExecutionResult] = List()
+  private var _dateStarted: LocalDateTime = LocalDateTime.now()
   private var _name: String               = "Experiment"
   private var _variableSet                = new VariableSet()
   private var _variableOrder              = Experiment.VariableOrder.Ascending
   private var _runsPerVariable            = 10
   private var _maxVariables               = 5
   private var _saveResults                = true
+  private var _writeResults               = true
   private var _printEnabled               = true
+  private var _logEnabled                 = true
+  private var _resultDir: String          = "results"
   private var _sparkSession: SparkSession = SparkSession.builder().getOrCreate()
 
-  def name: String                                  = this._name
-  def runsPerVariable: Int                          = this._runsPerVariable
-  def variableSet: VariableSet                      = this._variableSet
+  def runsPerVariable: Int = this._runsPerVariable
+
+  def variableSet: VariableSet = this._variableSet
+
   def variableOrder: Experiment.VariableOrder.Value = this._variableOrder
-  def maxVariables: Int                             = this._maxVariables
-  def sparkSession: SparkSession                    = this._sparkSession
+
+  def maxVariables: Int = this._maxVariables
 
   def run(runsPerVariable: Int = _runsPerVariable,
           variableOrder: Experiment.VariableOrder.Value = _variableOrder,
           maxVariables: Int = _maxVariables): Unit = {
+    if (_writeResults) {
+      // Initialize result file
+      initResultFile()
+    }
 
     val queries: List[VariableSet.QueryExecutionSet] = variableOrder match {
       case Experiment.VariableOrder.Ascending  => _variableSet.ascendingQueries
@@ -40,8 +50,8 @@ class Experiment {
 
     val queriesToRun: List[VariableSet.QueryExecutionSet] = queries.take(maxVariables)
     queriesToRun.foreach {
-      case VariableSet.QueryExecutionSet(query, graphLoader, executor) =>
-        (1 to runsPerVariable).foreach { _ =>
+      case VariableSet.QueryExecutionSet(query, graphLoader, executor, executorCount) =>
+        (1 to runsPerVariable).foreach { runNumber =>
           if (_printEnabled) {
             // Print experiment info
             clearSparkResources()
@@ -83,24 +93,21 @@ class Experiment {
             printBorder()
           }
 
-          if (_saveResults) {
-            this.results = this.results :+ QueryExecutionResult(
-              query = query,
-              graphName = graphLoader.getClass.getSimpleName,
-              executorName = executor.getClass.getSimpleName,
-              queryResult = queryResult,
-              executionTime = queryExecutionTime
-            )
-          }
+          val result = QueryExecutionResult(
+            runNumber = runNumber,
+            query = query,
+            graphName = graphLoader.getClass.getSimpleName,
+            sparkExecutorInstances = executorCount,
+            executorName = executor.getClass.getSimpleName,
+            queryResult = queryResult,
+            executionTime = queryExecutionTime
+          )
+
+          if (_saveResults) this.results = this.results :+ result
+          if (_writeResults) appendResultToFile(result)
         }
     }
 
-  }
-
-  private def printSparkStats(): Unit = {
-    println(s"Spark Memory Status: ${_sparkSession.sparkContext.getExecutorMemoryStatus}")
-    println(s"Spark RDD Storage Info:")
-    println(_sparkSession.sparkContext.getRDDStorageInfo.mkString("\n"))
   }
 
   private def clearSparkResources(): Unit = {
@@ -129,6 +136,12 @@ class Experiment {
     printSparkStats()
   }
 
+  private def printSparkStats(): Unit = {
+    println(s"Spark Memory Status: ${_sparkSession.sparkContext.getExecutorMemoryStatus}")
+    println(s"Spark RDD Storage Info:")
+    println(_sparkSession.sparkContext.getRDDStorageInfo.mkString("\n"))
+  }
+
   private def printBorder(): Unit = {
     println()
     println("=====================================")
@@ -143,6 +156,34 @@ class Experiment {
     println(queryResult)
   }
 
+  private def initResultFile(): Unit = {
+    _dateStarted = LocalDateTime.now()
+    val sqlContext: SQLContext              = _sparkSession.sqlContext
+    val emptyRDD: RDD[QueryExecutionResult] = _sparkSession.sparkContext.emptyRDD
+    sqlContext
+      .createDataFrame(new java.util.ArrayList[Row](), QueryExecutionResult.infoResultsAsDataFrameSchema())
+      .write
+      .option("header", "true")
+      .mode("overwrite")
+      .csv(s"${_resultDir}/$getFileName")
+  }
+
+  private def appendResultToFile(queryExecutionResult: QueryExecutionResult): Unit = {
+    val sqlContext: SQLContext = _sparkSession.sqlContext
+    sqlContext
+      .createDataFrame(sqlContext.sparkContext.parallelize(List(queryExecutionResult.infoResultsAsDataFrame())), QueryExecutionResult.infoResultsAsDataFrameSchema())
+      .write
+      .mode("append")
+      .csv(s"${_resultDir}/$getFileName")
+  }
+
+  private def getFileName: String = {
+    s"${_name}-${_dateStarted.toLocalDate}${_dateStarted.toInstant(ZoneOffset.UTC).toEpochMilli}.csv"
+  }
+
+  def sparkSession: SparkSession = this._sparkSession
+
+  def name: String = this._name
 }
 
 object Experiment {
@@ -192,8 +233,23 @@ object Experiment {
       this
     }
 
+    def withWriteResults(writeResults: Boolean): Builder = {
+      experiment._writeResults = writeResults
+      this
+    }
+
     def withPrintEnabled(printResults: Boolean): Builder = {
       experiment._printEnabled = printResults
+      this
+    }
+
+    def withLogEnabled(logEnabled: Boolean): Builder = {
+      experiment._logEnabled = logEnabled
+      this
+    }
+
+    def withResultDir(resultDir: String): Builder = {
+      experiment._resultDir = resultDir
       this
     }
 

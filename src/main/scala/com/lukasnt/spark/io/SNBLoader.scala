@@ -13,38 +13,39 @@ import java.time.temporal.Temporal
 
 class SNBLoader(val datasetRoot: String,
                 propertiesLoader: TemporalPropertiesReader[ZonedDateTime],
-                val personGraph: Boolean = true)
+                val fullGraph: Boolean = false)
     extends TemporalGraphLoader[ZonedDateTime] {
 
   private val DATA_GEN_ROOT = s"$datasetRoot/graphs/csv/raw/composite-merged-fk/dynamic"
   private val VERTEX_LABELS = List(
     "Person",
-    "Forum",
-    "Comment"
+    "Comment",
+    "Post",
+    "Forum"
   )
   private val EDGE_LABELS = List(
-    ("Comment_hasTag_Tag", "Comment", "Tag"),
-    ("Forum_hasMember_Person", "Forum", "Person"),
-    ("Forum_hasTag_Tag", "Forum", "Tag"),
-    ("Person_hasInterest_Tag", "Person", "Tag"),
     ("Person_knows_Person", "Person1", "Person2"),
     ("Person_likes_Comment", "Person", "Comment"),
     ("Person_likes_Post", "Person", "Post"),
-    ("Person_studyAt_University", "Person", "University"),
-    ("Person_workAt_Company", "Person", "Company"),
-    ("Post_hasTag_Tag", "Post", "Tag")
+    //("Person_studyAt_University", "Person", "University"),
+    //("Person_workAt_Company", "Person", "Company"),
+    ("Forum_hasMember_Person", "Forum", "Person")
+    //("Comment_hasTag_Tag", "Comment", "Tag"),
+    //("Forum_hasTag_Tag", "Forum", "Tag"),
+    //("Person_hasInterest_Tag", "Person", "Tag"),
+    //("Post_hasTag_Tag", "Post", "Tag")
   )
 
   override def load(sc: SparkContext): TemporalGraph = {
     // Load edges
     val edges: RDD[Edge[TemporalProperties[ZonedDateTime]]] = EDGE_LABELS
-      .filter(label => !personGraph || label._1 == "Person_knows_Person")
+      .filter(label => fullGraph || label._1 == "Person_knows_Person")
       .map(label => propertiesLoader.readEdgesFile(sc, s"$DATA_GEN_ROOT/${label._1}/", label._1, label._2, label._3))
       .reduce(_ union _)
 
     // Load vertices
     val vertices: RDD[(VertexId, TemporalProperties[ZonedDateTime])] = VERTEX_LABELS
-      .filter(label => !personGraph || label == "Person")
+      .filter(label => fullGraph || label == "Person")
       .map(label => propertiesLoader.readVerticesFile(sc, s"$DATA_GEN_ROOT/$label/", label))
       .reduce(_ union _)
 
@@ -90,13 +91,13 @@ object SNBLoader {
 
   def localSf0_003: SNBLoader = SNBLoader("/sf0_003-raw", PartitionedLocalCSV(SingleLocalCSV(SnbCSVProperties)))
 
-  def sf0_003(sqlContext: SQLContext, hdfsRootDir: String): SNBLoader =
-    SNBLoader(s"$hdfsRootDir/sf0.003-raw", SparkCSV(sqlContext, SnbCSVProperties))
+  def sf0_003(sqlContext: SQLContext, hdfsRootDir: String, fullGraph: Boolean = false): SNBLoader =
+    SNBLoader(s"$hdfsRootDir/sf0.003-raw", SparkCSV(sqlContext, SnbCSVProperties), fullGraph)
 
-  def apply(datasetRoot: String, propertiesLoader: TemporalPropertiesReader[ZonedDateTime]): SNBLoader =
-    new SNBLoader(datasetRoot, propertiesLoader)
+  def apply(datasetRoot: String, propertiesLoader: TemporalPropertiesReader[ZonedDateTime], fullGraph: Boolean = false): SNBLoader =
+    new SNBLoader(datasetRoot, propertiesLoader, fullGraph)
 
-  def sf1(sqlContext: SQLContext, hdfsRootDir: String): SNBLoader =
-    SNBLoader(s"$hdfsRootDir/sf1-raw", SparkCSV(sqlContext, SnbCSVProperties))
+  def sf1(sqlContext: SQLContext, hdfsRootDir: String, fullGraph: Boolean = false): SNBLoader =
+    SNBLoader(s"$hdfsRootDir/sf1-raw", SparkCSV(sqlContext, SnbCSVProperties), fullGraph)
 
 }

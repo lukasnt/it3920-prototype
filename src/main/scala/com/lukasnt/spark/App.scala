@@ -54,6 +54,10 @@ class App extends Callable[Int] {
               description = Array("Enable logging of results and info"),
               defaultValue = "true")
       logEnabled: Boolean,
+      @Option(names = Array("-w", "--write-enabled"),
+              description = Array("Enable writing of results and info to file"),
+              defaultValue = "true")
+      writeEnabled: Boolean,
       @Option(names = Array("-qp", "--query-preset"),
               description = Array("Query preset"),
               defaultValue = "city-interaction-duration")
@@ -66,6 +70,10 @@ class App extends Callable[Int] {
               description = Array("Graph dataset variables"),
               defaultValue = "sf1")
       graphVariables: Array[String] = Array("sf1"),
+      @Option(names = Array("-ecv", "--executor-count-variables"),
+              description = Array("Executor count variables"),
+              defaultValue = "4")
+      executorCountVariables: Array[Int] = Array(4),
       @Option(names = Array("-tpv", "--temporal-path-variables"), description = Array("Temporal path variables"))
       temporalPathVariables: Array[String] = Array(),
       @Option(
@@ -85,9 +93,11 @@ class App extends Callable[Int] {
         s"saveResults: $saveResults\n" +
         s"printEnabled: $printEnabled\n" +
         s"logEnabled: $logEnabled\n" +
+        s"writeEnabled: $writeEnabled\n" +
         s"queryPreset: $queryPreset\n" +
         s"executorVariables: ${if (executorVariables != null) executorVariables.mkString(", ")}\n" +
         s"graphVariables: ${if (graphVariables != null) graphVariables.mkString(", ")}\n" +
+        s"executorCountVariables: ${if (executorCountVariables != null) executorCountVariables.mkString(", ")}\n" +
         s"temporalPathVariables: ${if (temporalPathVariables != null) temporalPathVariables.mkString(", ")}\n" +
         s"lengthRangeVariables: ${if (lengthRangeVariables != null) lengthRangeVariables.mkString(", ")}\n" +
         s"topKVariables: ${if (topKVariables != null) topKVariables.mkString(", ")}"
@@ -104,11 +114,15 @@ class App extends Callable[Int] {
       .withVariableOrder(Experiment.VariableOrder.Ascending)
       .withSaveResults(saveResults)
       .withPrintEnabled(printEnabled)
+      .withLogEnabled(logEnabled)
+      .withWriteResults(writeEnabled)
+      .withResultDir(s"$hdfsRootDir/results")
       .withVariableSet(
         VariableSet
           .builder()
           .withExecutorVariables(executorVariables.map(ParameterQueryExecutor.getByName).toList)
           .withGraphLoaderVariables(graphVariables.map(SNBLoader.getByName(_, spark.sqlContext, hdfsRootDir)).toList)
+          .withSparkExecutorCountVariables(executorCountVariables.toList)
           .fromParameterQuery(parameterQueryPreset)
           .withTemporalPathTypeVariables(
             if (temporalPathVariables != null) temporalPathVariables.map(TemporalPathType.getByName).toList
@@ -122,7 +136,8 @@ class App extends Callable[Int] {
             if (lengthRangeVariables != null) lengthRangeVariables.toList
             else List((parameterQueryPreset.minLength, parameterQueryPreset.maxLength))
           )
-          .build())
+          .build()
+      )
       .build()
       .run()
   }
@@ -139,6 +154,8 @@ class App extends Callable[Int] {
       .withVariableOrder(Experiment.VariableOrder.Ascending)
       .withSaveResults(true)
       .withPrintEnabled(true)
+      .withLogEnabled(false)
+      .withWriteResults(false)
       .withVariableSet(
         VariableSet
           .builder()
@@ -166,6 +183,8 @@ class App extends Callable[Int] {
       .withVariableOrder(Experiment.VariableOrder.Ascending)
       .withSaveResults(true)
       .withPrintEnabled(false)
+      .withLogEnabled(false)
+      .withWriteResults(false)
       .withVariableSet(
         VariableSet
           .builder()
@@ -174,7 +193,8 @@ class App extends Callable[Int] {
           .withLengthRangeVariables(List((2, 3)))
           .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
           .withGraphLoaderVariables(List(SNBLoader.getByName("sf1", spark.sqlContext, hdfsRootDir)))
-          .build())
+          .build()
+      )
       .build()
     interactionDurationSf1.run()
 
