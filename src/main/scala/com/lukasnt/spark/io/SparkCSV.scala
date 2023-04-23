@@ -22,14 +22,14 @@ class SparkCSV[T <: Temporal](val sqlContext: SQLContext, csvProperties: CSVProp
       .format("csv")
       .option("header", "true")
       .option("delimiter", csvProps.separator.toString)
-      .load(s"$path")
+      .load(path)
       .rdd
       .map(row => {
         val vertexIdColumnIndex = row.fieldIndex(csvProps.idColumn)
         val startDateIndex: Int = row.fieldIndex(csvProps.startDateColumn)
         val endDateIndex: Int   = row.fieldIndex(csvProps.endDateColumn)
 
-        val arrayRow: Array[String]      = row.toSeq.toArray.map(_.toString)
+        val arrayRow: Array[String]      = row.toSeq.toArray.map(e => if (e != null) e.toString else "")
         val headerColumns: Array[String] = row.schema.fieldNames
 
         val temporalProperties = new TemporalProperties[T](
@@ -55,7 +55,7 @@ class SparkCSV[T <: Temporal](val sqlContext: SQLContext, csvProperties: CSVProp
       .format("csv")
       .option("header", "true")
       .option("delimiter", csvProps.separator.toString)
-      .load(s"$path")
+      .load(path)
       .rdd
       .map(row => {
         val startDateIndex: Int = row.fieldIndex(csvProps.startDateColumn)

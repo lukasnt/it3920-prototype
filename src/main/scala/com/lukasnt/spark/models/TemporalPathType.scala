@@ -73,6 +73,8 @@ object TemporalPathType {
     override def initInterval(edgeInterval: Interval): Interval = {
       edgeInterval
     }
+
+    override def toString: String = "Continuous"
   }
 
   def PairwiseContinuous: TemporalPathType = new TemporalPathType {
@@ -89,6 +91,8 @@ object TemporalPathType {
     override def initInterval(edgeInterval: Interval): Interval = {
       edgeInterval
     }
+
+    override def toString: String = "PairwiseContinuous"
   }
 
   def Consecutive: TemporalPathType = new TemporalPathType {
@@ -105,6 +109,8 @@ object TemporalPathType {
     override def initInterval(edgeInterval: Interval): Interval = {
       new Interval(edgeInterval.startTime.minus(1, ChronoUnit.NANOS), edgeInterval.startTime)
     }
+
+    override def toString: String = "Consecutive"
   }
 
   def NonTemporal: TemporalPathType = new TemporalPathType {
@@ -119,6 +125,8 @@ object TemporalPathType {
     override def initInterval(edgeInterval: Interval): Interval = {
       edgeInterval
     }
+
+    override def toString: String = "NonTemporal"
   }
 
 }

@@ -48,12 +48,16 @@ class QueryResult(val queriedGraph: TemporalGraph,
   }
 
   def printDiff(other: QueryResult): Unit = {
-    val thisPaths  = pathTable.entries.map(_.path.vertexSequence)
-    val otherPaths = other.pathTable.entries.map(_.path.vertexSequence)
+    val thisPaths  = pathTable.entries
+    val otherPaths = other.pathTable.entries
     thisPaths.zip(otherPaths).foreach {
-      case (thisPath, otherPath) =>
-        if (thisPath != otherPath) {
-          println(s"Path mismatch: $thisPath != $otherPath")
+      case (thisEntry, otherEntry) =>
+        if (thisEntry.path.vertexSequence != otherEntry.path.vertexSequence && thisEntry.weight != otherEntry.weight) {
+          println(
+            s"Mismatch found! " +
+              s"Path: ${thisEntry.path.vertexSequence} != ${otherEntry.path.vertexSequence}, " +
+              s"Weight: ${thisEntry.weight} != ${otherEntry.weight}"
+          )
         }
     }
   }

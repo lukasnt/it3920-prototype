@@ -29,6 +29,7 @@ class VariableSet {
 
   private var _graphLoaderVariables: List[TemporalGraphLoader[ZonedDateTime]] = List(SNBLoader.localSf0_003)
   private var _executorVariables: List[ParameterQueryExecutor]                = List(SparkQueryExecutor())
+  private var _sparkExecutorCountVariables: List[Int]                         = List(4)
 
   def totalCombinations: Int = {
     _lengthRangeVariables.length *
@@ -48,6 +49,7 @@ class VariableSet {
 
   def ascendingQueries: List[VariableSet.QueryExecutionSet] = {
     for {
+      sparkExecutorCount    <- _sparkExecutorCountVariables
       lengthRange           <- _lengthRangeVariables
       topK                  <- _topKVariables
       temporalPathType      <- _temporalPathTypeVariables
@@ -71,7 +73,8 @@ class VariableSet {
           .withWeightMap(weightMap)
           .build(),
         graphLoader = graphLoader,
-        executor = executor
+        executor = executor,
+        sparkExecutorCount = sparkExecutorCount
       )
     }
   }
@@ -88,7 +91,8 @@ object VariableSet {
 
   case class QueryExecutionSet(query: ParameterQuery,
                                graphLoader: TemporalGraphLoader[ZonedDateTime],
-                               executor: ParameterQueryExecutor)
+                               executor: ParameterQueryExecutor,
+                               sparkExecutorCount: Int)
 
   class Builder {
 
@@ -151,6 +155,11 @@ object VariableSet {
 
     def withExecutorVariables(variables: List[ParameterQueryExecutor]): Builder = {
       variableSet._executorVariables = variables
+      this
+    }
+
+    def withSparkExecutorCountVariables(variables: List[Int]): Builder = {
+      variableSet._sparkExecutorCountVariables = variables
       this
     }
 

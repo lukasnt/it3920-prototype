@@ -2,8 +2,8 @@ package com.lukasnt.spark
 
 import com.lukasnt.spark.examples.SimpleParameterQueries
 import com.lukasnt.spark.executors.ParameterQueryExecutor
-import com.lukasnt.spark.experiments.{Experiment, IntPairConverter, VariableOrderConverter, VariableSet}
-import com.lukasnt.spark.io.SNBLoader
+import com.lukasnt.spark.experiments._
+import com.lukasnt.spark.io.{SNBLoader, SparkObjectWriter}
 import com.lukasnt.spark.models.TemporalPathType
 import com.lukasnt.spark.queries.ParameterQuery
 import org.apache.spark.sql.SparkSession
@@ -54,6 +54,10 @@ class App extends Callable[Int] {
               description = Array("Enable logging of results and info"),
               defaultValue = "true")
       logEnabled: Boolean,
+      @Option(names = Array("-w", "--write-enabled"),
+              description = Array("Enable writing of results and info to file"),
+              defaultValue = "true")
+      writeEnabled: Boolean,
       @Option(names = Array("-qp", "--query-preset"),
               description = Array("Query preset"),
               defaultValue = "city-interaction-duration")
@@ -62,10 +66,18 @@ class App extends Callable[Int] {
               description = Array("Executor variables"),
               defaultValue = "spark")
       executorVariables: Array[String] = Array("spark"),
-      @Option(names = Array("-gv", "--graph-variables"),
-              description = Array("Graph dataset variables"),
+      @Option(names = Array("-gnv", "--graph-variables"),
+              description = Array("Graph name variables"),
+              defaultValue = "interaction")
+      graphVariables: Array[String] = Array("interaction"),
+      @Option(names = Array("-gsv", "--graph-size-variables"),
+              description = Array("Graph dataset size variables"),
               defaultValue = "sf1")
-      graphVariables: Array[String] = Array("sf1"),
+      graphSizeVariables: Array[String] = Array("sf1"),
+      @Option(names = Array("-ecv", "--executor-count-variables"),
+              description = Array("Executor count variables"),
+              defaultValue = "4")
+      executorCountVariables: Array[Int] = Array(4),
       @Option(names = Array("-tpv", "--temporal-path-variables"), description = Array("Temporal path variables"))
       temporalPathVariables: Array[String] = Array(),
       @Option(
@@ -77,6 +89,7 @@ class App extends Callable[Int] {
       @Option(names = Array("-tkv", "--top-k-variables"), description = Array("number of top k results"))
       topKVariables: Array[Int] = Array()
   ): Unit = {
+
     println(
       s"Experiment: $name\n" +
         s"maxVariables: $maxVariables\n" +
@@ -85,9 +98,12 @@ class App extends Callable[Int] {
         s"saveResults: $saveResults\n" +
         s"printEnabled: $printEnabled\n" +
         s"logEnabled: $logEnabled\n" +
+        s"writeEnabled: $writeEnabled\n" +
         s"queryPreset: $queryPreset\n" +
         s"executorVariables: ${if (executorVariables != null) executorVariables.mkString(", ")}\n" +
         s"graphVariables: ${if (graphVariables != null) graphVariables.mkString(", ")}\n" +
+        s"graphSizeVariables: ${if (graphSizeVariables != null) graphSizeVariables.mkString(", ")}\n" +
+        s"executorCountVariables: ${if (executorCountVariables != null) executorCountVariables.mkString(", ")}\n" +
         s"temporalPathVariables: ${if (temporalPathVariables != null) temporalPathVariables.mkString(", ")}\n" +
         s"lengthRangeVariables: ${if (lengthRangeVariables != null) lengthRangeVariables.mkString(", ")}\n" +
         s"topKVariables: ${if (topKVariables != null) topKVariables.mkString(", ")}"
@@ -104,12 +120,23 @@ class App extends Callable[Int] {
       .withVariableOrder(Experiment.VariableOrder.Ascending)
       .withSaveResults(saveResults)
       .withPrintEnabled(printEnabled)
+      .withLogEnabled(logEnabled)
+      .withWriteResults(writeEnabled)
+      .withResultDir(s"$hdfsRootDir/results")
       .withVariableSet(
         VariableSet
           .builder()
           .withExecutorVariables(executorVariables.map(ParameterQueryExecutor.getByName).toList)
-          .withGraphLoaderVariables(graphVariables.map(SNBLoader.getByName(_, spark.sqlContext, hdfsRootDir)).toList)
+          .withSparkExecutorCountVariables(executorCountVariables.toList)
           .fromParameterQuery(parameterQueryPreset)
+          .withGraphLoaderVariables(
+            (
+              for {
+                graphName <- graphVariables
+                graphSize <- graphSizeVariables
+              } yield GraphLoaders.getByName(graphName, graphSize, hdfsRootDir)
+            ).toList
+          )
           .withTemporalPathTypeVariables(
             if (temporalPathVariables != null) temporalPathVariables.map(TemporalPathType.getByName).toList
             else List(parameterQueryPreset.temporalPathType)
@@ -122,7 +149,8 @@ class App extends Callable[Int] {
             if (lengthRangeVariables != null) lengthRangeVariables.toList
             else List((parameterQueryPreset.minLength, parameterQueryPreset.maxLength))
           )
-          .build())
+          .build()
+      )
       .build()
       .run()
   }
@@ -139,14 +167,16 @@ class App extends Callable[Int] {
       .withVariableOrder(Experiment.VariableOrder.Ascending)
       .withSaveResults(true)
       .withPrintEnabled(true)
+      .withLogEnabled(false)
+      .withWriteResults(false)
       .withVariableSet(
         VariableSet
           .builder()
-          .fromParameterQuery(SimpleParameterQueries.genderDurationPaths())
+          .fromParameterQuery(ParameterQuery.genderNumInteractionPaths())
           .withTopKVariables(List(3, 25))
           .withLengthRangeVariables(List((1, 2), (4, 5)))
           .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
-          .withGraphLoaderVariables(List(SNBLoader.getByName("sf0_003", spark.sqlContext, hdfsRootDir)))
+          .withGraphLoaderVariables(List(GraphLoaders.getByName("interaction", "sf0_003", hdfsRootDir)))
           .build())
       .build()
     genderDurationSf0_003.run()
@@ -166,6 +196,8 @@ class App extends Callable[Int] {
       .withVariableOrder(Experiment.VariableOrder.Ascending)
       .withSaveResults(true)
       .withPrintEnabled(false)
+      .withLogEnabled(false)
+      .withWriteResults(false)
       .withVariableSet(
         VariableSet
           .builder()
@@ -174,7 +206,8 @@ class App extends Callable[Int] {
           .withLengthRangeVariables(List((2, 3)))
           .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
           .withGraphLoaderVariables(List(SNBLoader.getByName("sf1", spark.sqlContext, hdfsRootDir)))
-          .build())
+          .build()
+      )
       .build()
     interactionDurationSf1.run()
 
@@ -182,6 +215,33 @@ class App extends Callable[Int] {
       case (_, results) =>
         println()
         results.head.printComparison(results.tail.head)
+    }
+  }
+
+  @Command
+  def preprocess(
+      @Option(names = Array("-rg", "--raw-graph"), description = Array("raw graph name"))
+      rawGraphs: Array[String] = Array(),
+      @Option(names = Array("-pl", "--preprocess-loaders"), description = Array("preprocessor name"))
+      preprocessLoaders: Array[String] = Array()
+  ): Unit = {
+    val spark = SparkSession.builder().getOrCreate()
+    val graphLoaders = rawGraphs.map(
+      name => (name, SNBLoader.getByName(name, spark.sqlContext, hdfsRootDir, fullGraph = true))
+    )
+    graphLoaders.foreach {
+      case (rawGraphName, graphLoader) =>
+        preprocessLoaders
+          .map(name => (name, PreprocessLoaders.getByName(name, graphLoader)))
+          .foreach {
+            case (preprocessName, preprocessLoader) =>
+              println(s"Preprocessing $rawGraphName with $preprocessName")
+              SparkObjectWriter.write(
+                graph = preprocessLoader.load(spark.sparkContext),
+                path = s"$hdfsRootDir/preprocessed/$preprocessName/$rawGraphName"
+              )
+              println(s"Finished writing to $hdfsRootDir/preprocessed/$preprocessName/$rawGraphName")
+          }
     }
   }
 
