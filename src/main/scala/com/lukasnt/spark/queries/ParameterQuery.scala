@@ -43,6 +43,8 @@ object ParameterQuery {
       case "test"                        => testQuery()
       case "city-interaction-duration"   => cityInteractionDurationPaths()
       case "gender-interaction-duration" => genderInteractionDurationPaths()
+      case "city-num-interaction"        => cityNumInteractionPaths()
+      case "gender-num-interaction"      => genderNumInteractionPaths()
       case _                             => throw new IllegalArgumentException(s"Query with name $name does not exist")
     }
   }
@@ -90,6 +92,49 @@ object ParameterQuery {
       .withIntermediatePredicate(e => e.attr.typeLabel == "Person_knows_Person")
       .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("gender") == "female")
       .withWeightMap(e => e.attr.interval.getDuration.toFloat)
+      .withMinLength(minLength)
+      .withMaxLength(maxLength)
+      .withTopK(topK)
+      .build()
+  }
+
+  def cityNumInteractionPaths(city1: String = "573",
+                              city2: String = "737",
+                              minLength: Int = 2,
+                              topK: Int = 10,
+                              pathType: TemporalPathType = TemporalPathType.Continuous): ParameterQuery = {
+    ParameterQuery
+      .builder()
+      .withPathType(pathType)
+      .withSourcePredicate(s => s.attr.typeLabel == "Person" && s.attr.properties("LocationCityId") == city1)
+      .withIntermediatePredicate(e => e.attr.typeLabel == "Person_knows_Person")
+      .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("LocationCityId") == city2)
+      .withWeightMap(e =>
+        Math.max(
+          Math.round(40.0f - Math.sqrt(e.attr.properties("numInteractions").toDouble)),
+          1.0f
+      ))
+      .withMinLength(minLength)
+      .withMaxLength(minLength + 1)
+      .withTopK(topK)
+      .build()
+  }
+
+  def genderNumInteractionPaths(minLength: Int = 2,
+                                maxLength: Int = 3,
+                                topK: Int = 25,
+                                pathType: TemporalPathType = TemporalPathType.Continuous): ParameterQuery = {
+    ParameterQuery
+      .builder()
+      .withPathType(pathType)
+      .withSourcePredicate(s => s.attr.typeLabel == "Person" && s.attr.properties("gender") == "male")
+      .withIntermediatePredicate(e => e.attr.typeLabel == "Person_knows_Person")
+      .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("gender") == "female")
+      .withWeightMap(e =>
+        Math.max(
+          Math.round(40.0f - Math.sqrt(e.attr.properties("numInteractions").toDouble)),
+          1.0f
+      ))
       .withMinLength(minLength)
       .withMaxLength(maxLength)
       .withTopK(topK)

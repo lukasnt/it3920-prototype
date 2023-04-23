@@ -82,11 +82,11 @@ class SNBLoader(val datasetRoot: String,
 
 object SNBLoader {
 
-  def getByName(name: String, sqlContext: SQLContext, hdfsRootDir: String = "/user/root"): SNBLoader = name match {
+  def getByName(name: String, sqlContext: SQLContext, hdfsRootDir: String = "/user/root", fullGraph: Boolean = false): SNBLoader = name match {
     case "local-sf0_003" => localSf0_003
-    case "sf0_003"       => sf0_003(sqlContext, hdfsRootDir)
-    case "sf1"           => sf1(sqlContext, hdfsRootDir)
-    case _               => sf0_003(sqlContext, hdfsRootDir)
+    case "sf0_003"       => sf0_003(sqlContext, hdfsRootDir, fullGraph)
+    case "sf1"           => sf1(sqlContext, hdfsRootDir, fullGraph)
+    case _               => sf0_003(sqlContext, hdfsRootDir, fullGraph)
   }
 
   def localSf0_003: SNBLoader = SNBLoader("/sf0_003-raw", PartitionedLocalCSV(SingleLocalCSV(SnbCSVProperties)))

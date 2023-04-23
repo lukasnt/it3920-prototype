@@ -138,7 +138,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   }
 
   override def mergeMessage(msgA: IntervalStates, msgB: IntervalStates): IntervalStates = {
-    val merged = msgA.appendedStates(msgB)
+    val merged = msgA.mergedStates(msgB, topK)
     /*Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")*/
     merged
   }

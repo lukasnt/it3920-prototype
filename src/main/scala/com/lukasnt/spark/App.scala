@@ -172,11 +172,11 @@ class App extends Callable[Int] {
       .withVariableSet(
         VariableSet
           .builder()
-          .fromParameterQuery(SimpleParameterQueries.genderDurationPaths())
+          .fromParameterQuery(ParameterQuery.genderNumInteractionPaths())
           .withTopKVariables(List(3, 25))
           .withLengthRangeVariables(List((1, 2), (4, 5)))
           .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
-          .withGraphLoaderVariables(List(SNBLoader.getByName("sf0_003", spark.sqlContext, hdfsRootDir)))
+          .withGraphLoaderVariables(List(GraphLoaders.getByName("interaction", "sf0_003", hdfsRootDir)))
           .build())
       .build()
     genderDurationSf0_003.run()
@@ -225,8 +225,10 @@ class App extends Callable[Int] {
       @Option(names = Array("-pl", "--preprocess-loaders"), description = Array("preprocessor name"))
       preprocessLoaders: Array[String] = Array()
   ): Unit = {
-    val spark        = SparkSession.builder().getOrCreate()
-    val graphLoaders = rawGraphs.map(name => (name, SNBLoader.getByName(name, spark.sqlContext, hdfsRootDir)))
+    val spark = SparkSession.builder().getOrCreate()
+    val graphLoaders = rawGraphs.map(
+      name => (name, SNBLoader.getByName(name, spark.sqlContext, hdfsRootDir, fullGraph = true))
+    )
     graphLoaders.foreach {
       case (rawGraphName, graphLoader) =>
         preprocessLoaders
