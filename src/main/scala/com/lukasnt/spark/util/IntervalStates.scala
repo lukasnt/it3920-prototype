@@ -11,6 +11,19 @@ class IntervalStates extends Serializable {
   val intervalTables: HashMap[Interval, LengthWeightTable] = HashMap()
 
   def mergedStates(otherStates: IntervalStates, topK: Int): IntervalStates = {
+
+    /*IntervalStates(intervalTables ++ otherStates.intervalTables.map {
+      case (interval: Interval, table: LengthWeightTable) =>
+        interval -> {
+          if (intervalTables.contains(interval)) {
+            intervalTables(interval).mergeWithTable(table, topK)
+          } else {
+            table
+          }
+        }
+    })
+*/
+
     IntervalStates(intervalTables.merged(otherStates.intervalTables) {
       case ((interval, thisTable), (_, otherTable)) =>
         (interval, thisTable.mergeWithTable(otherTable, topK))
