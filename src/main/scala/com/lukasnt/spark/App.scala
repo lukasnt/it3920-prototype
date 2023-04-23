@@ -2,8 +2,8 @@ package com.lukasnt.spark
 
 import com.lukasnt.spark.examples.SimpleParameterQueries
 import com.lukasnt.spark.executors.ParameterQueryExecutor
-import com.lukasnt.spark.experiments.{Experiment, IntPairConverter, VariableOrderConverter, VariableSet}
-import com.lukasnt.spark.io.SNBLoader
+import com.lukasnt.spark.experiments._
+import com.lukasnt.spark.io.{SNBLoader, SparkObjectWriter}
 import com.lukasnt.spark.models.TemporalPathType
 import com.lukasnt.spark.queries.ParameterQuery
 import org.apache.spark.sql.SparkSession
@@ -66,10 +66,14 @@ class App extends Callable[Int] {
               description = Array("Executor variables"),
               defaultValue = "spark")
       executorVariables: Array[String] = Array("spark"),
-      @Option(names = Array("-gv", "--graph-variables"),
-              description = Array("Graph dataset variables"),
+      @Option(names = Array("-gnv", "--graph-variables"),
+              description = Array("Graph name variables"),
+              defaultValue = "interaction")
+      graphVariables: Array[String] = Array("interaction"),
+      @Option(names = Array("-gsv", "--graph-size-variables"),
+              description = Array("Graph dataset size variables"),
               defaultValue = "sf1")
-      graphVariables: Array[String] = Array("sf1"),
+      graphSizeVariables: Array[String] = Array("sf1"),
       @Option(names = Array("-ecv", "--executor-count-variables"),
               description = Array("Executor count variables"),
               defaultValue = "4")
@@ -85,6 +89,7 @@ class App extends Callable[Int] {
       @Option(names = Array("-tkv", "--top-k-variables"), description = Array("number of top k results"))
       topKVariables: Array[Int] = Array()
   ): Unit = {
+
     println(
       s"Experiment: $name\n" +
         s"maxVariables: $maxVariables\n" +
@@ -97,6 +102,7 @@ class App extends Callable[Int] {
         s"queryPreset: $queryPreset\n" +
         s"executorVariables: ${if (executorVariables != null) executorVariables.mkString(", ")}\n" +
         s"graphVariables: ${if (graphVariables != null) graphVariables.mkString(", ")}\n" +
+        s"graphSizeVariables: ${if (graphSizeVariables != null) graphSizeVariables.mkString(", ")}\n" +
         s"executorCountVariables: ${if (executorCountVariables != null) executorCountVariables.mkString(", ")}\n" +
         s"temporalPathVariables: ${if (temporalPathVariables != null) temporalPathVariables.mkString(", ")}\n" +
         s"lengthRangeVariables: ${if (lengthRangeVariables != null) lengthRangeVariables.mkString(", ")}\n" +
@@ -121,9 +127,16 @@ class App extends Callable[Int] {
         VariableSet
           .builder()
           .withExecutorVariables(executorVariables.map(ParameterQueryExecutor.getByName).toList)
-          .withGraphLoaderVariables(graphVariables.map(SNBLoader.getByName(_, spark.sqlContext, hdfsRootDir)).toList)
           .withSparkExecutorCountVariables(executorCountVariables.toList)
           .fromParameterQuery(parameterQueryPreset)
+          .withGraphLoaderVariables(
+            (
+              for {
+                graphName <- graphVariables
+                graphSize <- graphSizeVariables
+              } yield GraphLoaders.getByName(graphName, graphSize, hdfsRootDir)
+            ).toList
+          )
           .withTemporalPathTypeVariables(
             if (temporalPathVariables != null) temporalPathVariables.map(TemporalPathType.getByName).toList
             else List(parameterQueryPreset.temporalPathType)
@@ -202,6 +215,31 @@ class App extends Callable[Int] {
       case (_, results) =>
         println()
         results.head.printComparison(results.tail.head)
+    }
+  }
+
+  @Command
+  def preprocess(
+      @Option(names = Array("-rg", "--raw-graph"), description = Array("raw graph name"))
+      rawGraphs: Array[String] = Array(),
+      @Option(names = Array("-pl", "--preprocess-loaders"), description = Array("preprocessor name"))
+      preprocessLoaders: Array[String] = Array()
+  ): Unit = {
+    val spark        = SparkSession.builder().getOrCreate()
+    val graphLoaders = rawGraphs.map(name => (name, SNBLoader.getByName(name, spark.sqlContext, hdfsRootDir)))
+    graphLoaders.foreach {
+      case (rawGraphName, graphLoader) =>
+        preprocessLoaders
+          .map(name => (name, PreprocessLoaders.getByName(name, graphLoader)))
+          .foreach {
+            case (preprocessName, preprocessLoader) =>
+              println(s"Preprocessing $rawGraphName with $preprocessName")
+              SparkObjectWriter.write(
+                graph = preprocessLoader.load(spark.sparkContext),
+                path = s"$hdfsRootDir/preprocessed/$preprocessName/$rawGraphName"
+              )
+              println(s"Finished writing to $hdfsRootDir/preprocessed/$preprocessName/$rawGraphName")
+          }
     }
   }
 
