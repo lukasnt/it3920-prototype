@@ -7,7 +7,7 @@ import org.apache.spark.graphx.VertexRDD
 
 import java.time.ZonedDateTime
 
-class InteractionLoader(val snbLoader: SNBLoader) extends TemporalGraphLoader[ZonedDateTime] {
+class InteractionLoader(val snbLoader: TemporalGraphLoader[ZonedDateTime]) extends TemporalGraphLoader[ZonedDateTime] {
 
   override def load(sc: SparkContext): TemporalGraph = {
     val rawGraph: TemporalGraph = snbLoader.load(sc)

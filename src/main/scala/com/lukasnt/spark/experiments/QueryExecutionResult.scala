@@ -6,8 +6,10 @@ import org.apache.spark.sql.types._
 
 case class QueryExecutionResult(
     runNumber: Int,
+    queryName: String,
     query: ParameterQuery,
     graphName: String,
+    graphSize: String,
     sparkExecutorInstances: Int,
     executorName: String,
     queryResult: QueryResult,
@@ -36,11 +38,13 @@ case class QueryExecutionResult(
   def infoResultsAsDataFrame(): Row = {
     Row(
       runNumber,
+      queryName,
       query.temporalPathType.toString,
       query.minLength,
       query.maxLength,
       query.topK,
       graphName,
+      graphSize,
       sparkExecutorInstances,
       executorName,
       executionTime
@@ -55,11 +59,13 @@ object QueryExecutionResult {
     StructType(
       List(
         StructField("runNumber", IntegerType, nullable = false),
+        StructField("queryName", StringType, nullable = false),
         StructField("pathType", StringType, nullable = false),
         StructField("minLength", IntegerType, nullable = false),
         StructField("maxLength", IntegerType, nullable = false),
         StructField("topK", IntegerType, nullable = false),
         StructField("graphName", StringType, nullable = false),
+        StructField("graphSize", StringType, nullable = false),
         StructField("sparkExecutorInstances", IntegerType, nullable = false),
         StructField("executorName", StringType, nullable = false),
         StructField("executionTime", LongType, nullable = false)

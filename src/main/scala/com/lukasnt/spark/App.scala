@@ -1,15 +1,15 @@
 package com.lukasnt.spark
 
-import com.lukasnt.spark.examples.SimpleParameterQueries
 import com.lukasnt.spark.executors.ParameterQueryExecutor
 import com.lukasnt.spark.experiments._
-import com.lukasnt.spark.io.{SNBLoader, SparkObjectWriter}
+import com.lukasnt.spark.io.{SNBLoader, SparkObjectWriter, TemporalGraphLoader}
 import com.lukasnt.spark.models.TemporalPathType
 import com.lukasnt.spark.queries.ParameterQuery
 import org.apache.spark.sql.SparkSession
 import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}
 
+import java.time.ZonedDateTime
 import java.util.concurrent.Callable
 
 /**
@@ -128,13 +128,13 @@ class App extends Callable[Int] {
           .builder()
           .withExecutorVariables(executorVariables.map(ParameterQueryExecutor.getByName).toList)
           .withSparkExecutorCountVariables(executorCountVariables.toList)
-          .fromParameterQuery(parameterQueryPreset)
+          .fromParameterQuery(parameterQueryPreset, queryPreset)
           .withGraphLoaderVariables(
             (
               for {
                 graphName <- graphVariables
                 graphSize <- graphSizeVariables
-              } yield GraphLoaders.getByName(graphName, graphSize, hdfsRootDir)
+              } yield (graphName, graphSize, GraphLoaders.getByName(graphName, graphSize, spark, hdfsRootDir))
             ).toList
           )
           .withTemporalPathTypeVariables(
@@ -172,11 +172,12 @@ class App extends Callable[Int] {
       .withVariableSet(
         VariableSet
           .builder()
-          .fromParameterQuery(ParameterQuery.genderNumInteractionPaths())
+          .fromParameterQuery(ParameterQuery.genderNumInteractionPaths(), "gender-num-interaction")
           .withTopKVariables(List(3, 25))
           .withLengthRangeVariables(List((1, 2), (4, 5)))
           .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
-          .withGraphLoaderVariables(List(GraphLoaders.getByName("interaction", "sf0_003", hdfsRootDir)))
+          .withGraphLoaderVariables(List(
+            ("interaction", "sf0_003", GraphLoaders.getByName("interaction", "sf0_003", spark, hdfsRootDir))))
           .build())
       .build()
     genderDurationSf0_003.run()
@@ -201,11 +202,11 @@ class App extends Callable[Int] {
       .withVariableSet(
         VariableSet
           .builder()
-          .fromParameterQuery(SimpleParameterQueries.interactionPaths())
+          .fromParameterQuery(ParameterQuery.cityInteractionDurationPaths(), "city-interaction-duration")
           .withTopKVariables(List(10))
           .withLengthRangeVariables(List((2, 3)))
           .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
-          .withGraphLoaderVariables(List(SNBLoader.getByName("sf1", spark.sqlContext, hdfsRootDir)))
+          .withGraphLoaderVariables(List(("raw", "sf1", SNBLoader.getByName("sf1", spark.sqlContext, hdfsRootDir))))
           .build()
       )
       .build()
@@ -220,15 +221,29 @@ class App extends Callable[Int] {
 
   @Command
   def preprocess(
-      @Option(names = Array("-rg", "--raw-graph"), description = Array("raw graph name"))
-      rawGraphs: Array[String] = Array(),
+      @Option(names = Array("-gn", "--graph-name"), description = Array("raw graph name"))
+      graphName: String = "raw",
+      @Option(names = Array("-gs", "--graph-size"), description = Array("graph size name"))
+      graphSizes: Array[String] = Array("sf1"),
+      @Option(names = Array("-snb", "--snb-raw"), description = Array("use raw snb dataset"))
+      snbRaw: Boolean = false,
+      @Option(names = Array("-cb", "--citi-bike-raw"), description = Array("use raw citi bike dataset"))
+      citiBikeRaw: Boolean = false,
       @Option(names = Array("-pl", "--preprocess-loaders"), description = Array("preprocessor name"))
-      preprocessLoaders: Array[String] = Array()
+      preprocessLoaders: Array[String] = Array(),
+      @Option(names = Array("-o", "--output-dir"), description = Array("output directory"))
+      outputDir: String = s"$hdfsRootDir"
   ): Unit = {
     val spark = SparkSession.builder().getOrCreate()
-    val graphLoaders = rawGraphs.map(
-      name => (name, SNBLoader.getByName(name, spark.sqlContext, hdfsRootDir, fullGraph = true))
-    )
+    val graphLoaders: Array[(String, TemporalGraphLoader[ZonedDateTime])] = if (snbRaw) {
+      graphSizes.map(
+        sizeName => (sizeName, GraphLoaders.getByName(graphName, sizeName, spark, hdfsRootDir, rawSNB = snbRaw))
+      )
+    } else {
+      graphSizes.map(
+        sizeName => (sizeName, GraphLoaders.getByName(graphName, sizeName, spark, hdfsRootDir))
+      )
+    }
     graphLoaders.foreach {
       case (rawGraphName, graphLoader) =>
         preprocessLoaders
@@ -238,11 +253,32 @@ class App extends Callable[Int] {
               println(s"Preprocessing $rawGraphName with $preprocessName")
               SparkObjectWriter.write(
                 graph = preprocessLoader.load(spark.sparkContext),
-                path = s"$hdfsRootDir/preprocessed/$preprocessName/$rawGraphName"
+                path = s"$outputDir/preprocessed/$preprocessName/$rawGraphName"
               )
-              println(s"Finished writing to $hdfsRootDir/preprocessed/$preprocessName/$rawGraphName")
+              println(s"Finished writing to $outputDir/preprocessed/$preprocessName/$rawGraphName")
           }
     }
+
+  }
+
+  @Command
+  def printCSV(
+      @Option(names = Array("-f", "--filename"), description = Array("filename"))
+      filename: String,
+      @Option(names = Array("-c", "--columns"), description = Array("columns"))
+      columns: Array[String] = Array()
+  ): Unit = {
+    val columnNames =
+      if (columns == null || columns.isEmpty) QueryExecutionResult.infoResultsAsDataFrameSchema().names
+      else columns
+    val spark = SparkSession.builder().getOrCreate()
+    spark.sqlContext.read
+      .format("csv")
+      .schema(QueryExecutionResult.infoResultsAsDataFrameSchema())
+      .load(s"$hdfsRootDir/results/$filename")
+      .select(columnNames.head, columnNames.tail: _*)
+      .sort(columnNames(0))
+      .foreach(row => println(row.mkString(",")))
   }
 
   override def call(): Int = {

@@ -1,13 +1,11 @@
 package com.lukasnt.spark.experiments
 
-import com.lukasnt.spark.executors.ParameterQueryExecutor
-import com.lukasnt.spark.io.TemporalGraphLoader
 import com.lukasnt.spark.models.Types.TemporalGraph
-import com.lukasnt.spark.queries.{ParameterQuery, QueryResult}
+import com.lukasnt.spark.queries.QueryResult
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{Row, SQLContext, SparkSession}
 
-import java.time.{LocalDateTime, ZoneOffset, ZonedDateTime}
+import java.time.{LocalDateTime, ZoneOffset}
 
 class Experiment {
 
@@ -50,13 +48,27 @@ class Experiment {
 
     val queriesToRun: List[VariableSet.QueryExecutionSet] = queries.take(maxVariables)
     queriesToRun.foreach {
-      case VariableSet.QueryExecutionSet(query, graphLoader, executor, executorCount) =>
+      case VariableSet.QueryExecutionSet(query,
+                                         queryName,
+                                         graphName,
+                                         graphSize,
+                                         graphLoader,
+                                         executor,
+                                         executorCount) =>
         (1 to runsPerVariable).foreach { runNumber =>
           if (_printEnabled) {
             // Print experiment info
             clearSparkResources()
             printBorder()
-            printExperimentInfo(graphLoader, executor, query)
+            printExperimentInfo(
+              VariableSet.QueryExecutionSet(query,
+                                            queryName,
+                                            graphName,
+                                            graphSize,
+                                            graphLoader,
+                                            executor,
+                                            executorCount)
+            )
 
             // Load Graph init print
             println("-------------------------------------")
@@ -95,8 +107,10 @@ class Experiment {
 
           val result = QueryExecutionResult(
             runNumber = runNumber,
+            queryName = queryName,
             query = query,
-            graphName = graphLoader.getClass.getSimpleName,
+            graphName = graphName,
+            graphSize = graphSize,
             sparkExecutorInstances = executorCount,
             executorName = executor.getClass.getSimpleName,
             queryResult = queryResult,
@@ -126,13 +140,17 @@ class Experiment {
     _sparkSession.sparkContext.clearCallSite()
   }
 
-  private def printExperimentInfo(graphLoader: TemporalGraphLoader[ZonedDateTime],
-                                  executor: ParameterQueryExecutor,
-                                  query: ParameterQuery): Unit = {
-    println(s"Graph Loader: ${graphLoader.getClass.getSimpleName}")
-    println(s"Executor: ${executor.getClass.getSimpleName}")
-    println("Query:")
-    println(query)
+  private def printExperimentInfo(variableSet: VariableSet.QueryExecutionSet): Unit = {
+    println(s"Graph Loader Class: ${variableSet.graphLoader.getClass.getSimpleName}")
+    println(s"Executor (Algorithm) Class: ${variableSet.executor.getClass.getSimpleName}")
+    println(s"Variables: ------------------------")
+    println(s"Query: ${variableSet.queryName}")
+    println(s"Min Length: ${variableSet.query.minLength}")
+    println(s"Max Length: ${variableSet.query.maxLength}")
+    println(s"TopK: ${variableSet.query.topK}")
+    println(s"Graph Name: ${variableSet.graphName}")
+    println(s"Graph Size: ${variableSet.graphSize}")
+    println(s"Spark Executor Count: ${variableSet.sparkExecutorCount}")
     printSparkStats()
   }
 
@@ -168,17 +186,18 @@ class Experiment {
       .csv(s"${_resultDir}/$getFileName")
   }
 
+  private def getFileName: String = {
+    s"${_name}-${_dateStarted.toLocalDate}${_dateStarted.toInstant(ZoneOffset.UTC).toEpochMilli}.csv"
+  }
+
   private def appendResultToFile(queryExecutionResult: QueryExecutionResult): Unit = {
     val sqlContext: SQLContext = _sparkSession.sqlContext
     sqlContext
-      .createDataFrame(sqlContext.sparkContext.parallelize(List(queryExecutionResult.infoResultsAsDataFrame())), QueryExecutionResult.infoResultsAsDataFrameSchema())
+      .createDataFrame(sqlContext.sparkContext.parallelize(List(queryExecutionResult.infoResultsAsDataFrame())),
+                       QueryExecutionResult.infoResultsAsDataFrameSchema())
       .write
       .mode("append")
       .csv(s"${_resultDir}/$getFileName")
-  }
-
-  private def getFileName: String = {
-    s"${_name}-${_dateStarted.toLocalDate}${_dateStarted.toInstant(ZoneOffset.UTC).toEpochMilli}.csv"
   }
 
   def sparkSession: SparkSession = this._sparkSession

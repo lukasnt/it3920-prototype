@@ -10,6 +10,8 @@ import java.time.ZonedDateTime
 
 class VariableSet {
 
+  private var _queryName = "Custom"
+
   private var _lengthRangeVariables: List[(Int, Int)]            = List((1, 2), (2, 3), (3, 4), (5, 10))
   private var _topKVariables: List[Int]                          = List(1, 3, 10, 25, 50, 100)
   private var _temporalPathTypeVariables: List[TemporalPathType] = List(TemporalPathType.Continuous)
@@ -27,9 +29,10 @@ class VariableSet {
     e => e.attr.interval.getDuration.toFloat
   )
 
-  private var _graphLoaderVariables: List[TemporalGraphLoader[ZonedDateTime]] = List(SNBLoader.localSf0_003)
-  private var _executorVariables: List[ParameterQueryExecutor]                = List(SparkQueryExecutor())
-  private var _sparkExecutorCountVariables: List[Int]                         = List(4)
+  private var _graphLoaderVariables: List[(String, String, TemporalGraphLoader[ZonedDateTime])] =
+    List(("raw", "sf0_003", SNBLoader.localSf0_003))
+  private var _executorVariables: List[ParameterQueryExecutor] = List(SparkQueryExecutor())
+  private var _sparkExecutorCountVariables: List[Int]          = List(4)
 
   def totalCombinations: Int = {
     _lengthRangeVariables.length *
@@ -45,6 +48,10 @@ class VariableSet {
 
   def shuffledQueries: List[VariableSet.QueryExecutionSet] = {
     scala.util.Random.shuffle(ascendingQueries)
+  }
+
+  def descendingQueries: List[VariableSet.QueryExecutionSet] = {
+    ascendingQueries.reverse
   }
 
   def ascendingQueries: List[VariableSet.QueryExecutionSet] = {
@@ -72,15 +79,14 @@ class VariableSet {
           .withDestinationPredicate(destinationPredicate)
           .withWeightMap(weightMap)
           .build(),
-        graphLoader = graphLoader,
+        queryName = _queryName,
+        graphName = graphLoader._1,
+        graphSize = graphLoader._2,
+        graphLoader = graphLoader._3,
         executor = executor,
         sparkExecutorCount = sparkExecutorCount
       )
     }
-  }
-
-  def descendingQueries: List[VariableSet.QueryExecutionSet] = {
-    ascendingQueries.reverse
   }
 
 }
@@ -90,6 +96,9 @@ object VariableSet {
   def builder(): Builder = new Builder()
 
   case class QueryExecutionSet(query: ParameterQuery,
+                               queryName: String,
+                               graphName: String,
+                               graphSize: String,
                                graphLoader: TemporalGraphLoader[ZonedDateTime],
                                executor: ParameterQueryExecutor,
                                sparkExecutorCount: Int)
@@ -102,7 +111,8 @@ object VariableSet {
       variableSet
     }
 
-    def fromParameterQuery(parameterQuery: ParameterQuery): Builder = {
+    def fromParameterQuery(parameterQuery: ParameterQuery, queryName: String): Builder = {
+      variableSet._queryName = queryName
       variableSet._lengthRangeVariables = List((parameterQuery.minLength, parameterQuery.maxLength))
       variableSet._topKVariables = List(parameterQuery.topK)
       variableSet._temporalPathTypeVariables = List(parameterQuery.temporalPathType)
@@ -148,7 +158,7 @@ object VariableSet {
       this
     }
 
-    def withGraphLoaderVariables(variables: List[TemporalGraphLoader[ZonedDateTime]]): Builder = {
+    def withGraphLoaderVariables(variables: List[(String, String, TemporalGraphLoader[ZonedDateTime])]): Builder = {
       variableSet._graphLoaderVariables = variables
       this
     }

@@ -5,10 +5,10 @@ import org.apache.spark.SparkContext
 
 import java.time.ZonedDateTime
 
-class RecruitmentLoader(val snbLoader: TemporalGraphLoader[ZonedDateTime]) extends TemporalGraphLoader[ZonedDateTime] {
+class RawLoader(val loader: TemporalGraphLoader[ZonedDateTime]) extends TemporalGraphLoader[ZonedDateTime] {
 
   override def load(sc: SparkContext): GenericTemporalGraph[ZonedDateTime] = {
-    ???
+    loader.load(sc)
   }
 
 }
