@@ -64,6 +64,10 @@ services:
         source: ./target
         target: /opt/spark/target
         read_only: false
+      - type: bind
+        source: ./datasets
+        target: /opt/spark/datasets
+        read_only: false
       - ./log4j.properties:/opt/spark/conf/log4j.properties
     mem_reservation: 12000M
     cpu_count: 8
