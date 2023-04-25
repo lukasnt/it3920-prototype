@@ -109,7 +109,7 @@ class App extends Callable[Int] {
         s"topKVariables: ${if (topKVariables != null) topKVariables.mkString(", ")}"
     )
 
-    val spark                                = SparkSession.builder().getOrCreate()
+    val spark                                = SparkSession.builder().appName(name).getOrCreate()
     val parameterQueryPreset: ParameterQuery = ParameterQuery.getByName(queryPreset)
     Experiment
       .builder()
@@ -157,7 +157,7 @@ class App extends Callable[Int] {
 
   @Command
   def test(): Unit = {
-    val spark = SparkSession.builder().getOrCreate()
+    val spark = SparkSession.builder().appName("Test").getOrCreate()
     val genderDurationSf0_003 = Experiment
       .builder()
       .withName("gender-interaction-duration-sf0_003")
@@ -196,7 +196,7 @@ class App extends Callable[Int] {
       .withRunsPerVariable(1)
       .withVariableOrder(Experiment.VariableOrder.Ascending)
       .withSaveResults(true)
-      .withPrintEnabled(false)
+      .withPrintEnabled(true)
       .withLogEnabled(false)
       .withWriteResults(false)
       .withVariableSet(
@@ -234,7 +234,7 @@ class App extends Callable[Int] {
       @Option(names = Array("-o", "--output-dir"), description = Array("output directory"))
       outputDir: String = s"$hdfsRootDir"
   ): Unit = {
-    val spark = SparkSession.builder().getOrCreate()
+    val spark = SparkSession.builder().appName("Preprocess").getOrCreate()
     val graphLoaders: Array[(String, TemporalGraphLoader[ZonedDateTime])] = if (snbRaw) {
       graphSizes.map(
         sizeName => (sizeName, GraphLoaders.getByName(graphName, sizeName, spark, hdfsRootDir, rawSNB = snbRaw))
@@ -272,6 +272,7 @@ class App extends Callable[Int] {
       if (columns == null || columns.isEmpty) QueryExecutionResult.infoResultsAsDataFrameSchema().names
       else columns
     val spark = SparkSession.builder().getOrCreate()
+    println(columnNames.mkString(","))
     spark.sqlContext.read
       .format("csv")
       .schema(QueryExecutionResult.infoResultsAsDataFrameSchema())

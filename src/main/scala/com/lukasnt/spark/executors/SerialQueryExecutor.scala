@@ -1,5 +1,6 @@
 package com.lukasnt.spark.executors
 
+import com.lukasnt.spark.experiments.Experiment
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.models.Types._
 import com.lukasnt.spark.queries.{ParameterQuery, QueryResult}
@@ -8,6 +9,8 @@ import org.apache.spark.graphx.{EdgeTriplet, VertexId}
 class SerialQueryExecutor extends ParameterQueryExecutor {
 
   def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult = {
+    val totalStartTime = System.currentTimeMillis()
+
     // Extract predicates as query is not serializable
     val sourcePredicate: AttrVertex => Boolean      = parameterQuery.sourcePredicate
     val destinationPredicate: AttrVertex => Boolean = parameterQuery.destinationPredicate
@@ -24,14 +27,27 @@ class SerialQueryExecutor extends ParameterQueryExecutor {
       .collect()
       .toList
 
+    val pathEntries = sourceVertices
+      .flatMap(srcId => runBfs(temporalGraph, parameterQuery, srcId, destinationVertices))
+      .sortBy(_.weight)
+      .take(parameterQuery.topK)
+
+    val totalExecutionTime = System.currentTimeMillis() - totalStartTime
+    println(s"Total execution time: $totalExecutionTime ms")
+
+    Experiment.measureExecutionTime(
+      subgraphPhaseTime = 0,
+      weightMapPhaseTime = 0,
+      pregelPhaseTime = 0,
+      pathConstructionPhaseTime = 0,
+      totalExecutionTime = totalExecutionTime
+    )
+
     // For each source and destination vertex pair, run BFS
     // and collect the top-k paths
     QueryResult(
       queriedGraph = temporalGraph,
-      pathEntries = sourceVertices
-        .flatMap(srcId => runBfs(temporalGraph, parameterQuery, srcId, destinationVertices))
-        .sortBy(_.weight)
-        .take(parameterQuery.topK)
+      pathEntries = pathEntries
     )
   }
 
@@ -39,9 +55,10 @@ class SerialQueryExecutor extends ParameterQueryExecutor {
                      query: ParameterQuery,
                      srcId: VertexId,
                      destinationIds: List[VertexId]): List[SerialQueryExecutor.PathEntry] = {
-    var queue = List[SerialQueryExecutor.PathEntry]()
-    var paths = List[SerialQueryExecutor.PathEntry]()
-    queue = initQueue(graph, query, srcId)
+    var queue          = List[SerialQueryExecutor.PathEntry]()
+    var paths          = List[SerialQueryExecutor.PathEntry]()
+    val graphTriplets  = collectAllTriplets(graph)
+    queue = initQueue(graphTriplets, query, srcId)
 
     // BFS
     while (queue.nonEmpty) {
@@ -58,10 +75,9 @@ class SerialQueryExecutor extends ParameterQueryExecutor {
         paths = paths :+ current
       }
 
-      //println(s"Current length: $currentLength")
       // Extend current path
       if (currentLength < query.maxLength) {
-        val outEdges = outTriplets(graph, currentEndNode)
+        val outEdges = outTriplets(graphTriplets, currentEndNode)
         val newPaths = outEdges
           .filter(
             edge => {
@@ -75,16 +91,18 @@ class SerialQueryExecutor extends ParameterQueryExecutor {
             SerialQueryExecutor.PathEntry(currentPath :+ edge, interval, currentWeight + weight)
           })
         queue = queue ++ newPaths
+
+        Experiment.measureCurrentExecutionMemory()
       }
 
     }
     paths
   }
 
-  private def initQueue(graph: TemporalGraph,
+  private def initQueue(graphTriplets: List[EdgeTriplet[Properties, Properties]],
                         query: ParameterQuery,
                         srcId: VertexId): List[SerialQueryExecutor.PathEntry] = {
-    val outEdges = outTriplets(graph, srcId)
+    val outEdges = outTriplets(graphTriplets, srcId)
     outEdges.map(edge => {
       val interval = query.temporalPathType.initInterval(edge.attr.interval)
       val weight   = query.weightMap(AttrEdge(edge.srcId, edge.dstId, edge.attr))
@@ -92,8 +110,13 @@ class SerialQueryExecutor extends ParameterQueryExecutor {
     })
   }
 
-  private def outTriplets(graph: TemporalGraph, vertexId: VertexId): List[EdgeTriplet[Properties, Properties]] = {
-    graph.triplets.filter(_.srcId == vertexId).collect().toList
+  private def outTriplets(graphTriplets: List[EdgeTriplet[Properties, Properties]],
+                          vertexId: VertexId): List[EdgeTriplet[Properties, Properties]] = {
+    graphTriplets.filter(_.srcId == vertexId)
+  }
+
+  private def collectAllTriplets(graph: TemporalGraph): List[EdgeTriplet[Properties, Properties]] = {
+    graph.triplets.collect().toList
   }
 
 }

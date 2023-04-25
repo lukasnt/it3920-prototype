@@ -13,7 +13,8 @@ case class QueryExecutionResult(
     sparkExecutorInstances: Int,
     executorName: String,
     queryResult: QueryResult,
-    executionTime: Long
+    experimentExecutionInfo: ExperimentExecutionInfo,
+    experimentMaxMemoryInfo: ExperimentMemoryInfo
 ) {
 
   def printComparison(other: QueryExecutionResult): Unit = {
@@ -26,9 +27,11 @@ case class QueryExecutionResult(
     println(s"Executors: $executorName vs ${other.executorName}")
     println("-------------------------------------")
     println("Execution times:")
-    println(s"$executorName execution time: " + executionTime + " ms")
-    println(s"${other.executorName} execution time: ${other.executionTime} ms")
-    println(s"$executorName was ${other.executionTime / executionTime - 1} times faster than ${other.executorName}")
+    println(s"$executorName execution time: " + experimentExecutionInfo.totalExecutionTime + " ms")
+    println(s"${other.executorName} execution time: ${other.experimentExecutionInfo.totalExecutionTime} ms")
+    println(
+      s"$executorName was ${other.experimentExecutionInfo.totalExecutionTime / experimentExecutionInfo.totalExecutionTime - 1} times faster than ${other.executorName}"
+    )
     println("-------------------------------------")
     println("Query results difference:")
     queryResult.printDiff(other = other.queryResult)
@@ -47,7 +50,25 @@ case class QueryExecutionResult(
       graphSize,
       sparkExecutorInstances,
       executorName,
-      executionTime
+      experimentExecutionInfo.subgraphPhaseTime,
+      experimentExecutionInfo.weightMapPhaseTime,
+      experimentExecutionInfo.pregelPhaseTime,
+      experimentExecutionInfo.pathConstructionPhaseTime,
+      experimentExecutionInfo.totalExecutionTime,
+      experimentMaxMemoryInfo.driverTotalMemory,
+      experimentMaxMemoryInfo.driverMemoryFree,
+      experimentMaxMemoryInfo.driverMemoryUsed,
+      experimentMaxMemoryInfo.totalSparkExecutorMemoryAllocated,
+      experimentMaxMemoryInfo.totalSparkExecutorMemoryFree,
+      experimentMaxMemoryInfo.totalSparkExecutorMemoryUsed,
+      experimentMaxMemoryInfo.totalRDDMemorySize,
+      experimentMaxMemoryInfo.totalRDDDiskSize,
+      experimentMaxMemoryInfo.totalMemoryUsed,
+      experimentMaxMemoryInfo.driverMemoryUsedMB,
+      experimentMaxMemoryInfo.totalSparkExecutorMemoryUsedMB,
+      experimentMaxMemoryInfo.totalRDDMemorySizeMB,
+      experimentMaxMemoryInfo.totalRDDDiskSizeMB,
+      experimentMaxMemoryInfo.totalMemoryUsedMB
     )
   }
 
@@ -68,7 +89,25 @@ object QueryExecutionResult {
         StructField("graphSize", StringType, nullable = false),
         StructField("sparkExecutorInstances", IntegerType, nullable = false),
         StructField("executorName", StringType, nullable = false),
-        StructField("executionTime", LongType, nullable = false)
+        StructField("subgraphPhaseTime", LongType, nullable = false),
+        StructField("weightMapPhaseTime", LongType, nullable = false),
+        StructField("pregelPhaseTime", LongType, nullable = false),
+        StructField("pathConstructionPhaseTime", LongType, nullable = false),
+        StructField("totalExecutionTime", LongType, nullable = false),
+        StructField("driverTotalMemory", LongType, nullable = false),
+        StructField("driverMemoryFree", LongType, nullable = false),
+        StructField("driverMemoryUsed", LongType, nullable = false),
+        StructField("totalSparkExecutorMemoryAllocated", LongType, nullable = false),
+        StructField("totalSparkExecutorMemoryFree", LongType, nullable = false),
+        StructField("totalSparkExecutorMemoryUsed", LongType, nullable = false),
+        StructField("totalRDDMemorySize", LongType, nullable = false),
+        StructField("totalRDDDiskSize", LongType, nullable = false),
+        StructField("totalMemoryUsed", LongType, nullable = false),
+        StructField("driverMemoryUsedMB", IntegerType, nullable = false),
+        StructField("totalSparkExecutorMemoryUsedMB", IntegerType, nullable = false),
+        StructField("totalRDDMemorySizeMB", IntegerType, nullable = false),
+        StructField("totalRDDDiskSizeMB", IntegerType, nullable = false),
+        StructField("totalMemoryUsedMB", IntegerType, nullable = false)
       )
     )
   }

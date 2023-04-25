@@ -34,6 +34,8 @@ class Experiment {
   def run(runsPerVariable: Int = _runsPerVariable,
           variableOrder: Experiment.VariableOrder.Value = _variableOrder,
           maxVariables: Int = _maxVariables): Unit = {
+    Experiment.currentExperiment = this
+
     if (_writeResults) {
       // Initialize result file
       initResultFile()
@@ -56,9 +58,15 @@ class Experiment {
                                          executor,
                                          executorCount) =>
         (1 to runsPerVariable).foreach { runNumber =>
+          // Reset Experiment measurement information
+          clearSparkResources()
+          Experiment.resetMeasurements()
+
+          // Set Spark executor count
+          setSparkExecutorCount(executorCount)
+
           if (_printEnabled) {
             // Print experiment info
-            clearSparkResources()
             printBorder()
             printExperimentInfo(
               VariableSet.QueryExecutionSet(query,
@@ -90,18 +98,15 @@ class Experiment {
           }
 
           // Execute query
-          val queryStartTime           = System.currentTimeMillis()
           val queryResult: QueryResult = executor.execute(query, temporalGraph)
-          val queryExecutionTime       = System.currentTimeMillis() - queryStartTime
 
           if (_printEnabled) {
-            // Print execution time
-            println(s"Query executed in $queryExecutionTime ms")
             printSparkStats()
 
             // Print results
+            printExecutionTimeResult()
+            printMaxMemoryResult()
             printResult(queryResult)
-            clearSparkResources()
             printBorder()
           }
 
@@ -114,17 +119,30 @@ class Experiment {
             sparkExecutorInstances = executorCount,
             executorName = executor.getClass.getSimpleName,
             queryResult = queryResult,
-            executionTime = queryExecutionTime
+            experimentExecutionInfo = Experiment.currentExecutionInfo,
+            experimentMaxMemoryInfo = Experiment.currentMaxMemoryInfo
           )
 
           if (_saveResults) this.results = this.results :+ result
           if (_writeResults) appendResultToFile(result)
+
+          clearSparkResources()
         }
     }
 
   }
 
+  private def setSparkExecutorCount(executorCount: Int): Unit = {
+    _sparkSession.conf.set("spark.dynamicAllocation.enabled", "true")
+    _sparkSession.conf.set("spark.executor.cores", 4)
+    _sparkSession.conf.set("spark.dynamicAllocation.minExecutors", executorCount.toString)
+    _sparkSession.conf.set("spark.dynamicAllocation.maxExecutors", executorCount.toString)
+  }
+
   private def clearSparkResources(): Unit = {
+    // Run Garbage Collection
+    System.gc()
+
     // Remove all RDDs from memory and disk
     _sparkSession.sparkContext.getPersistentRDDs.foreach {
       case (_, rdd) => rdd.unpersist()
@@ -186,10 +204,6 @@ class Experiment {
       .csv(s"${_resultDir}/$getFileName")
   }
 
-  private def getFileName: String = {
-    s"${_name}-${_dateStarted.toLocalDate}${_dateStarted.toInstant(ZoneOffset.UTC).toEpochMilli}.csv"
-  }
-
   private def appendResultToFile(queryExecutionResult: QueryExecutionResult): Unit = {
     val sqlContext: SQLContext = _sparkSession.sqlContext
     sqlContext
@@ -200,14 +214,162 @@ class Experiment {
       .csv(s"${_resultDir}/$getFileName")
   }
 
+  private def getFileName: String = {
+    s"${_name}-${_dateStarted.toLocalDate}${_dateStarted.toInstant(ZoneOffset.UTC).toEpochMilli}.csv"
+  }
+
+  private def printMaxMemoryResult(): Unit = {
+    println("-------------------------------------")
+    println("Max Memory results:")
+    println(Experiment.currentMaxMemoryInfo)
+  }
+
+  private def printExecutionTimeResult(): Unit = {
+    println("-------------------------------------")
+    println("Execution Time results:")
+    println(Experiment.currentExecutionInfo)
+  }
+
   def sparkSession: SparkSession = this._sparkSession
 
   def name: String = this._name
+
+  private def getTotalSparkExecutorMemoryAllocated: Long = {
+    _sparkSession.sparkContext.getExecutorMemoryStatus.map {
+      case (_, (allocatedMemory, _)) => allocatedMemory
+    }.sum
+  }
+
+  private def getTotalSparkExecutorMemoryFree: Long = {
+    _sparkSession.sparkContext.getExecutorMemoryStatus.map {
+      case (_, (_, freeMemory)) => freeMemory
+    }.sum
+  }
+
+  private def getTotalRDDMemorySize: Long = {
+    _sparkSession.sparkContext.getRDDStorageInfo.map(_.memSize).sum
+  }
+
+  private def getTotalRDDDiskSize: Long = {
+    _sparkSession.sparkContext.getRDDStorageInfo.map(_.diskSize).sum
+  }
+
+  private def getTotalMemoryUsed: Long = {
+    getTotalSparkExecutorMemoryUsed + getDriverMemoryUsed
+  }
+
+  private def getDriverMemoryUsed: Long = {
+    getDriverTotalMemory - getDriverMemoryFree
+  }
+
+  private def getDriverTotalMemory: Long = {
+    Runtime.getRuntime.totalMemory()
+  }
+
+  private def getDriverMemoryFree: Long = {
+    Runtime.getRuntime.freeMemory()
+  }
+
+  private def getTotalSparkExecutorMemoryUsed: Long = {
+    _sparkSession.sparkContext.getExecutorMemoryStatus.map {
+      case (_, (allocatedMemory, freeMemory)) => allocatedMemory - freeMemory
+    }.sum
+  }
 }
 
 object Experiment {
 
+  private var currentExecutionInfo: ExperimentExecutionInfo = ExperimentExecutionInfo(
+    subgraphPhaseTime = 0,
+    weightMapPhaseTime = 0,
+    pregelPhaseTime = 0,
+    pathConstructionPhaseTime = 0,
+    totalExecutionTime = 0
+  )
+  private var currentMaxMemoryInfo: ExperimentMemoryInfo = ExperimentMemoryInfo(
+    totalSparkExecutorMemoryUsed = 0,
+    totalSparkExecutorMemoryAllocated = 0,
+    totalSparkExecutorMemoryFree = 0,
+    totalRDDMemorySize = 0,
+    totalRDDDiskSize = 0,
+    driverMemoryUsed = 0,
+    driverMemoryFree = 0,
+    driverTotalMemory = 0,
+    totalMemoryUsed = 0,
+    driverMemoryUsedMB = 0,
+    totalSparkExecutorMemoryUsedMB = 0,
+    totalRDDMemorySizeMB = 0,
+    totalRDDDiskSizeMB = 0,
+    totalMemoryUsedMB = 0
+  )
+  private var currentExperiment: Experiment = _
+
+  def measureCurrentExecutionMemory(): Unit = {
+    if (currentExperiment.getTotalMemoryUsed >= currentMaxMemoryInfo.totalMemoryUsed) {
+      currentMaxMemoryInfo = ExperimentMemoryInfo(
+        totalSparkExecutorMemoryUsed = currentExperiment.getTotalSparkExecutorMemoryUsed,
+        totalSparkExecutorMemoryAllocated = currentExperiment.getTotalSparkExecutorMemoryAllocated,
+        totalSparkExecutorMemoryFree = currentExperiment.getTotalSparkExecutorMemoryFree,
+        totalRDDMemorySize = currentExperiment.getTotalRDDMemorySize,
+        totalRDDDiskSize = currentExperiment.getTotalRDDDiskSize,
+        driverMemoryUsed = currentExperiment.getDriverMemoryUsed,
+        driverMemoryFree = currentExperiment.getDriverMemoryFree,
+        driverTotalMemory = currentExperiment.getDriverTotalMemory,
+        totalMemoryUsed = currentExperiment.getTotalMemoryUsed,
+        driverMemoryUsedMB = bytesToMB(currentExperiment.getDriverMemoryUsed).toInt,
+        totalSparkExecutorMemoryUsedMB = bytesToMB(currentExperiment.getTotalSparkExecutorMemoryUsed).toInt,
+        totalRDDMemorySizeMB = bytesToMB(currentExperiment.getTotalRDDMemorySize).toInt,
+        totalRDDDiskSizeMB = bytesToMB(currentExperiment.getTotalRDDDiskSize).toInt,
+        totalMemoryUsedMB = bytesToMB(currentExperiment.getTotalMemoryUsed).toInt
+      )
+    }
+  }
+
+  private def bytesToMB(bytes: Long): Long = {
+    bytes / 1024 / 1024
+  }
+
+  def measureExecutionTime(subgraphPhaseTime: Long,
+                           weightMapPhaseTime: Long,
+                           pregelPhaseTime: Long,
+                           pathConstructionPhaseTime: Long,
+                           totalExecutionTime: Long): Unit = {
+    currentExecutionInfo = ExperimentExecutionInfo(
+      subgraphPhaseTime = subgraphPhaseTime,
+      weightMapPhaseTime = weightMapPhaseTime,
+      pregelPhaseTime = pregelPhaseTime,
+      pathConstructionPhaseTime = pathConstructionPhaseTime,
+      totalExecutionTime = totalExecutionTime
+    )
+  }
+
   def builder() = new Builder()
+
+  private def resetMeasurements(): Unit = {
+    currentExecutionInfo = ExperimentExecutionInfo(
+      subgraphPhaseTime = 0,
+      weightMapPhaseTime = 0,
+      pregelPhaseTime = 0,
+      pathConstructionPhaseTime = 0,
+      totalExecutionTime = 0
+    )
+    currentMaxMemoryInfo = ExperimentMemoryInfo(
+      totalSparkExecutorMemoryUsed = 0,
+      totalSparkExecutorMemoryAllocated = 0,
+      totalSparkExecutorMemoryFree = 0,
+      totalRDDMemorySize = 0,
+      totalRDDDiskSize = 0,
+      driverMemoryUsed = 0,
+      driverMemoryFree = 0,
+      driverTotalMemory = 0,
+      totalMemoryUsed = 0,
+      driverMemoryUsedMB = 0,
+      totalSparkExecutorMemoryUsedMB = 0,
+      totalRDDMemorySizeMB = 0,
+      totalRDDDiskSizeMB = 0,
+      totalMemoryUsedMB = 0
+    )
+  }
 
   class Builder {
 
