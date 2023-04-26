@@ -98,8 +98,8 @@ object ParameterQuery {
       .build()
   }
 
-  def cityNumInteractionPaths(city1: String = "573",
-                              city2: String = "737",
+  def cityNumInteractionPaths(city1: String = "737" /* Hossein: 1116, Eric: 1014 , Miguel: 737 */,
+                              city2: String = "1332" /* Hans: 1363, Neil: 1325, Abdul Harris: 892, Murray: 1332*/,
                               minLength: Int = 2,
                               topK: Int = 10,
                               pathType: TemporalPathType = TemporalPathType.Continuous): ParameterQuery = {

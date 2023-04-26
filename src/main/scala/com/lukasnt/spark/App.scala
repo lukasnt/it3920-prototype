@@ -251,6 +251,7 @@ class App extends Callable[Int] {
         sizeName => (sizeName, GraphLoaders.getByName(graphName, sizeName, spark, hdfsRootDir))
       )
     }
+    val outputDirString: String = if (outputDir == null) s"$hdfsRootDir" else outputDir
     graphLoaders.foreach {
       case (rawGraphName, graphLoader) =>
         preprocessLoaders
@@ -260,9 +261,9 @@ class App extends Callable[Int] {
               println(s"Preprocessing $rawGraphName with $preprocessName")
               SparkObjectWriter.write(
                 graph = preprocessLoader.load(spark.sparkContext),
-                path = s"$outputDir/preprocessed/$preprocessName/$rawGraphName"
+                path = s"$outputDirString/preprocessed/$preprocessName/$rawGraphName"
               )
-              println(s"Finished writing to $outputDir/preprocessed/$preprocessName/$rawGraphName")
+              println(s"Finished writing to $outputDirString/preprocessed/$preprocessName/$rawGraphName")
           }
     }
 

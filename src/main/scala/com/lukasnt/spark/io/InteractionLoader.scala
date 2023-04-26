@@ -2,15 +2,15 @@ package com.lukasnt.spark.io
 
 import com.lukasnt.spark.io.InteractionLoader.getIdFieldAsLong
 import com.lukasnt.spark.models.Types.{Properties, TemporalGraph}
-import org.apache.spark.SparkContext
-import org.apache.spark.graphx.VertexRDD
+import org.apache.spark.{Partitioner, SparkContext}
+import org.apache.spark.graphx.{PartitionStrategy, VertexRDD}
 
 import java.time.ZonedDateTime
 
 class InteractionLoader(val snbLoader: TemporalGraphLoader[ZonedDateTime]) extends TemporalGraphLoader[ZonedDateTime] {
 
   override def load(sc: SparkContext): TemporalGraph = {
-    val rawGraph: TemporalGraph = snbLoader.load(sc)
+    val rawGraph: TemporalGraph = snbLoader.load(sc).partitionBy(PartitionStrategy.RandomVertexCut)
 
     val comments: VertexRDD[Properties] = rawGraph.vertices.filter {
       case (_, attr) => attr.typeLabel == "Comment"

@@ -68,11 +68,14 @@ class ParameterPathsConstruction(parameterQuery: ParameterQuery)
     // Merge the aggregated path-table into all interval-tables merged, resulting in one path-table
     pathTable.mergeWithTable(
       // Merge all interval tables into one path-table
-      other = intervalStates.intervalTables
-        .map(intervalTable => {
-          createPathTable(intervalTable.table, vertex, topK, minLength, maxLength, intervalTable.interval)
-        })
-        .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK)),
+      other =
+        if (intervalStates.intervalTables.nonEmpty)
+          intervalStates.intervalTables
+            .map(intervalTable => {
+              createPathTable(intervalTable.table, vertex, topK, minLength, maxLength, intervalTable.interval)
+            })
+            .reduce((tableA, tableB) => tableA.mergeWithTable(tableB, topK))
+        else PathWeightTable(List(), topK),
       topK = topK
     )
   }
