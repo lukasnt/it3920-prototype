@@ -8,7 +8,9 @@ import org.apache.spark.graphx.{EdgeTriplet, PartitionStrategy, VertexId}
 
 class SerialQueryExecutor extends ParameterQueryExecutor {
 
-  def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult = {
+  def execute(parameterQuery: ParameterQuery,
+              temporalGraph: TemporalGraph,
+              partitionStrategy: PartitionStrategy): QueryResult = {
     val totalStartTime = System.currentTimeMillis()
 
     // Extract predicates as query is not serializable
@@ -55,9 +57,9 @@ class SerialQueryExecutor extends ParameterQueryExecutor {
                      query: ParameterQuery,
                      srcId: VertexId,
                      destinationIds: List[VertexId]): List[SerialQueryExecutor.PathEntry] = {
-    var queue          = List[SerialQueryExecutor.PathEntry]()
-    var paths          = List[SerialQueryExecutor.PathEntry]()
-    val graphTriplets  = collectAllTriplets(graph)
+    var queue         = List[SerialQueryExecutor.PathEntry]()
+    var paths         = List[SerialQueryExecutor.PathEntry]()
+    val graphTriplets = collectAllTriplets(graph)
     queue = initQueue(graphTriplets, query, srcId)
 
     // BFS

@@ -5,19 +5,20 @@ import org.apache.spark.graphx.PartitionStrategy
 
 trait ParameterQueryExecutor {
 
-  def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult
+  def execute(parameterQuery: ParameterQuery,
+              temporalGraph: TemporalGraph,
+              partitionStrategy: PartitionStrategy = PartitionStrategy.RandomVertexCut): QueryResult
 
 }
 
 object ParameterQueryExecutor {
 
   def getByName(
-      name: String,
-      partitionStrategy: PartitionStrategy = PartitionStrategy.RandomVertexCut
+      name: String
   ): ParameterQueryExecutor =
     name match {
       case "serial" => SerialQueryExecutor()
-      case "spark"  => SparkQueryExecutor(partitionStrategy)
+      case "spark"  => SparkQueryExecutor()
       case _        => SparkQueryExecutor()
     }
 

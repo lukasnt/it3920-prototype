@@ -5,15 +5,18 @@ import com.lukasnt.spark.models.Types.TemporalGraph
 import com.lukasnt.spark.queries.{ParameterQuery, QueryResult}
 import org.apache.spark.graphx.PartitionStrategy
 
-class SparkQueryExecutor(val partitionStrategy: PartitionStrategy = PartitionStrategy.RandomVertexCut) extends ParameterQueryExecutor {
+class SparkQueryExecutor extends ParameterQueryExecutor {
 
-  def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult = {
+  def execute(parameterQuery: ParameterQuery,
+              temporalGraph: TemporalGraph,
+              partitionStrategy: PartitionStrategy): QueryResult = {
     val totalStartTime = System.currentTimeMillis()
 
     println("Starting subgraph phase...")
     val subgraphStartTime = System.currentTimeMillis()
-    val subgraph          = ParameterSubgraph(temporalGraph.partitionBy(partitionStrategy), parameterQuery).partitionBy(partitionStrategy)
-    val subgraphTime      = System.currentTimeMillis() - subgraphStartTime
+    val subgraph =
+      ParameterSubgraph(temporalGraph.partitionBy(partitionStrategy), parameterQuery).partitionBy(partitionStrategy)
+    val subgraphTime = System.currentTimeMillis() - subgraphStartTime
     Experiment.measureCurrentExecutionMemory()
     temporalGraph.unpersist()
     println(s"Subgraph phase finished in $subgraphTime ms")
@@ -58,6 +61,6 @@ class SparkQueryExecutor(val partitionStrategy: PartitionStrategy = PartitionStr
 
 object SparkQueryExecutor {
 
-  def apply(partitionStrategy: PartitionStrategy = PartitionStrategy.RandomVertexCut): SparkQueryExecutor = new SparkQueryExecutor(partitionStrategy)
+  def apply(): SparkQueryExecutor = new SparkQueryExecutor()
 
 }

@@ -132,14 +132,7 @@ class App extends Callable[Int] {
       .withVariableSet(
         VariableSet
           .builder()
-          .withExecutorVariables(
-            (
-              for {
-                partitionStrategy <- partitionStrategyVariables
-                executor          <- executorVariables
-              } yield ParameterQueryExecutor.getByName(executor, PartitionStrategy.fromString(partitionStrategy))
-            ).toList
-          )
+          .withExecutorVariables(executorVariables.map(ParameterQueryExecutor.getByName).toList)
           .withPartitionStrategyVariables(partitionStrategyVariables.map(PartitionStrategy.fromString).toList)
           .withSparkExecutorCountVariables(executorCountVariables.toList)
           .fromParameterQuery(parameterQueryPreset, queryPreset)
@@ -189,8 +182,7 @@ class App extends Callable[Int] {
           .fromParameterQuery(ParameterQuery.genderNumInteractionPaths(), "gender-num-interaction")
           .withTopKVariables(List(3, 25))
           .withLengthRangeVariables(List((1, 2), (4, 5)))
-          .withExecutorVariables(List("spark", "serial").map(name =>
-            ParameterQueryExecutor.getByName(name, PartitionStrategy.RandomVertexCut)))
+          .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
           .withGraphLoaderVariables(List(
             ("interaction", "sf0_003", GraphLoaders.getByName("interaction", "sf0_003", spark, hdfsRootDir))))
           .build())
@@ -220,8 +212,7 @@ class App extends Callable[Int] {
           .fromParameterQuery(ParameterQuery.cityInteractionDurationPaths(), "city-interaction-duration")
           .withTopKVariables(List(10))
           .withLengthRangeVariables(List((2, 3)))
-          .withExecutorVariables(List("spark", "serial").map(name =>
-            ParameterQueryExecutor.getByName(name, PartitionStrategy.RandomVertexCut)))
+          .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
           .withGraphLoaderVariables(List(("raw", "sf1", SNBLoader.getByName("sf1", spark.sqlContext, hdfsRootDir))))
           .build()
       )

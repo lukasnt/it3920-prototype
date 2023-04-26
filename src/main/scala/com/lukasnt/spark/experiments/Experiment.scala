@@ -64,7 +64,7 @@ class Experiment {
           Experiment.resetMeasurements()
 
           // Set Spark executor count
-          setSparkExecutorCount(executorCount)
+          //setSparkExecutorCount(executorCount)
 
           if (_printEnabled) {
             // Print experiment info
@@ -100,7 +100,7 @@ class Experiment {
           }
 
           // Execute query
-          val queryResult: QueryResult = executor.execute(query, temporalGraph)
+          val queryResult: QueryResult = executor.execute(query, temporalGraph, partitionStrategy)
 
           if (_printEnabled) {
             printSparkStats()
