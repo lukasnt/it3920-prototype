@@ -3,15 +3,16 @@ package com.lukasnt.spark.executors
 import com.lukasnt.spark.experiments.Experiment
 import com.lukasnt.spark.models.Types.TemporalGraph
 import com.lukasnt.spark.queries.{ParameterQuery, QueryResult}
+import org.apache.spark.graphx.PartitionStrategy
 
-class SparkQueryExecutor extends ParameterQueryExecutor {
+class SparkQueryExecutor(val partitionStrategy: PartitionStrategy = PartitionStrategy.RandomVertexCut) extends ParameterQueryExecutor {
 
   def execute(parameterQuery: ParameterQuery, temporalGraph: TemporalGraph): QueryResult = {
     val totalStartTime = System.currentTimeMillis()
 
     println("Starting subgraph phase...")
     val subgraphStartTime = System.currentTimeMillis()
-    val subgraph          = ParameterSubgraph(temporalGraph, parameterQuery)
+    val subgraph          = ParameterSubgraph(temporalGraph.partitionBy(partitionStrategy), parameterQuery).partitionBy(partitionStrategy)
     val subgraphTime      = System.currentTimeMillis() - subgraphStartTime
     Experiment.measureCurrentExecutionMemory()
     temporalGraph.unpersist()
@@ -19,14 +20,14 @@ class SparkQueryExecutor extends ParameterQueryExecutor {
 
     println("Starting weight-map phase...")
     val weightMapStartTime = System.currentTimeMillis()
-    val weightedGraph      = ParameterWeightMap(subgraph, parameterQuery)
+    val weightedGraph      = ParameterWeightMap(subgraph, parameterQuery).partitionBy(partitionStrategy)
     val weightMapTime      = System.currentTimeMillis() - weightMapStartTime
     Experiment.measureCurrentExecutionMemory()
     println(s"Weight-map phase finished in $weightMapTime ms")
 
     println("Starting pregel-computation phase...")
     val pregelStartTime = System.currentTimeMillis()
-    val pregelGraph     = ParameterPregel(weightedGraph, parameterQuery)
+    val pregelGraph     = ParameterPregel(weightedGraph, parameterQuery).partitionBy(partitionStrategy)
     val pregelTime      = System.currentTimeMillis() - pregelStartTime
     Experiment.measureCurrentExecutionMemory()
     weightedGraph.unpersist()
@@ -57,6 +58,6 @@ class SparkQueryExecutor extends ParameterQueryExecutor {
 
 object SparkQueryExecutor {
 
-  def apply(): SparkQueryExecutor = new SparkQueryExecutor()
+  def apply(partitionStrategy: PartitionStrategy = PartitionStrategy.RandomVertexCut): SparkQueryExecutor = new SparkQueryExecutor(partitionStrategy)
 
 }

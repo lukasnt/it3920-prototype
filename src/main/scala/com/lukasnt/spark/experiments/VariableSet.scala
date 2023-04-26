@@ -5,6 +5,7 @@ import com.lukasnt.spark.io.{SNBLoader, TemporalGraphLoader}
 import com.lukasnt.spark.models.TemporalPathType
 import com.lukasnt.spark.models.Types.{AttrEdge, AttrVertex}
 import com.lukasnt.spark.queries.ParameterQuery
+import org.apache.spark.graphx.PartitionStrategy
 
 import java.time.ZonedDateTime
 
@@ -31,20 +32,9 @@ class VariableSet {
 
   private var _graphLoaderVariables: List[(String, String, TemporalGraphLoader[ZonedDateTime])] =
     List(("raw", "sf0_003", SNBLoader.localSf0_003))
-  private var _executorVariables: List[ParameterQueryExecutor] = List(SparkQueryExecutor())
-  private var _sparkExecutorCountVariables: List[Int]          = List(4)
-
-  def totalCombinations: Int = {
-    _lengthRangeVariables.length *
-      _topKVariables.length *
-      _temporalPathTypeVariables.length *
-      _sourcePredicateVariables.length *
-      _intermediatePredicateVariables.length *
-      _destinationPredicateVariables.length *
-      _weightMapVariables.length *
-      _graphLoaderVariables.length *
-      _executorVariables.length
-  }
+  private var _executorVariables: List[ParameterQueryExecutor]     = List(SparkQueryExecutor())
+  private var _partitionStrategyVariables: List[PartitionStrategy] = List(PartitionStrategy.RandomVertexCut)
+  private var _sparkExecutorCountVariables: List[Int]              = List(4)
 
   def shuffledQueries: List[VariableSet.QueryExecutionSet] = {
     scala.util.Random.shuffle(ascendingQueries)
@@ -65,6 +55,7 @@ class VariableSet {
       destinationPredicate  <- _destinationPredicateVariables
       weightMap             <- _weightMapVariables
       graphLoader           <- _graphLoaderVariables
+      partitionStrategy     <- _partitionStrategyVariables
       executor              <- _executorVariables
     } yield {
       VariableSet.QueryExecutionSet(
@@ -84,7 +75,8 @@ class VariableSet {
         graphSize = graphLoader._2,
         graphLoader = graphLoader._3,
         executor = executor,
-        sparkExecutorCount = sparkExecutorCount
+        sparkExecutorCount = sparkExecutorCount,
+        partitionStrategy = partitionStrategy
       )
     }
   }
@@ -101,6 +93,7 @@ object VariableSet {
                                graphSize: String,
                                graphLoader: TemporalGraphLoader[ZonedDateTime],
                                executor: ParameterQueryExecutor,
+                               partitionStrategy: PartitionStrategy,
                                sparkExecutorCount: Int)
 
   class Builder {
@@ -170,6 +163,11 @@ object VariableSet {
 
     def withSparkExecutorCountVariables(variables: List[Int]): Builder = {
       variableSet._sparkExecutorCountVariables = variables
+      this
+    }
+
+    def withPartitionStrategyVariables(variables: List[PartitionStrategy]): Builder = {
+      variableSet._partitionStrategyVariables = variables
       this
     }
 

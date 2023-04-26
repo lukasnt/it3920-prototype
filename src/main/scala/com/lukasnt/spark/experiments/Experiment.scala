@@ -56,6 +56,7 @@ class Experiment {
                                          graphSize,
                                          graphLoader,
                                          executor,
+                                         partitionStrategy,
                                          executorCount) =>
         (1 to runsPerVariable).foreach { runNumber =>
           // Reset Experiment measurement information
@@ -75,6 +76,7 @@ class Experiment {
                                             graphSize,
                                             graphLoader,
                                             executor,
+                                            partitionStrategy,
                                             executorCount)
             )
 
@@ -118,6 +120,7 @@ class Experiment {
             graphSize = graphSize,
             sparkExecutorInstances = executorCount,
             executorName = executor.getClass.getSimpleName,
+            partitionStrategy = partitionStrategy.getClass.getSimpleName,
             queryResult = queryResult,
             experimentExecutionInfo = Experiment.currentExecutionInfo,
             experimentMaxMemoryInfo = Experiment.currentMaxMemoryInfo
@@ -134,7 +137,7 @@ class Experiment {
 
   private def setSparkExecutorCount(executorCount: Int): Unit = {
     _sparkSession.conf.set("spark.dynamicAllocation.enabled", "true")
-    _sparkSession.conf.set("spark.executor.cores", 4)
+    _sparkSession.conf.set("spark.executor.cores", 4 * executorCount)
     _sparkSession.conf.set("spark.dynamicAllocation.minExecutors", executorCount.toString)
     _sparkSession.conf.set("spark.dynamicAllocation.maxExecutors", executorCount.toString)
   }
@@ -169,6 +172,7 @@ class Experiment {
     println(s"Graph Name: ${variableSet.graphName}")
     println(s"Graph Size: ${variableSet.graphSize}")
     println(s"Spark Executor Count: ${variableSet.sparkExecutorCount}")
+    println(s"Partition Strategy: ${variableSet.partitionStrategy}")
     printSparkStats()
   }
 

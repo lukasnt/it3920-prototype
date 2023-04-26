@@ -4,7 +4,7 @@ import com.lukasnt.spark.experiments.Experiment
 import com.lukasnt.spark.models.TemporalPath
 import com.lukasnt.spark.models.Types._
 import com.lukasnt.spark.queries.{ParameterQuery, QueryResult}
-import org.apache.spark.graphx.{EdgeTriplet, VertexId}
+import org.apache.spark.graphx.{EdgeTriplet, PartitionStrategy, VertexId}
 
 class SerialQueryExecutor extends ParameterQueryExecutor {
 

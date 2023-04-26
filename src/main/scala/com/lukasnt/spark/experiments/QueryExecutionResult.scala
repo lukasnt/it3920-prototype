@@ -12,6 +12,7 @@ case class QueryExecutionResult(
     graphSize: String,
     sparkExecutorInstances: Int,
     executorName: String,
+    partitionStrategy: String,
     queryResult: QueryResult,
     experimentExecutionInfo: ExperimentExecutionInfo,
     experimentMaxMemoryInfo: ExperimentMemoryInfo
@@ -50,6 +51,7 @@ case class QueryExecutionResult(
       graphSize,
       sparkExecutorInstances,
       executorName,
+      partitionStrategy,
       experimentExecutionInfo.subgraphPhaseTime,
       experimentExecutionInfo.weightMapPhaseTime,
       experimentExecutionInfo.pregelPhaseTime,
@@ -89,6 +91,7 @@ object QueryExecutionResult {
         StructField("graphSize", StringType, nullable = false),
         StructField("sparkExecutorInstances", IntegerType, nullable = false),
         StructField("executorName", StringType, nullable = false),
+        StructField("partitionStrategy", StringType, nullable = false),
         StructField("subgraphPhaseTime", LongType, nullable = false),
         StructField("weightMapPhaseTime", LongType, nullable = false),
         StructField("pregelPhaseTime", LongType, nullable = false),

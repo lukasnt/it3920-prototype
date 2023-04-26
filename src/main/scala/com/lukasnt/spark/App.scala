@@ -5,6 +5,7 @@ import com.lukasnt.spark.experiments._
 import com.lukasnt.spark.io.{SNBLoader, SparkObjectWriter, TemporalGraphLoader}
 import com.lukasnt.spark.models.TemporalPathType
 import com.lukasnt.spark.queries.ParameterQuery
+import org.apache.spark.graphx.PartitionStrategy
 import org.apache.spark.sql.SparkSession
 import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}
@@ -78,6 +79,10 @@ class App extends Callable[Int] {
               description = Array("Executor count variables"),
               defaultValue = "4")
       executorCountVariables: Array[Int] = Array(4),
+      @Option(names = Array("-psv", "--partition-strategy-variables"),
+              description = Array("Partition strategy variables"),
+              defaultValue = "RandomVertexCut")
+      partitionStrategyVariables: Array[String] = Array("RandomVertexCut"),
       @Option(names = Array("-tpv", "--temporal-path-variables"), description = Array("Temporal path variables"))
       temporalPathVariables: Array[String] = Array(),
       @Option(
@@ -100,10 +105,11 @@ class App extends Callable[Int] {
         s"logEnabled: $logEnabled\n" +
         s"writeEnabled: $writeEnabled\n" +
         s"queryPreset: $queryPreset\n" +
-        s"executorVariables: ${if (executorVariables != null) executorVariables.mkString(", ")}\n" +
-        s"graphVariables: ${if (graphVariables != null) graphVariables.mkString(", ")}\n" +
-        s"graphSizeVariables: ${if (graphSizeVariables != null) graphSizeVariables.mkString(", ")}\n" +
-        s"executorCountVariables: ${if (executorCountVariables != null) executorCountVariables.mkString(", ")}\n" +
+        s"executorVariables: ${executorVariables.mkString(", ")}\n" +
+        s"graphVariables: ${graphVariables.mkString(", ")}\n" +
+        s"graphSizeVariables: ${graphSizeVariables.mkString(", ")}\n" +
+        s"executorCountVariables: ${executorCountVariables.mkString(", ")}\n" +
+        s"partitionStrategyVariables: ${partitionStrategyVariables.mkString(", ")}\n" +
         s"temporalPathVariables: ${if (temporalPathVariables != null) temporalPathVariables.mkString(", ")}\n" +
         s"lengthRangeVariables: ${if (lengthRangeVariables != null) lengthRangeVariables.mkString(", ")}\n" +
         s"topKVariables: ${if (topKVariables != null) topKVariables.mkString(", ")}"
@@ -126,7 +132,15 @@ class App extends Callable[Int] {
       .withVariableSet(
         VariableSet
           .builder()
-          .withExecutorVariables(executorVariables.map(ParameterQueryExecutor.getByName).toList)
+          .withExecutorVariables(
+            (
+              for {
+                partitionStrategy <- partitionStrategyVariables
+                executor          <- executorVariables
+              } yield ParameterQueryExecutor.getByName(executor, PartitionStrategy.fromString(partitionStrategy))
+            ).toList
+          )
+          .withPartitionStrategyVariables(partitionStrategyVariables.map(PartitionStrategy.fromString).toList)
           .withSparkExecutorCountVariables(executorCountVariables.toList)
           .fromParameterQuery(parameterQueryPreset, queryPreset)
           .withGraphLoaderVariables(
@@ -175,7 +189,8 @@ class App extends Callable[Int] {
           .fromParameterQuery(ParameterQuery.genderNumInteractionPaths(), "gender-num-interaction")
           .withTopKVariables(List(3, 25))
           .withLengthRangeVariables(List((1, 2), (4, 5)))
-          .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
+          .withExecutorVariables(List("spark", "serial").map(name =>
+            ParameterQueryExecutor.getByName(name, PartitionStrategy.RandomVertexCut)))
           .withGraphLoaderVariables(List(
             ("interaction", "sf0_003", GraphLoaders.getByName("interaction", "sf0_003", spark, hdfsRootDir))))
           .build())
@@ -205,7 +220,8 @@ class App extends Callable[Int] {
           .fromParameterQuery(ParameterQuery.cityInteractionDurationPaths(), "city-interaction-duration")
           .withTopKVariables(List(10))
           .withLengthRangeVariables(List((2, 3)))
-          .withExecutorVariables(List("spark", "serial").map(ParameterQueryExecutor.getByName))
+          .withExecutorVariables(List("spark", "serial").map(name =>
+            ParameterQueryExecutor.getByName(name, PartitionStrategy.RandomVertexCut)))
           .withGraphLoaderVariables(List(("raw", "sf1", SNBLoader.getByName("sf1", spark.sqlContext, hdfsRootDir))))
           .build()
       )
