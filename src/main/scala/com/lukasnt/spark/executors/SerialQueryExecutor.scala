@@ -98,9 +98,7 @@ class SerialQueryExecutor extends ParameterQueryExecutor {
       }
 
       if (currentLength > query.minLength) {
-        if (!queue.exists(_.path.length <= query.minLength)) {
-          queue = queue.sortBy(_.weight).take(query.topK)
-        }
+        queue = queue.sortBy(_.weight).take(query.topK)
       }
 
     }
