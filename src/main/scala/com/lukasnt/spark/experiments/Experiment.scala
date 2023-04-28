@@ -444,8 +444,4 @@ object Experiment {
     val Ascending, Descending, Shuffled = Value
   }
 
-  object RunOrder extends Enumeration {
-    val Sequential, Interleaved, RandomBatch = Value
-  }
-
 }

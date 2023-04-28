@@ -42,7 +42,7 @@ class App extends Callable[Int] {
       @Option(names = Array("-o", "--variable-order"),
               description = Array("Variable order"),
               converter = Array(classOf[VariableOrderConverter]),
-              defaultValue = "Ascending")
+              defaultValue = "shuffled")
       variableOrder: Experiment.VariableOrder.Value,
       @Option(names = Array("-s", "--save-results"),
               description = Array("Save results in between runs that can be viewed later"),
