@@ -6,7 +6,8 @@ import com.lukasnt.spark.io.{SNBLoader, SparkObjectWriter, TemporalGraphLoader}
 import com.lukasnt.spark.models.TemporalPathType
 import com.lukasnt.spark.queries.ParameterQuery
 import org.apache.spark.graphx.PartitionStrategy
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{Encoders, SparkSession}
 import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}
 
@@ -270,25 +271,150 @@ class App extends Callable[Int] {
   }
 
   @Command
-  def printCSV(
+  def formatResult(
       @Option(names = Array("-f", "--filename"), description = Array("filename"))
       filename: String,
       @Option(names = Array("-c", "--columns"), description = Array("columns"))
-      columns: Array[String] = Array()
+      columns: Array[String] = Array(),
+      @Option(names = Array("-v", "--variable"), description = Array("variable"))
+      variable: String = "",
+      @Option(names = Array("-w", "--write"), description = Array("write to csv"), defaultValue = "true")
+      write: Boolean = true,
+      @Option(names = Array("-o", "--output-dir"),
+              description = Array("output directory"),
+              defaultValue = "$/format-result")
+      outputDir: String = s"/format-result",
+      @Option(names = Array("-p", "--print"), description = Array("print to console"), defaultValue = "true")
+      print: Boolean = true
   ): Unit = {
     val columnNames =
       if (columns == null || columns.isEmpty) QueryExecutionResult.infoResultsAsDataFrameSchema().names
       else columns
     val spark = SparkSession.builder().getOrCreate()
-    println(columnNames.mkString(","))
-    spark.sqlContext.read
+    val df = spark.sqlContext.read
       .format("csv")
       .schema(QueryExecutionResult.infoResultsAsDataFrameSchema())
       .load(s"$hdfsRootDir/results/$filename")
       .select(columnNames.head, columnNames.tail: _*)
       .sort(columnNames(0))
-      .foreach(row => println(row.mkString(",")))
+      .coalesce(1)
+
+    if (write) {
+      df.write
+        .mode("overwrite")
+        .option("header", "true")
+        .option("delimiter", ",")
+        .csv(s"$outputDir/results/$filename/raw.csv")
+
+      val measurementColumns = columnNames
+        .intersect(
+          List(
+            "subgraphPhaseTime",
+            "weightMapPhaseTime",
+            "pregelPhaseTime",
+            "pathConstructionPhaseTime",
+            "totalExecutionTime",
+            "driverTotalMemory",
+            "driverMemoryFree",
+            "driverMemoryUsed",
+            "totalSparkExecutorMemoryAllocated",
+            "totalSparkExecutorMemoryFree",
+            "totalSparkExecutorMemoryUsed",
+            "totalRDDMemorySize",
+            "totalRDDDiskSize",
+            "totalMemoryUsed",
+            "driverMemoryUsedMB",
+            "totalSparkExecutorMemoryUsedMB",
+            "totalRDDMemorySizeMB",
+            "totalRDDDiskSizeMB",
+            "totalMemoryUsedMB"
+          ))
+        .toList
+      if (variable != null && variable.nonEmpty) {
+        val avgDf = df
+          .groupBy(variable)
+          .avg(measurementColumns: _*)
+          .sort(variable)
+        avgDf.write
+          .mode("overwrite")
+          .option("header", "true")
+          .option("delimiter", ",")
+          .csv(s"$outputDir/results/$filename/avg.csv")
+        avgDf
+          .select(variable,
+                  "avg(subgraphPhaseTime)",
+                  "avg(weightMapPhaseTime)",
+                  "avg(pregelPhaseTime)",
+                  "avg(pathConstructionPhaseTime)")
+          .write
+          .mode("overwrite")
+          .option("header", "true")
+          .option("delimiter", ",")
+          .csv(s"$outputDir/results/$filename/runtime_avg.csv")
+        avgDf
+          .select(variable, "avg(totalRDDMemorySize)", "avg(totalSparkExecutorMemoryUsed)", "avg(driverMemoryUsed)")
+          .map(row => {
+            val totalRDDMemorySize           = row.getAs[Double]("avg(totalRDDMemorySize)")
+            val totalSparkExecutorMemoryUsed = row.getAs[Double]("avg(totalSparkExecutorMemoryUsed)")
+            val driverMemoryUsed             = row.getAs[Double]("avg(driverMemoryUsed)")
+            val executorsHeap                = totalSparkExecutorMemoryUsed - totalRDDMemorySize
+            (row(0).toString, totalRDDMemorySize, executorsHeap, driverMemoryUsed)
+          })(
+            Encoders.tuple(
+              Encoders.STRING,
+              Encoders.scalaDouble,
+              Encoders.scalaDouble,
+              Encoders.scalaDouble
+            )
+          )
+          .sort("_1")
+          .write
+          .mode("overwrite")
+          .option("header", "true")
+          .option("delimiter", ",")
+          .csv(s"$outputDir/results/$filename/memory_avg.csv")
+
+        df.select(variable, "totalExecutionTime")
+          .sort(variable)
+          .write
+          .mode("overwrite")
+          .option("header", "true")
+          .option("delimiter", ",")
+          .csv(s"$outputDir/results/$filename/runtime_samples.csv")
+
+        df.select(variable, "totalRDDMemorySize", "totalSparkExecutorMemoryUsed", "driverMemoryUsed")
+          .map(row => {
+            val totalRDDMemorySize           = row.getAs[Long]("totalRDDMemorySize")
+            val totalSparkExecutorMemoryUsed = row.getAs[Long]("totalSparkExecutorMemoryUsed")
+            val driverMemoryUsed             = row.getAs[Long]("driverMemoryUsed")
+            val executorsHeap                = totalSparkExecutorMemoryUsed - totalRDDMemorySize
+            (row(0).toString, totalRDDMemorySize + executorsHeap + driverMemoryUsed)
+          })(
+            Encoders.tuple(
+              Encoders.STRING,
+              Encoders.scalaLong
+            )
+          )
+          .sort("_1")
+          .write
+          .mode("overwrite")
+          .option("header", "true")
+          .option("delimiter", ",")
+          .csv(s"$outputDir/results/$filename/memory_samples.csv")
+      }
+    }
+
+    if (print) {
+      columnNames.foreach(println)
+      df.foreach(row => println(row.mkString(",")))
+    }
   }
+
+  @Command
+  def formatRawResult(
+      @Option(names = Array("-f", "--filename"), description = Array("filename"))
+      filename: String
+  ): Unit = {}
 
   override def call(): Int = {
     0
