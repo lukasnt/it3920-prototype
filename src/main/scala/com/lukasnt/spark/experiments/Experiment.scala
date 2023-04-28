@@ -41,24 +41,29 @@ class Experiment {
       initResultFile()
     }
 
-    val queries: List[VariableSet.QueryExecutionSet] = variableOrder match {
-      case Experiment.VariableOrder.Ascending  => _variableSet.ascendingQueries
-      case Experiment.VariableOrder.Descending => _variableSet.descendingQueries
-      case Experiment.VariableOrder.Shuffled   => _variableSet.shuffledQueries
-      case _                                   => _variableSet.ascendingQueries
-    }
+    (1 to runsPerVariable).foreach { runNumber =>
+      printBorder()
+      println(s"Run number: $runNumber")
+      println("=====================================")
+      println()
 
-    val queriesToRun: List[VariableSet.QueryExecutionSet] = queries.take(maxVariables)
-    queriesToRun.foreach {
-      case VariableSet.QueryExecutionSet(query,
-                                         queryName,
-                                         graphName,
-                                         graphSize,
-                                         graphLoader,
-                                         executor,
-                                         partitionStrategy,
-                                         executorCount) =>
-        (1 to runsPerVariable).foreach { runNumber =>
+      val queries: List[VariableSet.QueryExecutionSet] = variableOrder match {
+        case Experiment.VariableOrder.Ascending  => _variableSet.ascendingQueries
+        case Experiment.VariableOrder.Descending => _variableSet.descendingQueries
+        case Experiment.VariableOrder.Shuffled   => _variableSet.shuffledQueries
+        case _                                   => _variableSet.shuffledQueries
+      }
+      val queriesToRun: List[VariableSet.QueryExecutionSet] = queries.take(maxVariables)
+
+      queriesToRun.foreach {
+        case VariableSet.QueryExecutionSet(query,
+                                           queryName,
+                                           graphName,
+                                           graphSize,
+                                           graphLoader,
+                                           executor,
+                                           partitionStrategy,
+                                           executorCount) =>
           // Reset Experiment measurement information
           clearSparkResources()
           Experiment.resetMeasurements()
@@ -130,16 +135,9 @@ class Experiment {
           if (_writeResults) appendResultToFile(result)
 
           clearSparkResources()
-        }
+      }
     }
 
-  }
-
-  private def setSparkExecutorCount(executorCount: Int): Unit = {
-    _sparkSession.conf.set("spark.dynamicAllocation.enabled", "true")
-    _sparkSession.conf.set("spark.executor.cores", 4 * executorCount)
-    _sparkSession.conf.set("spark.dynamicAllocation.minExecutors", executorCount.toString)
-    _sparkSession.conf.set("spark.dynamicAllocation.maxExecutors", executorCount.toString)
   }
 
   private def clearSparkResources(): Unit = {
@@ -237,6 +235,13 @@ class Experiment {
   def sparkSession: SparkSession = this._sparkSession
 
   def name: String = this._name
+
+  private def setSparkExecutorCount(executorCount: Int): Unit = {
+    _sparkSession.conf.set("spark.dynamicAllocation.enabled", "true")
+    _sparkSession.conf.set("spark.executor.cores", 4 * executorCount)
+    _sparkSession.conf.set("spark.dynamicAllocation.minExecutors", executorCount.toString)
+    _sparkSession.conf.set("spark.dynamicAllocation.maxExecutors", executorCount.toString)
+  }
 
   private def getTotalSparkExecutorMemoryAllocated: Long = {
     _sparkSession.sparkContext.getExecutorMemoryStatus.map {

@@ -124,7 +124,7 @@ class App extends Callable[Int] {
       .withSparkSession(spark)
       .withMaxVariables(maxVariables)
       .withRunsPerVariable(runsPerVariable)
-      .withVariableOrder(Experiment.VariableOrder.Ascending)
+      .withVariableOrder(Experiment.VariableOrder.Shuffled)
       .withSaveResults(saveResults)
       .withPrintEnabled(printEnabled)
       .withLogEnabled(logEnabled)
