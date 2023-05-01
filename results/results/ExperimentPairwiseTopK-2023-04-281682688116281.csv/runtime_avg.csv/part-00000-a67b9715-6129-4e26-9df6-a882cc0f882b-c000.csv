@@ -1,0 +1,7 @@
+topK,avg(subgraphPhaseTime),avg(weightMapPhaseTime),avg(pregelPhaseTime),avg(pathConstructionPhaseTime)
+1,2137.5,7.7,8643.9,1904.3
+5,6857.0,5.6,20762.9,4811.0
+10,6686.6,8.5,26278.4,6544.9
+25,6438.5,6.7,36259.1,9170.7
+50,2977.6,6.4,35724.7,10841.2
+100,1920.6,5.7,37109.1,12757.3

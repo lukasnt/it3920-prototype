@@ -3,25 +3,26 @@ package com.lukasnt.spark.util
 import com.lukasnt.spark.util.LengthWeightTable.Entry
 import org.apache.spark.graphx.VertexId
 
+import scala.collection.mutable.ListBuffer
+
 class LengthWeightTable() extends Serializable {
 
-  val historyEntries: List[Entry] = List()
-  val activeEntries: List[Entry]  = List()
+  val historyEntries: ListBuffer[Entry] = ListBuffer()
+  val activeEntries: ListBuffer[Entry]  = ListBuffer()
 
   def updateWithEntry(entry: Entry, topK: Int): LengthWeightTable = {
-    val newTableData = activeEntries :+ entry
-    LengthWeightTable(this, newTableData, topK)
+    activeEntries += entry
+    LengthWeightTable(historyEntries, activeEntries, topK)
   }
 
   def mergeWithTable(other: LengthWeightTable, topK: Int): LengthWeightTable = {
-    val newActiveEntries  = activeEntries ++ other.activeEntries
-    val newHistoryEntries = historyEntries ++ other.historyEntries
-    LengthWeightTable(newHistoryEntries, newActiveEntries, topK)
+    activeEntries ++= other.activeEntries
+    LengthWeightTable(historyEntries, activeEntries, topK)
   }
 
-  def flushActiveEntries(): LengthWeightTable = {
-    val newHistory = historyEntries ++ activeEntries
-    LengthWeightTable(newHistory, List(), 10)
+  def flushActiveEntries(topK: Int): LengthWeightTable = {
+    historyEntries ++= activeEntries
+    LengthWeightTable(historyEntries, ListBuffer(), topK)
   }
 
   def filterByLengthRange(minLength: Int, maxLength: Int, topK: Int): LengthWeightTable = {
@@ -50,7 +51,7 @@ class LengthWeightTable() extends Serializable {
   def size: Int = entries.size
 
   def entries: List[Entry] = {
-    historyEntries ++ activeEntries
+    historyEntries.toList ++ activeEntries
   }
 
   override def equals(other: Any): Boolean = other match {
@@ -68,16 +69,14 @@ class LengthWeightTable() extends Serializable {
 
 object LengthWeightTable {
 
-  def apply(existingTable: LengthWeightTable, activeEntries: List[Entry], topK: Int): LengthWeightTable =
-    LengthWeightTable(existingTable.historyEntries, activeEntries, topK)
 
-  def apply(history: List[Entry], actives: List[Entry], topK: Int): LengthWeightTable = new LengthWeightTable() {
-    override val historyEntries: List[Entry] = {
-      if (topK == -1) history.sortBy(_.weight)
+  def apply(history: ListBuffer[Entry], actives: ListBuffer[Entry], topK: Int): LengthWeightTable = new LengthWeightTable() {
+    override val historyEntries: ListBuffer[Entry] = {
+      if (topK == -1) history
       else history.sortBy(_.weight).take(topK)
     }
-    override val activeEntries: List[Entry] = {
-      if (topK == -1) actives.sortBy(_.weight)
+    override val activeEntries: ListBuffer[Entry] = {
+      if (topK == -1) actives
       else actives.sortBy(_.weight).take(topK)
     }
   }
@@ -87,5 +86,5 @@ object LengthWeightTable {
       s"Entry($length|$weight|$parentId)"
     }
   }
-  
+
 }

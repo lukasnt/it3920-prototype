@@ -1,10 +1,11 @@
 package com.lukasnt.spark.executors
 
-import com.lukasnt.spark.io.Loggers
 import com.lukasnt.spark.models.Types._
 import com.lukasnt.spark.queries._
-import com.lukasnt.spark.util.{QueryState, IntervalStates, LengthWeightTable}
+import com.lukasnt.spark.util.{IntervalStates, LengthWeightTable, QueryState}
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, VertexId}
+
+import scala.collection.mutable.ListBuffer
 
 class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[PregelVertex, Properties, IntervalStates] {
 
@@ -20,12 +21,14 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
   private val maxLength: Int                                     = parameterQuery.maxLength
   private val topK: Int                                          = parameterQuery.topK
 
-  override def maxIterations(): Int = maxLength + 1
+  //private var historyBuffers: ListBuffer[(VertexId, List[IntervalStates.IntervalTable])] = ListBuffer()
+
+  override def maxIterations(): Int = maxLength
 
   override def activeDirection(): EdgeDirection = EdgeDirection.Out
 
   override def initMessages(): IntervalStates = {
-    IntervalStates(List())
+    IntervalStates(ListBuffer())
   }
 
   override def preprocessGraph(temporalGraph: TemporalGraph): Graph[PregelVertex, Properties] = {
@@ -39,7 +42,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
             .applyIntermediateTest(_ => true, attr)
             .applyDestinationTest(vertexAttr => destinationPredicate(AttrVertex(id, vertexAttr)), attr)
             .build(),
-          intervalStates = IntervalStates(List())
+          intervalStates = IntervalStates(ListBuffer())
       )
     )
   }
@@ -48,7 +51,7 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
                              currentState: PregelVertex,
                              mergedMessage: IntervalStates): PregelVertex = {
 
-    Loggers.default.debug(
+    /*Loggers.default.debug(
       s"VERTEX_PROGRAM -- " +
         s"id: $vertexId, " +
         s"iterations: ${currentState.queryState.iterations}, " +
@@ -56,17 +59,19 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         s"incomingLength: ${mergedMessage.currentLength}, " +
         s"intervalStates: ${currentState.intervalStates}, " +
         s"mergedMessage: $mergedMessage"
-    )
+    )*/
+
+    //historyBuffers += ((vertexId, currentState.intervalStates.intervalTables))
 
     PregelVertex(
       queryState = QueryState
         .builder()
         .fromState(currentState.queryState)
         .incIterations()
-        .setCurrentLength(mergedMessage.currentLength)
         .build(),
       intervalStates = currentState.intervalStates
-        .mergeStates(mergedMessage.flushedTableStates, topK)
+        .flushedTableStates(topK)
+        .mergedStates(mergedMessage, topK)
     )
   }
 
@@ -77,19 +82,17 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
       return Iterator.empty
     }
 
-    val currentLength = triplet.srcAttr.queryState.currentLength
     val currentStates = triplet.srcAttr.intervalStates
     val messageStates = IntervalStates(
       if (currentStates.intervalTables.nonEmpty)
         currentStates
           .intervalFilteredStates(validEdgeInterval, triplet.attr.interval)
-          .lengthFilteredStates(currentLength)
           .intervalTables
-          .map(intervalTable => messageIntervalTable(intervalTable, triplet, currentLength))
-      else List(firstIntervalTable(triplet))
+          .map(intervalTable => messageIntervalTable(intervalTable, triplet))
+      else ListBuffer(firstIntervalTable(triplet))
     )
 
-    Loggers.default.debug(
+    /*Loggers.default.debug(
       s"SEND_MESSAGE -- " +
         s"srcId: ${triplet.srcId}, " +
         s"dstId: ${triplet.dstId}, " +
@@ -98,27 +101,25 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
         s"tripletInterval: ${triplet.attr.interval}, " +
         s"weight: ${triplet.attr.properties("weight")}, " +
         s"messageStates: $messageStates"
-    )
+    )*/
 
     Iterator((triplet.dstId, messageStates))
   }
 
   private def messageIntervalTable(intervalTable: IntervalStates.IntervalTable,
-                                   triplet: EdgeTriplet[PregelVertex, Properties],
-                                   currentLength: Int) = {
+                                   triplet: EdgeTriplet[PregelVertex, Properties]) = {
     val newInterval = nextInterval(intervalTable.interval, triplet.attr.interval)
     val newTable = LengthWeightTable(
-      history = List(),
+      history = ListBuffer(),
       actives = intervalTable.table
-        .filterByLength(currentLength, topK)
-        .entries
+        .activeEntries
         .map(
           entry =>
             LengthWeightTable.Entry(entry.length + 1,
                                     entry.weight + weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)),
                                     triplet.srcId)
         ),
-      topK = topK
+      topK = -1
     )
     IntervalStates.IntervalTable(newInterval, newTable)
   }
@@ -127,18 +128,18 @@ class ParameterPregel(parameterQuery: ParameterQuery) extends PregelExecutor[Pre
     IntervalStates.IntervalTable(
       interval = initInterval(triplet.attr.interval),
       table = LengthWeightTable(
-        history = List(),
-        actives = List(
+        history = ListBuffer(),
+        actives = ListBuffer(
           LengthWeightTable.Entry(1, weightMap(AttrEdge(triplet.srcId, triplet.dstId, triplet.attr)), triplet.srcId)
         ),
-        topK = topK
+        topK = -1
       )
     )
   }
 
   override def mergeMessage(msgA: IntervalStates, msgB: IntervalStates): IntervalStates = {
-    val merged = msgA.mergeStates(msgB, topK)
-    Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")
+    val merged = msgA.mergedStates(msgB, topK)
+    /*Loggers.default.debug(s"MERGE_MESSAGE -- msgA: $msgA, msgB: $msgB, merged: $merged")*/
     merged
   }
 }

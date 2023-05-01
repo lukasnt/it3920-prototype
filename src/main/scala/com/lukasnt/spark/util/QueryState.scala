@@ -5,14 +5,11 @@ import com.lukasnt.spark.models.Types.Properties
 class QueryState(val seqNum: Int = 0) extends Serializable {
 
   private var _iterations: Int       = 0
-  private var _currentLength: Int    = 0
   private var _source: Boolean       = false
   private var _intermediate: Boolean = false
   private var _destination: Boolean  = false
 
   def iterations: Int = _iterations
-
-  def currentLength: Int = _currentLength
 
   def source: Boolean = _source
 
@@ -20,10 +17,9 @@ class QueryState(val seqNum: Int = 0) extends Serializable {
 
   def destination: Boolean = _destination
 
-
   override def toString: String = {
-    s"QueryState(seqNum=$seqNum, iterations=${_iterations}, currentLength=${_currentLength}, " +
-      s"intermediate=${_intermediate}, source=${_source}, destination=${_destination}"
+    s"QueryState(seqNum=$seqNum, iterations=${_iterations}, intermediate=${_intermediate}, " +
+      s"source=${_source}, destination=${_destination}"
   }
 
 }
@@ -42,7 +38,6 @@ object QueryState {
 
     def fromState(state: QueryState): QueryStateBuilder = {
       queryState._iterations = state._iterations
-      queryState._currentLength = state._currentLength
       queryState._source = state._source
       queryState._intermediate = state._intermediate
       queryState._destination = state._destination
@@ -66,11 +61,6 @@ object QueryState {
 
     def incIterations(): QueryStateBuilder = {
       queryState._iterations += 1
-      this
-    }
-
-    def setCurrentLength(length: Int): QueryStateBuilder = {
-      queryState._currentLength = length
       this
     }
 

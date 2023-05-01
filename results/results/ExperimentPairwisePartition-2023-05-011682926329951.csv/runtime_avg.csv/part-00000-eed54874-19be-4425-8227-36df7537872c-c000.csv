@@ -1,0 +1,5 @@
+partitionStrategy,avg(subgraphPhaseTime),avg(weightMapPhaseTime),avg(pregelPhaseTime),avg(pathConstructionPhaseTime)
+CanonicalRandomVertexCut$,4780.5,8.0,7194.4,1952.9
+EdgePartition1D$,5053.2,8.0,8217.5,2094.6
+EdgePartition2D$,4780.5,7.9,6319.2,1346.5
+RandomVertexCut$,5214.2,10.0,8212.6,2070.6

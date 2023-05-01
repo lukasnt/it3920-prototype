@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   zeppelin:
     build:
@@ -5,6 +7,8 @@ services:
     ports:
       - "8080:8080"
       - "4040:4040"
+    env_file:
+      - .env
     profiles:
       - debug
     volumes:
@@ -21,17 +25,10 @@ services:
         target: /opt/zeppelin/logs
         read_only: false
       - ./log4j.properties:/opt/zeppelin/spark/conf/log4j.properties
-    environment:
-      - ZEPPELIN_NOTEBOOK_DIR=/opt/zeppelin/notebook
-      - ZEPPELIN_ADDR=0.0.0.0
-      - ZEPPELIN_PORT=8080
-      - ZEPPELIN_MEM=-Xmx16384m
     command: /opt/zeppelin/bin/zeppelin-daemon.sh upstart
     tty: true
 
   package-restart:
-    depends_on:
-      - zeppelin
     build:
       context: .
       target: mvn-package
@@ -54,6 +51,33 @@ services:
       && curl -X POST http://zeppelin:8080/api/notebook/job/2HSV6W3AT
       "
 
+  spark-submit:
+    env_file:
+      - .env
+    build:
+      context: .
+      target: spark-v2_4_0
+    profiles:
+      - spark-submit
+    volumes:
+      - type: bind
+        source: ./target
+        target: /opt/spark/target
+        read_only: false
+      - type: bind
+        source: ./results
+        target: /opt/spark/results
+        read_only: false
+      - type: bind
+        source: ./datasets
+        target: /opt/spark/datasets
+        read_only: false
+      - ./log4j.properties:/opt/spark/conf/log4j.properties
+    mem_reservation: 12000M
+    cpu_count: 8
+    entrypoint: /opt/spark/bin/spark-submit --class com.lukasnt.spark.App --deploy-mode client --master local --driver-memory 12g --driver-cores 16 --executor-memory 12g --executor-cores 16 --conf spark.executor.instances=2 --conf spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/opt/spark/conf/log4j.properties --conf spark.executor.extraJavaOptions=-Dlog4j.configuration=file:/opt/spark/conf/log4j.properties /opt/spark/target/spark-graphx-scala-1.0-SNAPSHOT-jar-with-dependencies.jar
+
+
   spark-history-server:
     build:
       context: .
@@ -62,8 +86,8 @@ services:
       - debug
     ports:
       - "18080:18080"
-    environment:
-      - SPARK_HISTORY_OPTS=-Dspark.history.fs.logDirectory=file:/opt/spark/logs -Dspark.history.ui.port=18080
+    env_file:
+      - .env
     volumes:
       - type: bind
         source: ./logs/spark-events
@@ -102,11 +126,8 @@ services:
       - "9870:9870"
     profiles:
       - hdfs
-    environment:
-      - HDFS_NAMENODE_USER=root
-      - HDFS_DATANODE_USER=root
-      - HDFS_SECONDARYNAMENODE_USER=root
-      - JAVA_HOME=/usr/lib/jvm/java-8-openjdk
+    env_file:
+      - .env
     volumes:
       - type: bind
         source: ./hdfs/namenode
@@ -130,10 +151,8 @@ services:
       - "9864:9864"
     profiles:
       - hdfs
-    environment:
-      - HDFS_NAMENODE_USER=root
-      - HDFS_DATANODE_USER=root
-      - HDFS_SECONDARYNAMENODE_USER=root
+    env_file:
+      - .env
     volumes:
       - type: bind
         source: ./hdfs/datanode
@@ -144,4 +163,23 @@ services:
       bash -c "
       /opt/hadoop/sbin/stop-dfs.sh
       && hdfs datanode
+      "
+
+  ldbc-datagen:
+    build:
+      context: .
+      target: ldbc-snb-datagen
+    profiles:
+      - ldbc-datagen
+    env_file:
+      - .env
+    volumes:
+      - type: bind
+        source: ./datasets
+        target: /opt/ldbc-snb-data
+        read_only: false
+    command: >
+      bash -c "
+      mkdir -p OUTPUT_DIR
+      && /ldbc_snb_datagen_spark/tools/run.py --parallelism 8 --memory 12g -- --format csv --scale-factor $SCALE_FACTOR --mode raw --output-dir $OUTPUT_DIR
       "

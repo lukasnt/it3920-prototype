@@ -1,0 +1,2 @@
+sparkExecutorInstances,avg(subgraphPhaseTime),avg(weightMapPhaseTime),avg(pregelPhaseTime),avg(pathConstructionPhaseTime)
+4,4352.0,9.3,10467.3,2702.5

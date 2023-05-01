@@ -19,11 +19,28 @@ object SimpleParameterQueries {
       .build()
   }
 
-  def interactionPaths(city1: String = "1226",
-                       city2: String = "1363",
-                       minLength: Int = 4,
+  def interactionPaths(city1: String = "573",
+                       city2: String = "737",
+                       minLength: Int = 2,
                        topK: Int = 10,
                        pathType: TemporalPathType = TemporalPathType.Continuous): ParameterQuery = {
+    ParameterQuery
+      .builder()
+      .withPathType(pathType)
+      .withSourcePredicate(s => s.attr.typeLabel == "Person" && s.attr.properties("LocationCityId") == city1)
+      .withIntermediatePredicate(e => e.attr.typeLabel == "Person_knows_Person")
+      .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("LocationCityId") == city2)
+      .withWeightMap(e => e.attr.interval.getDuration.toFloat)
+      .withMinLength(minLength)
+      .withMaxLength(minLength + 1)
+      .withTopK(topK)
+      .build()
+  }
+
+  def genderDurationPaths(minLength: Int = 2,
+                          maxLength: Int = 3,
+                          topK: Int = 25,
+                          pathType: TemporalPathType = TemporalPathType.Continuous): ParameterQuery = {
     ParameterQuery
       .builder()
       .withPathType(pathType)
@@ -32,7 +49,7 @@ object SimpleParameterQueries {
       .withDestinationPredicate(d => d.attr.typeLabel == "Person" && d.attr.properties("gender") == "female")
       .withWeightMap(e => e.attr.interval.getDuration.toFloat)
       .withMinLength(minLength)
-      .withMaxLength(100)
+      .withMaxLength(maxLength)
       .withTopK(topK)
       .build()
   }

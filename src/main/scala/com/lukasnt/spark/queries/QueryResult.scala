@@ -1,5 +1,6 @@
 package com.lukasnt.spark.queries
 
+import com.lukasnt.spark.executors.SerialQueryExecutor
 import com.lukasnt.spark.models.Types.TemporalGraph
 import com.lukasnt.spark.util.PathWeightTable
 import com.lukasnt.spark.visualizers.HTMLGenerator
@@ -44,6 +45,46 @@ class QueryResult(val queriedGraph: TemporalGraph,
 
   def asGraphList: List[TemporalGraph] = {
     pathTable.entries.map(entry => entry.path.asTemporalGraph(queriedGraph))
+  }
+
+  def printDiff(other: QueryResult): Unit = {
+    val thisPaths  = pathTable.entries
+    val otherPaths = other.pathTable.entries
+    thisPaths.zip(otherPaths).foreach {
+      case (thisEntry, otherEntry) =>
+        if (thisEntry.path.vertexSequence != otherEntry.path.vertexSequence && thisEntry.weight != otherEntry.weight) {
+          println(
+            s"Mismatch found! " +
+              s"Path: ${thisEntry.path.vertexSequence} != ${otherEntry.path.vertexSequence}, " +
+              s"Weight: ${thisEntry.weight} != ${otherEntry.weight}"
+          )
+        }
+    }
+  }
+
+  override def equals(obj: Any): Boolean = {
+    obj match {
+      case other: QueryResult =>
+        other.pathTable.entries.map(_.path.vertexSequence) == pathTable.entries.map(_.path.vertexSequence) &&
+          other.pathTable.entries.map(_.path.interval) == pathTable.entries.map(_.path.interval)
+      case _ => false
+    }
+  }
+}
+
+object QueryResult {
+
+  def apply(queriedGraph: TemporalGraph, pathTable: PathWeightTable): QueryResult =
+    new QueryResult(queriedGraph, pathTable)
+
+  def apply(queriedGraph: TemporalGraph, pathEntries: List[SerialQueryExecutor.PathEntry]): QueryResult = {
+    new QueryResult(
+      queriedGraph = queriedGraph,
+      pathTable = PathWeightTable(
+        tableEntries = pathEntries.map(entry => PathWeightTable.Entry(entry.interval, 0, entry.weight, entry.path)),
+        topK = -1
+      )
+    )
   }
 
 }

@@ -2,7 +2,6 @@ package com.lukasnt.spark.executors
 
 import com.lukasnt.spark.models.Types.{AttrEdge, AttrVertex, Properties, TemporalGraph}
 import com.lukasnt.spark.queries.ParameterQuery
-import org.apache.spark.graphx.Graph
 
 class ParameterSubgraph(parameterQuery: ParameterQuery) extends SubgraphExecutor {
 
@@ -19,7 +18,7 @@ class ParameterSubgraph(parameterQuery: ParameterQuery) extends SubgraphExecutor
   override def subgraph(temporalGraph: TemporalGraph): TemporalGraph = {
     // Map the graph first to add source and destination properties such that the Pregel phase can use them
     // Then filter the graph to keep only the vertices that are source or destination or pass the intermediate predicate
-    temporalGraph
+    val result = temporalGraph
       .mapVertices(
         (id, attr) =>
           new Properties(
@@ -29,10 +28,8 @@ class ParameterSubgraph(parameterQuery: ParameterQuery) extends SubgraphExecutor
               ("source"     -> sourcePredicate(AttrVertex(id, attr)).toString,
               "destination" -> destinationPredicate(AttrVertex(id, attr)).toString)
         ))
-      .subgraph(
-        vpred = (id, attr) => attr.properties("source").toBoolean || attr.properties("destination").toBoolean,
-        epred = edge => intermediatePredicate(AttrEdge(edge.srcId, edge.dstId, edge.attr))
-      )
+    println(s"vertices: ${result.vertices.count()}, edges: ${result.edges.count()}")
+    result
   }
 
 }
