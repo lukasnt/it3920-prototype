@@ -1,0 +1,6 @@
+graphSize,avg(subgraphPhaseTime),avg(weightMapPhaseTime),avg(pregelPhaseTime),avg(pathConstructionPhaseTime)
+sf0_003,3534.0,9.0,887.1,270.3
+sf0_1,3896.5,7.0,1187.8,349.6
+sf0_3,4150.0,8.7,2691.6,756.4
+sf1,4646.5,9.1,13493.7,3132.8
+sf3,7343.1,10.6,35260.6,4774.8
