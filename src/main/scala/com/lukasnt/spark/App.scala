@@ -6,7 +6,6 @@ import com.lukasnt.spark.io.{SNBLoader, SparkObjectWriter, TemporalGraphLoader}
 import com.lukasnt.spark.models.TemporalPathType
 import com.lukasnt.spark.queries.ParameterQuery
 import org.apache.spark.graphx.PartitionStrategy
-import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Encoders, SparkSession}
 import picocli.CommandLine
 import picocli.CommandLine.{Command, Option}
@@ -354,11 +353,13 @@ class App extends Callable[Int] {
         avgDf
           .select(variable, "avg(totalRDDMemorySize)", "avg(totalSparkExecutorMemoryUsed)", "avg(driverMemoryUsed)")
           .map(row => {
+            val variableName =
+              if (variable == "graphSize") App.graphSizeStringToDouble(row(0).toString) else row(0).toString
             val totalRDDMemorySize           = row.getAs[Double]("avg(totalRDDMemorySize)")
             val totalSparkExecutorMemoryUsed = row.getAs[Double]("avg(totalSparkExecutorMemoryUsed)")
             val driverMemoryUsed             = row.getAs[Double]("avg(driverMemoryUsed)")
             val executorsHeap                = totalSparkExecutorMemoryUsed - totalRDDMemorySize
-            (row(0).toString, totalRDDMemorySize, executorsHeap, driverMemoryUsed)
+            (variableName, totalRDDMemorySize, executorsHeap, driverMemoryUsed)
           })(
             Encoders.tuple(
               Encoders.STRING,
@@ -375,7 +376,12 @@ class App extends Callable[Int] {
           .csv(s"$outputDir/results/$filename/memory_avg.csv")
 
         df.select(variable, "totalExecutionTime")
-          .sort(variable)
+          .map(row => {
+            val variableName =
+              if (variable == "graphSize") App.graphSizeStringToDouble(row(0).toString) else row(0).toString
+            (variableName, row.getAs[Long]("totalExecutionTime"))
+          })(Encoders.tuple(Encoders.STRING, Encoders.scalaLong))
+          .sort("_1")
           .write
           .mode("overwrite")
           .option("header", "true")
@@ -384,11 +390,13 @@ class App extends Callable[Int] {
 
         df.select(variable, "totalRDDMemorySize", "totalSparkExecutorMemoryUsed", "driverMemoryUsed")
           .map(row => {
+            val variableName =
+              if (variable == "graphSize") App.graphSizeStringToDouble(row(0).toString) else row(0).toString
             val totalRDDMemorySize           = row.getAs[Long]("totalRDDMemorySize")
             val totalSparkExecutorMemoryUsed = row.getAs[Long]("totalSparkExecutorMemoryUsed")
             val driverMemoryUsed             = row.getAs[Long]("driverMemoryUsed")
             val executorsHeap                = totalSparkExecutorMemoryUsed - totalRDDMemorySize
-            (row(0).toString, totalRDDMemorySize + executorsHeap + driverMemoryUsed)
+            (variableName, totalRDDMemorySize + executorsHeap + driverMemoryUsed)
           })(
             Encoders.tuple(
               Encoders.STRING,
@@ -410,12 +418,6 @@ class App extends Callable[Int] {
     }
   }
 
-  @Command
-  def formatRawResult(
-      @Option(names = Array("-f", "--filename"), description = Array("filename"))
-      filename: String
-  ): Unit = {}
-
   override def call(): Int = {
     0
   }
@@ -427,6 +429,10 @@ object App {
   def main(args: Array[String]): Unit = {
     println("Hello World!")
     new CommandLine(new App()).execute(args: _*)
+  }
+
+  private def graphSizeStringToDouble(graphSizeString: String): String = {
+    graphSizeString.substring(2, graphSizeString.length).replace("_", ".")
   }
 
 }
